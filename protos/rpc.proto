@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package facepb;
+
+
+service PassportRpc {
+  // Sends a greeting
+  rpc UserAdd (UserInfo) returns (Reply) {}
+  rpc UserAuth (Token) returns (Reply) {}
+}
+
+
+message UserInfo {
+  string nickname = 1;
+  string cellphone = 2;
+  string email = 3;
+}
+
+
+message Token {
+  string token = 1;
+}
+
+
+message Reply {
+  bytes message = 1;
+}

@@ -1,0 +1,63 @@
+package common
+
+import (
+	"testing"
+
+	zhongwen "github.com/go-playground/locales/zh"
+	ut "github.com/go-playground/universal-translator"
+	"github.com/liuhengloveyou/passport/dao"
+	validator "github.com/go-playground/validator/v10"
+	validatorzh "gopkg.in/go-playground/validator.v10/translations/zh"
+)
+
+var validate *validator.Validate = validator.New()
+
+func TestEmail(t *testing.T) {
+	one := dao.User{
+		Cellphone: "aaa",
+		Email:     "aa",
+	}
+
+	zh := zhongwen.New()
+	trans, _ := ut.New(zh, zh).GetTranslator("zh")
+
+	validate := validator.New()
+
+	validate.RegisterValidation("phone", cellPhoneFunc)
+
+	validate.RegisterTranslation("phone", trans,
+		func(ut ut.Translator) (err error) {
+			return ut.Add("phone", "手机号码格式错误", true)
+		},
+		func(ut ut.Translator, fe validator.FieldError) string {
+			t, err := ut.T(fe.Tag(), fe.Field())
+			if err != nil {
+				return fe.(error).Error()
+			}
+			return t
+		})
+
+	if err := validatorzh.RegisterDefaultTranslations(validate, trans); err != nil {
+		t.Log("err: ", err)
+	}
+
+	err := validate.Struct(one)
+	if err != nil {
+		if errs, ok := err.(validator.ValidationErrors); ok {
+			t.Logf("%v\n\n", errs[0].Translate(trans))
+
+			t.Log("Namespace: ", errs[0].Namespace())
+			t.Log("Field: ", errs[0].Field())
+			t.Log("StructNamespace: ", errs[0].StructNamespace()) // can differ when a custom TagNameFunc is registered or
+			t.Log("StructField: ", errs[0].StructField())         // by passing alt name to ReportError like below
+			t.Log("Tag: ", errs[0].Tag())
+			t.Log("ActualTag: ", errs[0].ActualTag())
+			t.Log("Kind: ", errs[0].Kind())
+			t.Log("Type: ", errs[0].Type())
+			t.Log("Value: ", errs[0].Value())
+			t.Log("Param: ", errs[0].Param())
+
+		}
+	}
+
+}

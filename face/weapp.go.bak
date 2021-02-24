@@ -1,0 +1,67 @@
+package face
+
+import (
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
+
+	"github.com/liuhengloveyou/passport/common"
+	"github.com/liuhengloveyou/passport/service"
+
+	gocommon "github.com/liuhengloveyou/go-common"
+)
+
+func weappLogin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		gocommon.HttpErr(w, http.StatusMethodNotAllowed, -1, "only post")
+		return
+	}
+
+	body, e := ioutil.ReadAll(r.Body)
+	if e != nil {
+		logger.Error("onlogin read body ERR: ", e.Error())
+		gocommon.HttpErr(w, http.StatusBadRequest, -1, "body err.")
+		return
+	}
+
+	logger.Info("miniapp.onlogin body: ", string(body))
+
+	s := &service.MiniApp{
+		AppID:      common.ServConfig.WeAppID,
+		AppSecrect: common.ServConfig.WeAppSecrect,
+	}
+	if e := json.Unmarshal(body, s); e != nil {
+		logger.Error("onlogin Unmarshal body ERR: ", e.Error())
+		gocommon.HttpErr(w, http.StatusBadRequest, -1, "body err.")
+		return
+	}
+
+	info, e := s.Login()
+	if e != nil {
+		logger.Error("miniapp user onlogin ERR: ", e.Error())
+		gocommon.HttpErr(w, http.StatusInternalServerError, -1, e.Error())
+		return
+	}
+	logger.Infof("miniapp.onlogin ok: %#v\n", info)
+
+	// wx登录成功
+	session, err := store.Get(r, SessionKey)
+	if err != nil {
+		gocommon.HttpErr(w, http.StatusInternalServerError, -1, "会话错误.")
+		logger.Error("session.GetSession ERR:", err.Error())
+		return
+	}
+
+	session.Values[SessUserInfoKey] = info
+
+	if err := session.Save(r, w); err != nil {
+		logger.Error("weappLogin session ERR: ", err)
+		gocommon.HttpErr(w, http.StatusOK, -1, "会话错误")
+		return
+	}
+
+	gocommon.HttpErr(w, http.StatusOK, 0, session.ID)
+	logger.Infof("weapp login ok: %s %v", session.ID, info)
+
+	return
+}
