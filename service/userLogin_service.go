@@ -2,6 +2,8 @@ package service
 
 import (
 	"fmt"
+
+	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
 
 	. "github.com/liuhengloveyou/passport/common"
@@ -18,7 +20,7 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 		return nil, fmt.Errorf("密码不能为空")
 	}
 
-	if user.Cellphone == "" && user.Cellphone == "" && user.Nickname == "" {
+	if user.Cellphone == "" && user.Nickname == "" {
 		return nil, fmt.Errorf("请求参数错误")
 	}
 
@@ -49,10 +51,22 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 		one, e = loginByNickname(user)
 	}
 
+	if e != nil {
+		common.Logger.Sugar().Errorf("db err: %v\n", e.Error())
+		e = common.ErrService
+	}
+
 	if one != nil {
 		one.Password = ""
 	}
-	
+
+	// tenant
+	if common.ServConfig.IsTenant && one.TenantID > 0 {
+		if one.Tenant, e = dao.TenantGetByID(one.TenantID); e != nil {
+			common.Logger.Sugar().Errorf("TenantGetByID ERR: ", e)
+		}
+	}
+
 	return
 }
 

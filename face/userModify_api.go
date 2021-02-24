@@ -2,6 +2,7 @@ package face
 
 import (
 	"encoding/json"
+	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
 	"io/ioutil"
 	"net/http"
@@ -19,20 +20,13 @@ func userModify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		logger.Error("userModify body ERR: ", err)
-		gocommon.HttpErr(w, http.StatusBadRequest, -1, err.Error())
-		return
-	}
-
 	user := &protos.UserReq{}
-	err = json.Unmarshal(body, user)
-	if err != nil {
-		logger.Error("userModify json ERR: ", err)
-		gocommon.HttpErr(w, http.StatusBadRequest, -1, err.Error())
+	if err := readJsonBodyFromRequest(r, user); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("userLogin param ERR: ", err)
 		return
 	}
+	logger.Infof("userModify: %#vv\n", user)
 
 	info := sess.Values[SessUserInfoKey].(protos.User)
 	logger.Info("userModify", user, info)
@@ -69,7 +63,7 @@ func userModify(w http.ResponseWriter, r *http.Request) {
 
 	user.UID = info.UID
 
-	if _, err = service.UpdateUserService(user); err != nil {
+	if _, err := service.UpdateUserService(user); err != nil {
 		logger.Error(*user, err)
 		gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
 		return

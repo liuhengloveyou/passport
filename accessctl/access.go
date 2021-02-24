@@ -4,6 +4,10 @@ import (
 	"fmt"
 )
 
+func Enforce(uid uint64, obj, act string) (bool, error){
+	return enforce(genUserByUID(uid), obj, act)
+}
+
 func AddRoleForUser(uid uint64, role string) (err error) {
 	return addRoleForUser(genUserByUID(uid), role)
 }

@@ -1,13 +1,14 @@
 package common
 
 import (
+	"context"
 	"crypto/sha256"
 	"flag"
 	"fmt"
 	"net/url"
 	"time"
-	"context"
 
+	"github.com/liuhengloveyou/passport/accessctl"
 	"github.com/liuhengloveyou/passport/protos"
 
 	redis "github.com/go-redis/redis/v8"
@@ -26,13 +27,12 @@ const (
 var (
 	passportconfile = flag.String("passport", "./passport.conf.yaml", "配置文件路径")
 
-	ServConfig  protos.OptionStruct
+	ServConfig protos.OptionStruct
 
 	DB          *sqlx.DB
 	Logger      *zap.Logger
 	RedisClient *redis.Client
 )
-
 
 type NilWriter struct{}
 
@@ -51,14 +51,14 @@ func init() {
 	}
 }
 
-func InitWithOption(option *protos.OptionStruct) (e error){
+func InitWithOption(option *protos.OptionStruct) (e error) {
 	if option.MysqlURN != "" && DB == nil {
 		if e = InitMysql(option.MysqlURN); e != nil {
 			return e
 		}
 	}
 
-	if option.RedisAddr != "" && RedisClient == nil{
+	if option.RedisAddr != "" && RedisClient == nil {
 		if e = InitRedis(option.RedisAddr); e != nil {
 			return e
 		}
@@ -70,9 +70,25 @@ func InitWithOption(option *protos.OptionStruct) (e error){
 		}
 	}
 
+	ServConfig.AvatarDir = "./avatar/"
 	if "" != option.AvatarDir {
 		ServConfig.AvatarDir = option.AvatarDir // 头像上传目录
 	}
+
+	ServConfig.MysqlTableName = "users"
+	if "" != option.MysqlTableName {
+		ServConfig.MysqlTableName = option.MysqlTableName // 数据库表名
+	}
+
+	ServConfig.AccessControl = option.AccessControl
+	if ServConfig.AccessControl == true {
+		if e = accessctl.InitAccessControl("rbac_model.conf", option.MysqlURN); e != nil {
+			return e
+		}
+	}
+
+	ServConfig.IsTenant = option.IsTenant
+	ServConfig.SessionStoreType = option.SessionStoreType
 
 	return nil
 }

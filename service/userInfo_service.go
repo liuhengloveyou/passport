@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
 
 	"github.com/liuhengloveyou/passport/dao"
@@ -19,6 +20,7 @@ func GetUserInfoService(uid uint64) (r protos.User, e error) {
 
 	var rr []protos.User
 	if rr, e = dao.UserSelect(model, 1, 1); e != nil {
+		common.Logger.Sugar().Errorf("GetUserInfoService DB ERR: %v\n", e)
 		return
 	}
 

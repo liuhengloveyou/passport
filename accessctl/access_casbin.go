@@ -24,7 +24,6 @@ func InitAccessControl(rbacModel, mysqlURN string) (err error) {
 	}
 	//defer db.Close()
 
-	db.SetMaxOpenConns(20)
 	db.SetMaxIdleConns(10)
 	db.SetConnMaxLifetime(time.Minute * 10)
 
@@ -37,20 +36,16 @@ func InitAccessControl(rbacModel, mysqlURN string) (err error) {
 		return err
 	}
 
-	enforcer, err = casbin.NewSyncedEnforcer(rbacModel, adapter)
-	if err != nil {
+	if enforcer, err = casbin.NewSyncedEnforcer(rbacModel, adapter); err != nil {
 		return err
 	}
 
-	enforcer.StartAutoLoadPolicy(time.Minute)
-
-	// 初始化数据
-	enforcer.AddPolicy("admin", "*", "*")
+	//enforcer.StartAutoLoadPolicy(time.Minute)
 
 	return nil
 }
 
-func enforce(sub, obj, act string) (bool, error){
+func enforce(sub, obj, act string) (bool, error) {
 	return enforcer.Enforce(sub, obj, act)
 }
 

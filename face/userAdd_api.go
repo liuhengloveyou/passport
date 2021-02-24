@@ -1,9 +1,8 @@
 package face
 
 import (
-	"encoding/json"
+	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/liuhengloveyou/passport/service"
@@ -15,20 +14,12 @@ import (
 func userAdd(w http.ResponseWriter, r *http.Request) {
 	user := &protos.UserReq{}
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		logger.Error("userAdd ioutil.ReadAll(r.Body) ERR: ", err)
-		gocommon.HttpErr(w, http.StatusBadRequest, 0, err.Error())
+	if err := readJsonBodyFromRequest(r, user); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("userAdd param ERR: ", err)
 		return
 	}
-
-	if err = json.Unmarshal(body, user); err != nil {
-		logger.Error("userAdd json.Unmarshal(body, user) ERR: ", string(body))
-		gocommon.HttpErr(w, http.StatusBadRequest, -1, err.Error())
-		return
-	}
-
-	logger.Infof("userAdd body: %s %#v\n", string(body), user)
+	logger.Infof("userAdd body: %#v\n", user)
 
 	if user.Cellphone == "" && user.Email == "" {
 		logger.Error("ERR: 用户手机号和邮箱地址同时为空")

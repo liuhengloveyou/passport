@@ -141,22 +141,12 @@ GET请求使用标准的URL参数，POST用JSON格式的body。
 
 示例：
 
-```
-	curl -v -X PUT -H "X-API: register" -d \
-	'{
-	    "cellphone": "17688396387",
-	    "password": "123456"
-	}' "http://127.0.0.1:9999/user"
-	
-	成功: 
-		statCode: 200
-	  body: {
-	    code: 0,
-	    data: "uid"
-		}
-	失败: 
-		statCode: 200
-	  body: {code: -1, errmsg: "错误信息"}
+```shell
+curl -v -X PUT -H "X-API: register" -d \
+  '{
+      "cellphone": "17688396387",
+      "password": "123456"
+  }' "http://127.0.0.1:8080/user"
 ```
 
 
@@ -170,23 +160,21 @@ GET请求使用标准的URL参数，POST用JSON格式的body。
 | nickname  | 昵称     | 否       |
 
 ```
-curl -v -X POST -H "X-API: login" -d \
+curl -v -X POST -H "X-API: user/login" -d \
 '{
-	"cellphone": "17688396387",
-  "password": "123456"
-  }' "http://127.0.0.1:8080/user"
+    "cellphone": "17688396387",
+    "password": "123456"
+}' "http://127.0.0.1:8080/user"
 	  
-	成功返回:
-	{
-		code: 0,
-	  data: "uid"
-	}
-	
-	失败返回:
-	{
-		code: -1,
-	  errmsg:"错误信息"
-	}
+成功返回:
+{
+    code: 0,
+    "data": {
+        "uid":10000,
+        "cellphone":"17688396387",
+        "nickname":"17688396387",
+    }
+}
 ```
 
 ### 登出
@@ -266,7 +254,17 @@ Body: {
 ### 查询自己的账号详情
 
 ```
-curl -v -X GET -H "X-API: info" "http://127.0.0.1:8080/user"
+curl -v -X GET -H "X-API: info" --cookie "goSessionID=MTYxNDE0N" "http://127.0.0.1:8080/user"
+
+成功返回:
+{
+    code: 0,
+    "data": {
+        "uid":10000,
+        "cellphone":"17688396387",
+        "nickname":"17688396387",
+    }
+}
 ```
 
 
@@ -317,6 +315,18 @@ curl -v -X POST -H "X-API: policy/del" -d \
 }' "http://127.0.0.1:8080/user"
 ```
 
+
+## 多租户相关接口
+
+### 添加租户
+
+```shell
+curl -v -X POST -H "X-API: tenant/add" --cookie "goSessionID=MTYxNQU9ADeUFFrRO5V6VbtYfgFKSlOYwQ==" -d \
+'{
+  "tenantName": "tenant1",
+  "tenantType": "t1"
+}' "http://127.0.0.1:8080/user"
+```
 
 
 ## 应答格式说明
@@ -375,6 +385,6 @@ CREATE TABLE `passport`.`users` (
   UNIQUE KEY `cellphone_UNIQUE` (`cellphone`),
   UNIQUE KEY `email_UNIQUE` (`email`),
   UNIQUE KEY `nickname_UNIQUE` (`nickname`)
-) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=10000;
 ```
 

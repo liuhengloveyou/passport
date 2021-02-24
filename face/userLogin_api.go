@@ -1,11 +1,10 @@
 package face
 
 import (
-	"encoding/json"
-	"github.com/liuhengloveyou/passport/protos"
-	"io/ioutil"
 	"net/http"
 
+	"github.com/liuhengloveyou/passport/common"
+	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/service"
 
 	gocommon "github.com/liuhengloveyou/go-common"
@@ -14,24 +13,16 @@ import (
 func userLogin(w http.ResponseWriter, r *http.Request) {
 	user := &protos.UserReq{}
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		logger.Error("userLogin ioutil.ReadAll(r.Body) ERR: ", err)
-		gocommon.HttpErr(w, http.StatusBadRequest, 0, err.Error())
+	if err := readJsonBodyFromRequest(r, user); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("userLogin param ERR: ", err)
 		return
 	}
-
-	if err = json.Unmarshal(body, user); err != nil {
-		logger.Error("userAdd json.Unmarshal(body, user) ERR: ", string(body))
-		gocommon.HttpErr(w, http.StatusBadRequest, -1, err.Error())
-		return
-	}
-
 	logger.Infof("userLogin: %#vv\n", user)
 
 	one, err := service.UserLogin(user)
 	if err != nil {
-		gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		logger.Errorf("userLogin ERR: %v %v \n", user, err.Error())
 		return
 	}
@@ -41,22 +32,22 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := store.Get(r, SessionKey)
+	session, err := sessionStore.Get(r, SessionKey)
 	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
 		logger.Error("userLogin session ERR: ", err)
-		gocommon.HttpErr(w, http.StatusOK, -1, "会话错误")
 		return
 	}
 
 	session.Values[SessUserInfoKey] = one
 
 	if err := session.Save(r, w); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
 		logger.Error("userLogin session ERR: ", err)
-		gocommon.HttpErr(w, http.StatusOK, -1, "会话错误")
 		return
 	}
 
-	logger.Infof("user login ok: %v ccc :%#v\n", user, session)
+	logger.Infof("user login ok: %v sess :%#v\n", user, session)
 
 	gocommon.HttpErr(w, http.StatusOK, 0, one)
 

@@ -3,12 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/liuhengloveyou/passport/accessctl"
 	_ "net/http/pprof"
 	"os"
 	"runtime"
 	"runtime/pprof"
 
+	"github.com/liuhengloveyou/passport/accessctl"
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/face"
 )

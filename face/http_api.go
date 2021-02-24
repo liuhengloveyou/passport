@@ -24,9 +24,78 @@ const (
 )
 
 var (
-	store  = sessions.NewCookieStore([]byte(SessionKey))
-	logger *zap.SugaredLogger
+	apis         map[string]Api
+	sessionStore sessions.Store
+	logger       *zap.SugaredLogger
 )
+
+type Api struct {
+	Handler    func(http.ResponseWriter, *http.Request)
+	NeedLogin  bool
+	NeedAccess bool
+}
+
+func init() {
+	sessionStore = sessions.NewCookieStore([]byte(SessionKey))
+
+	apis = map[string]Api{
+		"user/register": {
+			Handler: userAdd,
+		},
+		"user/login": {
+			Handler: userLogin,
+		},
+		"user/auth": {
+			Handler:   userAuth,
+			NeedLogin: true,
+		},
+		"user/logout": {
+			Handler:   userLogout,
+			NeedLogin: true,
+		},
+		"user/info": {
+			Handler:   getMyInfo,
+			NeedLogin: true,
+		},
+		"user/modify": {
+			Handler:   userModify,
+			NeedLogin: true,
+		},
+		"modify/password": {
+			Handler:   modifyPWD,
+			NeedLogin: true,
+		},
+		"modify/avatarForm": {
+			Handler:   modifyAvatarByForm,
+			NeedLogin: true,
+		},
+
+		//访问控制
+		"role/add": {
+			Handler:   AddRoleForUser,
+			NeedLogin: true,
+		},
+		"role/del": {
+			Handler:   DeleteRoleForUser,
+			NeedLogin: true,
+		},
+		"policy/add": {
+			Handler:   AddPolicy,
+			NeedLogin: true,
+		},
+		"policy/del": {
+			Handler:   RemovePolicy,
+			NeedLogin: true,
+		},
+
+		// 多租户
+		"tenant/add": {
+			Handler:   tenantAdd,
+			NeedLogin: true,
+		},
+	}
+
+}
 
 func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 	if options != nil {
@@ -35,6 +104,15 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 		}
 	}
 	logger = common.Logger.Sugar()
+
+	switch common.ServConfig.SessionStoreType {
+	case "mem":
+		sessionStore = sessions.NewMemStore(
+			[]byte(common.SYS_PWD),
+		)
+	default:
+		sessionStore = sessions.NewCookieStore([]byte(SessionKey))
+	}
 
 	handler = &PassportHttpServer{}
 
@@ -60,14 +138,20 @@ type PassportHttpServer struct {
 }
 
 func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	api := r.Header.Get("X-API")
-	logger.Debugf("passport api: %v\n", api)
-	if api == "" {
+	apiName := r.Header.Get("X-API")
+	logger.Debugf("passport api: %v\n", apiName)
+	if apiName == "" {
 		gocommon.HttpErr(w, http.StatusBadRequest, -1, "?API")
 		return
 	}
 
-	if api != "login" && api != "register" && api != "weapp/login" {
+	apiHandler, ok := apis[apiName]
+	if !ok {
+		gocommon.HttpErr(w, http.StatusNotFound, 0, "")
+		return
+	}
+
+	if apiHandler.NeedLogin {
 		sess, auth := AuthFilter(w, r)
 		logger.Debug("passport session:", sess, auth)
 
@@ -79,46 +163,16 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if sess != nil {
-			r = r.WithContext(context.WithValue(context.Background(), "session", sess))
-		}
+		r = r.WithContext(context.WithValue(context.Background(), "session", sess))
 	}
 
-	switch api {
-	case "register":
-		userAdd(w, r)
-	case "login":
-		userLogin(w, r)
-	case "auth":
-		userAuth(w, r)
-	case "logout":
-		userLogout(w, r)
-	case "modify":
-		userModify(w, r)
-	case "modify/password":
-		modifyPWD(w, r)
-	case "modify/avatarForm":
-		modifyAvatarByForm(w, r)
-	case "info":
-		getMyInfo(w, r)
-	case "role/add":
-		AddRoleForUser(w, r)
-	case "role/del":
-		DeleteRoleForUser(w, r)
-	case "policy/add":
-		AddPolicy(w, r)
-	case "policy/del":
-		RemovePolicy(w, r)
-	default:
-		gocommon.HttpErr(w, http.StatusNotFound, 0, "")
-		return
-	}
+	apiHandler.Handler(w, r)
 }
 
 func AuthFilter(w http.ResponseWriter, r *http.Request) (sess *sessions.Session, auth bool) {
 	var err error
 
-	sess, err = store.New(r, SessionKey)
+	sess, err = sessionStore.New(r, SessionKey)
 	if err != nil {
 		logger.Error("session ERR: ", err)
 		return nil, false
@@ -132,61 +186,56 @@ func AuthFilter(w http.ResponseWriter, r *http.Request) (sess *sessions.Session,
 		return nil, false
 	}
 
-	// 数据库里有这用户吗
-	one, _ := dao.UserSelect(&protos.UserReq{UID: sess.Values[SessUserInfoKey].(protos.User).UID}, 1, 100)
+	uid := sess.Values[SessUserInfoKey].(protos.User).UID
+
+	// 数据库里有这用户吗 @@@
+	one, e := dao.UserSelect(&protos.UserReq{UID: uid}, 1, 1)
+	if e != nil {
+		panic(e)
+	}
 	if len(one) == 0 {
 		return nil, false
 	}
-	if one[0].UID != sess.Values[SessUserInfoKey].(protos.User).UID {
+	if one[0].UID != uid {
 		return nil, false
 	}
 
 	// 权限验证
-	if common.ServConfig.AccessControl {
+	// if common.ServConfig.AccessControl == true &&  {
+	// 	obj := r.Header.Get("X-API")
+	// 	if obj == "" {
+	// 		obj = r.Header.Get("X-DATA")
+	// 	}
+	// 	if obj == "" {
+	// 		return sess, false // 不知道需要访问什么资源
+	// 	}
 
-	}
+	// 	access, err := accessctl.Enforce(uid, obj, "access")
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	if access == false {
+	// 		return sess, false
+	// 	}
+	// }
 
 	return sess, true
 }
 
-func GetUserInfoFromSession(w http.ResponseWriter, r *http.Request) map[string]interface{} {
-	sess, err := store.New(r, SessionKey)
+func GetUserInfoFromSession(w http.ResponseWriter, r *http.Request) (user protos.User) {
+	sess, err := sessionStore.New(r, SessionKey)
 	if err != nil {
 		logger.Error("session ERR: ", err)
-		return nil
+		return
 	}
 
 	if sess.Values[SessUserInfoKey] == nil {
-		return nil
+		return
 	}
 
-	infoUser, ok := sess.Values[SessUserInfoKey].(protos.User)
-	if !ok {
-		return nil
-	}
+	user, _ = sess.Values[SessUserInfoKey].(protos.User)
 
-	info := make(map[string]interface{}, 1)
-	info["uid"] = infoUser.UID
-	if infoUser.Cellphone != nil && infoUser.Cellphone.Valid {
-		info["cellphone"] = infoUser.Cellphone.String
-	}
-	if infoUser.Email != nil && infoUser.Email.Valid {
-		info["email"] = infoUser.Email.String
-	}
-	if infoUser.Nickname != nil && infoUser.Nickname.Valid {
-		info["nickname"] = infoUser.Nickname.String
-	}
-	if infoUser.AvatarURL != nil && infoUser.AvatarURL.Valid {
-		info["avatar_url"] = infoUser.AvatarURL.String
-	}
-	if infoUser.Gender != nil && infoUser.Gender.Valid {
-		info["gender"] = infoUser.Gender.Int64
-	}
-	if infoUser.Addr != nil && infoUser.Addr.Valid {
-		info["addr"] = infoUser.Addr.String
-	}
-
-	return info
+	return
 }
 
 func userAuth(w http.ResponseWriter, r *http.Request) {
