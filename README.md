@@ -280,7 +280,7 @@ curl -v -X GET -H "X-API: info" "http://127.0.0.1:8080/user"
 ```shell
 curl -v -X POST -H "X-API: role/add" -d \
 '{
-	"uid": 123,
+  "uid": 123,
   "role": "role1"
 }' "http://127.0.0.1:8080/user"
 ```
@@ -300,7 +300,7 @@ curl -v -X POST -H "X-API: role/del" -d \
 ```shell
 curl -v -X POST -H "X-API: policy/add" -d \
 '{
-	"uid": 123,
+  "uid": 123,
   "sub": "data1",
   "act": "read"
 }' "http://127.0.0.1:8080/user"
@@ -311,7 +311,7 @@ curl -v -X POST -H "X-API: policy/add" -d \
 ```shell
 curl -v -X POST -H "X-API: policy/del" -d \
 '{
-	"uid": 123,
+  "uid": 123,
   "sub": "data1",
   "act": "read"
 }' "http://127.0.0.1:8080/user"
@@ -325,8 +325,8 @@ curl -v -X POST -H "X-API: policy/del" -d \
 
 ```json
 {
-	code: 0,
-  data:"xxx"
+  "code": 0,
+  "data":xxx
 }
 ```
 
@@ -334,8 +334,8 @@ curl -v -X POST -H "X-API: policy/del" -d \
 
 ```json
 {
-	code: -1,
-  message:"错误信息"
+  "code": -1,
+  "message": "错误信息"
 }
 ```
 
@@ -344,13 +344,12 @@ curl -v -X POST -H "X-API: policy/del" -d \
 ## 错误信息说明
 
 ```json
-{Code: 0, Message: "OK"}
-{Code: -1000, Message: "请求参数错误"}
-{Code: -1001, Message: "服务错误"}
-{Code: -1002, Message: "请登录"}
-{Code: -1003, Message: "您没有权限"}
+{"code": 0, "message": "OK"}
+{"code": -1000, "message": "请求参数错误"}
+{"code": -1001, "message": "服务错误"}
+{"code": -1002, "message": "请登录"}
+{"code": -1003, "message": "您没有权限"}
 ```
-
 
 
 
