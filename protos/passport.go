@@ -6,7 +6,7 @@ type OptionStruct struct {
 	Addr             string `yaml:"addr"`               // 启动http的端口
 	LogDir           string `yaml:"log_dir"`            // 日志目录
 	LogLevel         string `yaml:"log_level"`          // 日志级别
-	SessionStoreType string `yaml:"session_store_type"` // 会话存储类型；"cookie/mem"
+	SessionStoreType string `yaml:"session_store_type"` // 会话存储类型；"cookie/mem/reids"
 
 	RedisAddr      string `yaml:"redis"`
 	MysqlURN       string `yaml:"mysql"`

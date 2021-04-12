@@ -89,8 +89,7 @@ func (s *CookieStore) New(r *http.Request, name string) (*Session, error) {
 	session.IsNew = true
 	var err error
 	if c, errCookie := r.Cookie(name); errCookie == nil {
-		err = securecookie.DecodeMulti(name, c.Value, &session.Values,
-			s.Codecs...)
+		err = securecookie.DecodeMulti(name, c.Value, &session.Values, s.Codecs...)
 		if err == nil {
 			session.IsNew = false
 		}

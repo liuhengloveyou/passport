@@ -26,14 +26,37 @@ type User struct {
 	Tenant *Tenant   `json:"tenant,omitempty" validate:"-" db:"tenant"`
 }
 
+// 租户
 type Tenant struct {
 	ID         uint64     `json:"id" validate:"-" db:"id"`
 	UID        uint64     `json:"uid,omitempty" validate:"-" db:"uid"`
-	AddTime    *time.Time `json:"addTime,omitempty" validate:"-" db:"add_time"`
-	UpdateTime *time.Time `json:"updateTime,omitempty" validate:"-" db:"update_time"`
 	TenantName string     `json:"tenant_name" db:"tenant_name"`
 	TenantType string     `json:"tenant_type" db:"tenant_type"`
-	Info       MapStruct  `json:"info,omitempty" db:"info"`
+	AddTime    *time.Time `json:"addTime,omitempty" validate:"-" db:"add_time"`
+	UpdateTime *time.Time `json:"updateTime,omitempty" validate:"-" db:"update_time"`
+
+	Info          MapStruct           `json:"info,omitempty" db:"info"`
+	Configuration TenantConfiguration `json:"configuration,omitempty" db:"configuration"`
+}
+
+// 租户配置字段
+type TenantConfiguration struct {
+	Roles []string `json:"roles"` // 用户角色字典列表
+}
+
+func (t *TenantConfiguration) Scan(src interface{}) error {
+	if src == nil {
+		return nil
+	}
+	if len(src.([]byte)) <= 2 {
+		return nil
+	}
+
+	b, _ := src.([]byte)
+	return json.Unmarshal(b, t)
+}
+func (t TenantConfiguration) Value() (driver.Value, error) {
+	return json.Marshal(t)
 }
 
 type UserReq struct {
@@ -65,9 +88,9 @@ func (t MapStruct) Value() (driver.Value, error) {
 }
 
 type PolicyReq struct {
-	UID uint64 `json:"uid,omitempty" validate:"-"`
-	Sub string `json:"sub" validate:"required,min=2,max=32"`
-	Act string `json:"act" validate:"required,min=2,max=32"`
+	Role string `json:"role" validate:"required,min=2,max=32"`
+	Obj  string `json:"obj" validate:"required,min=2,max=32"`
+	Act  string `json:"act" validate:"required,min=2,max=32"`
 }
 
 type RoleReq struct {

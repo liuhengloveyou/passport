@@ -1,25 +1,32 @@
 package face
 
 import (
-	"net/http"
-
+	gocommon "github.com/liuhengloveyou/go-common"
 	"github.com/liuhengloveyou/passport/accessctl"
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
-
-	gocommon "github.com/liuhengloveyou/go-common"
+	"github.com/liuhengloveyou/passport/sessions"
+	"net/http"
 )
 
-func AddRoleForUser(w http.ResponseWriter, r *http.Request) {
-	req := &protos.RoleReq{}
 
+func AddRoleForUser(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
+		logger.Error("AddRoleForUser TenantID ERR")
+		return
+	}
+
+	req := &protos.RoleReq{}
 	if err := readJsonBodyFromRequest(r, req); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
 
-	if err := accessctl.AddRoleForUser(req.UID, req.Role); err != nil {
-		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
+	if err := accessctl.AddRoleForUserInDomain(req.UID, sessionUser.TenantID, req.Role); err != nil {
+		logger.Errorf("AddRoleForUser AddRoleForUserInDomain ERR: ", err)
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
 
@@ -29,15 +36,21 @@ func AddRoleForUser(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func DeleteRoleForUser(w http.ResponseWriter, r *http.Request) {
-	req := &protos.RoleReq{}
+func RemoveRoleForUser(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
+		logger.Error("RemoveRoleForUser TenantID ERR")
+		return
+	}
 
+	req := &protos.RoleReq{}
 	if err := readJsonBodyFromRequest(r, req); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
 
-	if err := accessctl.DeleteRoleForUser(req.UID, req.Role); err != nil {
+	if err := accessctl.DeleteRoleForUserInDomain(req.UID, sessionUser.TenantID, req.Role); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
 		return
 	}
@@ -49,14 +62,20 @@ func DeleteRoleForUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddPolicy(w http.ResponseWriter, r *http.Request) {
-	req := &protos.PolicyReq{}
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
+		logger.Error("RemoveRoleForUser TenantID ERR")
+		return
+	}
 
+	req := &protos.PolicyReq{}
 	if err := readJsonBodyFromRequest(r, req); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
 
-	if err := accessctl.AddPolicy(req.UID, req.Sub, req.Act); err != nil {
+	if err := accessctl.AddPolicyToRole(sessionUser.TenantID, req.Role, req.Obj, req.Act); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
 		return
 	}
@@ -68,14 +87,20 @@ func AddPolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 func RemovePolicy(w http.ResponseWriter, r *http.Request) {
-	req := &protos.PolicyReq{}
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
+		logger.Error("RemoveRoleForUser TenantID ERR")
+		return
+	}
 
+	req := &protos.PolicyReq{}
 	if err := readJsonBodyFromRequest(r, req); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
 
-	if err := accessctl.RemovePolicy(req.UID, req.Sub, req.Act); err != nil {
+	if err := accessctl.RemovePolicyFromRole(sessionUser.TenantID, req.Role, req.Obj, req.Act); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
 		return
 	}

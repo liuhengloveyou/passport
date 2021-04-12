@@ -13,6 +13,8 @@ var (
 	ErrNoAuth    = errors.NewError(-1004, "没有权限")
 	ErrMysql1062 = errors.NewError(-1005, "重复记录")
 
-	ErrTenantNameNull = errors.NewError(-2000, "名字为空")
-	ErrTenantTypeNull = errors.NewError(-2001, "类型为空")
+	ErrTenantNotFound = errors.NewError(-2000, "租户不存在")
+	ErrTenantNameNull = errors.NewError(-2001, "租户名字为空")
+	ErrTenantTypeNull = errors.NewError(-2002, "租户类型为空")
+	ErrTenantLimit = errors.NewError(-2003, "只能属于一个租户")
 )

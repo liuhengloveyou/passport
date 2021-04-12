@@ -6,33 +6,29 @@ import (
 )
 
 func TestAccess(t *testing.T)  {
-	err := InitAccessControl("../rbac_model.conf", "root:lhisroot@tcp(127.0.0.1:3306)/passport?charset=utf8&parseTime=true&loc=Local")
+	err := InitAccessControl("../rbac_with_domains_model.conf", "root:lhisroot@tcp(127.0.0.1:3306)/passport?charset=utf8&parseTime=true&loc=Local")
 	fmt.Println("InitAccessControl: ", err)
 
-	err = AddRoleForUser(123, "admin")
-	fmt.Println("InitAccessControl: ", err)
+	AddRoleForUserInDomain(100, 10000, "role-1")
+	AddRoleForUserInDomain(101, 10001, "role-1")
 
-	AddRoleForUser(123, "user")
-	roles, err := GetRolesForUser(123)
-	fmt.Println("GetRolesForUser: ", roles, err)
-}
+	r, e := Enforce(101, 10001, "data-1", "read")
+	fmt.Println(">>>>>>>>>>>>>", r, e)
 
-func TestEnforce(t *testing.T)  {
-	err := InitAccessControl("../rbac_model.conf", "root:lhisroot@tcp(127.0.0.1:3306)/passport?charset=utf8&parseTime=true&loc=Local")
-	fmt.Println("InitAccessControl: ", err)
+	AddPolicyToUser(100, 10000, "data-1", "read")
+	AddPolicyToRole(10001, "role-1", "data-1", "read")
 
-	r, e := enforce("admin", "data1", "read")
-	fmt.Println("enforce 1: ", r, e)
+	r, e = Enforce(100, 10000, "data-1", "read")
+	fmt.Println(">>>>>>>>>>>>>", r, e)
 
-	enforcer.AddPolicy("admin", "data1", "read")
-	r, e = enforce("admin", "data1", "read")
-	fmt.Println("enforce 1: ", r, e)
+	r, e = Enforce(101, 10001, "data-1", "read")
+	fmt.Println(">>>>>>>>>>>>>", r, e)
 
-	enforcer.AddRoleForUser("alice", "admin")
-
-	r, e = enforce("alice", "data1", "read")
-	fmt.Println("alice enforce: ", r, e)
-
-	r, e = enforce("bob", "data1", "read")
-	fmt.Println("bob enforce: ", r, e)
+	roles, err := enforcer.GetRolesForUser("uid-10000", "tenant-10015")
+	fmt.Println("enforcer.GetRolesForUser(): ", roles, err)
+	fmt.Println("enforcer.GetAllActions(): ", enforcer.GetAllActions())
+	fmt.Println("enforcer.GetAllObjects(): ", enforcer.GetAllObjects())
+	fmt.Println("enforcer.GetAllSubjects(): ", enforcer.GetAllSubjects())
+	fmt.Println("enforcer.GetPolicy(): ", enforcer.GetPolicy())
+	fmt.Println("enforcer.GetAllRoles(): ", enforcer.GetAllRoles())
 }

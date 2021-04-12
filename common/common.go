@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/gob"
 	"flag"
 	"fmt"
 	"net/url"
@@ -22,6 +23,9 @@ import (
 
 const (
 	SYS_PWD = "When you forgive, You love. And when you love, God's light shines on you."
+	SessionKey      = "go-session-id"
+	SessUserInfoKey = "sessionUserInfo"
+	MAX_UPLOAD_LEN  = (5 * 1024 * 1024) // 最大上传文件大小
 )
 
 var (
@@ -49,6 +53,8 @@ func init() {
 	if e = InitWithOption(&ServConfig); e != nil {
 		panic(e)
 	}
+
+	gob.Register(protos.MapStruct{})
 }
 
 func InitWithOption(option *protos.OptionStruct) (e error) {
@@ -82,7 +88,7 @@ func InitWithOption(option *protos.OptionStruct) (e error) {
 
 	ServConfig.AccessControl = option.AccessControl
 	if ServConfig.AccessControl == true {
-		if e = accessctl.InitAccessControl("rbac_model.conf", option.MysqlURN); e != nil {
+		if e = accessctl.InitAccessControl("rbac_with_domains_model.conf", option.MysqlURN); e != nil {
 			return e
 		}
 	}

@@ -32,14 +32,14 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := sessionStore.Get(r, SessionKey)
+	session, err := sessionStore.Get(r, common.SessionKey)
 	if err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
 		logger.Error("userLogin session ERR: ", err)
 		return
 	}
 
-	session.Values[SessUserInfoKey] = one
+	session.Values[common.SessUserInfoKey] = one
 
 	if err := session.Save(r, w); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)

@@ -11,15 +11,14 @@ import (
 	gocommon "github.com/liuhengloveyou/go-common"
 )
 
-func tenantAdd(w http.ResponseWriter, r *http.Request) {
-	req := &protos.Tenant{}
-	if r.Context().Value("session") != nil {
-		req.UID = r.Context().Value("session").(*sessions.Session).Values[SessUserInfoKey].(protos.User).UID
-	}
-	if req.UID <= 0 {
-		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrSession)
-		logger.Error("session ERR")
+func TenantAdd(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID > 0 {
+		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrTenantLimit)
 		return
+	}
+	req := &protos.Tenant{
+		UID: sessionUser.UID,
 	}
 
 	if err := readJsonBodyFromRequest(r, req); err != nil {
@@ -51,5 +50,56 @@ func tenantAdd(w http.ResponseWriter, r *http.Request) {
 	logger.Info("user add ok:", uid)
 	gocommon.HttpErr(w, http.StatusOK, 0, uid)
 
+	return
+}
+
+func GetRole(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
+		logger.Error("GetRole TenantID ERR")
+		return
+	}
+
+	roles := service.TenantGetRole(sessionUser.TenantID)
+
+	gocommon.HttpErr(w, http.StatusOK, 0, roles)
+
+	return
+}
+
+func RoleAdd(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
+		return
+	}
+
+	req := make(map[string]string, 1)
+	if err := readJsonBodyFromRequest(r, &req); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("RoleAdd param ERR: ", err)
+		return
+	}
+	if _, ok := req["role"]; !ok {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("RoleAdd param ERR: ", req)
+		return
+	}
+	logger.Infof("RoleAdd body: %#v\n", req)
+
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
+		logger.Error("RoleAdd session ERR: ", sessionUser)
+		return
+	}
+
+	if err := service.TenantAddRole(sessionUser.TenantID, req["role"]); err != nil {
+		logger.Error("TenantAddRole service ERR: ", err)
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+
+	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
 	return
 }

@@ -254,7 +254,7 @@ Body: {
 ### 查询自己的账号详情
 
 ```
-curl -v -X GET -H "X-API: info" --cookie "goSessionID=MTYxNDE0N" "http://127.0.0.1:8080/user"
+curl -v -X GET -H "X-API: info" --cookie "go-session-id=MTYxNDE0N" "http://127.0.0.1:8080/user"
 
 成功返回:
 {
@@ -276,7 +276,7 @@ curl -v -X GET -H "X-API: info" --cookie "goSessionID=MTYxNDE0N" "http://127.0.0
 ### 为用户添加角色
 
 ```shell
-curl -v -X POST -H "X-API: role/add" -d \
+curl -v -X POST -H "X-API: access/role/add" -d \
 '{
   "uid": 123,
   "role": "role1"
@@ -286,20 +286,20 @@ curl -v -X POST -H "X-API: role/add" -d \
 ### 从用户删除角色
 
 ```shell
-curl -v -X POST -H "X-API: role/del" -d \
+curl -v -X POST -H "X-API: access/role/del" --cookie "go-session-id=MTYxO“ -d \
 '{
    "uid": 123,
    "role": "role1"
 }' "http://127.0.0.1:8080/user"
 ```
 
-### 为主体添加权限
+### 为角色添加权限
 
 ```shell
-curl -v -X POST -H "X-API: policy/add" -d \
+curl -v -X POST -H "X-API: access/policy/add" --cookie "go-session-id=MTYxO” -d \
 '{
-  "uid": 123,
-  "sub": "data1",
+  "role": "role1",
+  "obj": "data1",
   "act": "read"
 }' "http://127.0.0.1:8080/user"
 ```
@@ -307,7 +307,7 @@ curl -v -X POST -H "X-API: policy/add" -d \
 ### 从主体删除权限
 
 ```shell
-curl -v -X POST -H "X-API: policy/del" -d \
+curl -v -X POST -H "X-API: access/policy/del" -d \
 '{
   "uid": 123,
   "sub": "data1",
@@ -316,17 +316,40 @@ curl -v -X POST -H "X-API: policy/del" -d \
 ```
 
 
+
 ## 多租户相关接口
+
+每个用户只能属于一个租户
 
 ### 添加租户
 
+登录用户添加租户，将成为该租户的管理员
+
 ```shell
-curl -v -X POST -H "X-API: tenant/add" --cookie "goSessionID=MTYxNQU9ADeUFFrRO5V6VbtYfgFKSlOYwQ==" -d \
+curl -v -X POST -H "X-API: tenant/add" --cookie "go-session-id=V6VbtYfgFKSlOYwQ==" -d \
 '{
-  "tenantName": "tenant1",
-  "tenantType": "t1"
+  "tenant_name": "tenant1",
+  "tenant_type": "t1"
 }' "http://127.0.0.1:8080/user"
 ```
+
+### 添加角色
+
+管理员向当前租户添加角色字典
+
+```shell
+curl -v -X POST -H "X-API: tenant/role/add" --cookie "go-session-id=VbtYfgFKSlOYwQ==" -d \
+'{
+  "role": "role1"
+}' "http://127.0.0.1:8080/user"
+```
+
+### 查询当前租户的角色列表
+```shell
+curl -v -X GET -H "X-API: tenant/role/get" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
+"http://127.0.0.1:8080/user"
+```
+
 
 
 ## 应答格式说明
@@ -354,11 +377,18 @@ curl -v -X POST -H "X-API: tenant/add" --cookie "goSessionID=MTYxNQU9ADeUFFrRO5V
 ## 错误信息说明
 
 ```json
-{"code": 0, "message": "OK"}
-{"code": -1000, "message": "请求参数错误"}
-{"code": -1001, "message": "服务错误"}
-{"code": -1002, "message": "请登录"}
-{"code": -1003, "message": "您没有权限"}
+ErrOK        = errors.Error{Code: 0, Message: "OK"}
+ErrParam     = errors.NewError(-1000, "请求参数错误")
+ErrService   = errors.NewError(-1001, "服务错误")
+ErrSession   = errors.NewError(-1002, "会话错误")
+ErrNoLogin   = errors.NewError(-1003, "请登录")
+ErrNoAuth    = errors.NewError(-1004, "没有权限")
+ErrMysql1062 = errors.NewError(-1005, "重复记录")
+
+ErrTenantNotFound = errors.NewError(-2000, "租户不存在")
+ErrTenantNameNull = errors.NewError(-2001, "租户名字为空")
+ErrTenantTypeNull = errors.NewError(-2002, "租户类型为空")
+ErrTenantLimit = errors.NewError(-2003, "只能属于一个租户")
 ```
 
 
@@ -370,8 +400,9 @@ curl -v -X POST -H "X-API: tenant/add" --cookie "goSessionID=MTYxNQU9ADeUFFrRO5V
 ```sql
 CREATE SCHEMA `passport` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin ;
 
-CREATE TABLE `passport`.`users` (
+CREATE TABLE `users` (
   `uid` bigint(64) NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint(20) NOT NULL DEFAULT '0' COMMENT '租户ID',
   `cellphone` varchar(11) COLLATE utf8_bin DEFAULT NULL COMMENT '手机号',
   `email` varchar(255) COLLATE utf8_bin DEFAULT NULL COMMENT '邮件是址',
   `nickname` varchar(255) COLLATE utf8_bin DEFAULT NULL COMMENT '昵称',
@@ -379,12 +410,27 @@ CREATE TABLE `passport`.`users` (
   `avatar_url` varchar(255) COLLATE utf8_bin DEFAULT NULL COMMENT '头像URL',
   `gender` int(11) DEFAULT NULL COMMENT '性别；1=男，2=女',
   `addr` varchar(100) COLLATE utf8_bin DEFAULT NULL COMMENT '通讯地址',
+  `tags` json DEFAULT NULL,
   `add_time` datetime NOT NULL,
   `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`uid`),
   UNIQUE KEY `cellphone_UNIQUE` (`cellphone`),
   UNIQUE KEY `email_UNIQUE` (`email`),
-  UNIQUE KEY `nickname_UNIQUE` (`nickname`)
-) ENGINE=InnoDB AUTO_INCREMENT=10000;
+  UNIQUE KEY `nickname_UNIQUE` (`nickname`),
+  KEY `tenant_index` (`tenant_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+CREATE TABLE `tenant` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `uid` bigint(20) NOT NULL COMMENT '创建(root)用户标识',
+  `tenant_name` varchar(256) COLLATE utf8mb4_bin NOT NULL,
+  `tenant_type` varchar(45) COLLATE utf8mb4_bin NOT NULL,
+  `info` json DEFAULT NULL,
+  `configuration` json DEFAULT NULL COMMENT '租户配置json串',
+  `add_time` datetime NOT NULL,
+  `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `tenant_name_unique` (`tenant_name`)
+) ENGINE=InnoDB AUTO_INCREMENT=10031 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 ```
 

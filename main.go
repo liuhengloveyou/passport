@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"runtime/pprof"
 
-	"github.com/liuhengloveyou/passport/accessctl"
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/face"
 )
@@ -56,12 +55,12 @@ func main() {
 		f.Close()
 	}
 
-	// 启用访问控制模块
-	if common.ServConfig.AccessControl {
-		if err := accessctl.InitAccessControl("./rbac_model.conf", common.ServConfig.MysqlURN); err != nil {
-			panic(err)
-		}
-	}
+	//// 启用访问控制模块
+	//if common.ServConfig.AccessControl {
+	//	if err := accessctl.InitAccessControl("./rbac_model.conf", common.ServConfig.MysqlURN); err != nil {
+	//		panic(err)
+	//	}
+	//}
 
 	switch common.ServConfig.Face {
 	case "http":

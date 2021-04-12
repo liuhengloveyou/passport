@@ -14,7 +14,7 @@ import (
 )
 
 func userModify(w http.ResponseWriter, r *http.Request) {
-	sess, auth := AuthFilter(w, r)
+	sess, auth := AuthFilter(r)
 	if auth == false {
 		gocommon.HttpErr(w, http.StatusForbidden, -1, "末登录用户")
 		return
@@ -28,7 +28,7 @@ func userModify(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Infof("userModify: %#vv\n", user)
 
-	info := sess.Values[SessUserInfoKey].(protos.User)
+	info := sess.Values[common.SessUserInfoKey].(protos.User)
 	logger.Info("userModify", user, info)
 
 	if info.Cellphone != nil && user.Cellphone == info.Cellphone.String {
@@ -106,7 +106,7 @@ func modifyPWD(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uid = r.Context().Value("session").(*sessions.Session).Values[SessUserInfoKey].(protos.User).UID
+	uid = r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User).UID
 
 	logger.Infof("modifyPWD %d %s %s\n", uid, o, n)
 
