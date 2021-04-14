@@ -180,10 +180,7 @@ curl -v -X POST -H "X-API: user/login" -d \
 ### 登出
 
 ```
-GET /user
-Header: {
-    cookie: gsessionid=xxxxxx
-}
+curl -v -X GET -H "X-API: user/logout" --cookie "go-session-id=MTYxNDE0N" "http://127.0.0.1:8080/user"
 
 成功: 200 {code: 0, data: "sucess"}
 失败: 200 {code: -1, errmsg:"错误信息"}
@@ -276,7 +273,7 @@ curl -v -X GET -H "X-API: info" --cookie "go-session-id=MTYxNDE0N" "http://127.0
 ### 为用户添加角色
 
 ```shell
-curl -v -X POST -H "X-API: access/role/add" -d \
+curl -v -X POST -H "X-API: access/role/add" --cookie "go-session-id=MTYxO“ -d \
 '{
   "uid": 123,
   "role": "role1"
@@ -350,7 +347,24 @@ curl -v -X GET -H "X-API: tenant/role/get" --cookie "go-session-id=MTYfgFKSlOYwQ
 "http://127.0.0.1:8080/user"
 ```
 
+### 向租户添加用户
 
+```shell
+curl -v -X GET -H "X-API: tenant/user/add" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
+"http://127.0.0.1:8080/user"
+```
+
+### 从当前租户删除用户
+```shell
+curl -v -X GET -H "X-API: tenant/user/add" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
+"http://127.0.0.1:8080/user"
+```
+
+### 查询当前租户用户列表
+```shell
+curl -v -X GET -H "X-API: tenant/user/get" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
+"http://127.0.0.1:8080/user"
+```
 
 ## 应答格式说明
 

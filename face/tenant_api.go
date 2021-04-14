@@ -1,6 +1,7 @@
 package face
 
 import (
+	"github.com/liuhengloveyou/passport/dao"
 	"net/http"
 
 	"github.com/liuhengloveyou/passport/common"
@@ -53,6 +54,83 @@ func TenantAdd(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func TenantUserAdd(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
+		logger.Error("TenantUserAdd TenantID ERR")
+		return
+	}
+
+	req := &protos.Tenant{} // 只用一个UID字段
+	if err := readJsonBodyFromRequest(r, req); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("TenantUserAdd param ERR: ", err)
+		return
+	}
+	logger.Infof("tenantAdd body: %#v\n", req)
+
+	row, e := dao.UserUpdateTenantID(req.UID, sessionUser.TenantID, 0)
+	if e != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
+		logger.Error("TenantUserAdd db ERR: ", e)
+		return
+	}
+	if row != 1 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantLimit)
+		logger.Error("TenantUserAdd ERR: ", row, e)
+		return
+	}
+
+	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
+
+	return
+}
+
+func TenantUserDel(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
+		logger.Error("TenantUserDel session ERR")
+		return
+	}
+
+	req := &protos.Tenant{} // 只用一个UID字段
+	if err := readJsonBodyFromRequest(r, req); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("TenantUserDel param ERR: ", err)
+		return
+	}
+	logger.Infof("TenantUserDel body: %#v\n", req)
+
+	_, e := service.TenantUserDel(req.UID, sessionUser.TenantID)
+	if e != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
+	}
+
+	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
+
+	return
+}
+func TenantUserGet(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
+		logger.Error("TenantUserAdd TenantID ERR")
+		return
+	}
+
+	rr, e := dao.UserSelectByTenantID(sessionUser.TenantID)
+	if e != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
+		logger.Error("TenantUserAdd db ERR: ", e)
+	}
+
+	gocommon.HttpErr(w, http.StatusOK, 0, rr)
+
+	return
+}
+
 func GetRole(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
 	if sessionUser.TenantID <= 0 {
@@ -62,7 +140,6 @@ func GetRole(w http.ResponseWriter, r *http.Request) {
 	}
 
 	roles := service.TenantGetRole(sessionUser.TenantID)
-
 	gocommon.HttpErr(w, http.StatusOK, 0, roles)
 
 	return
@@ -75,13 +152,13 @@ func RoleAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := make(map[string]string, 1)
+	req := protos.RoleReq{}
 	if err := readJsonBodyFromRequest(r, &req); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		logger.Error("RoleAdd param ERR: ", err)
 		return
 	}
-	if _, ok := req["role"]; !ok {
+	if "" == req.Role {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		logger.Error("RoleAdd param ERR: ", req)
 		return
@@ -94,7 +171,7 @@ func RoleAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := service.TenantAddRole(sessionUser.TenantID, req["role"]); err != nil {
+	if err := service.TenantAddRole(sessionUser.TenantID, req.Role); err != nil {
 		logger.Error("TenantAddRole service ERR: ", err)
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return

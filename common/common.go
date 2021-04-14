@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/liuhengloveyou/passport/accessctl"
 	"github.com/liuhengloveyou/passport/protos"
 
 	redis "github.com/go-redis/redis/v8"
@@ -45,6 +44,11 @@ func (p *NilWriter) Write(b []byte) (n int, err error) { return 0, nil }
 func init() {
 	var e error
 
+	gob.Register(protos.MapStruct{})
+	if e = InitValidate(); e != nil {
+		panic(e)
+	}
+
 	if e = gocommon.LoadYamlConfig(*passportconfile, &ServConfig); e != nil {
 		fmt.Println("There is no ./passport.conf.yaml")
 		return
@@ -53,12 +57,6 @@ func init() {
 	if e = InitWithOption(&ServConfig); e != nil {
 		panic(e)
 	}
-
-	if e = InitValidate(); e != nil {
-		panic(e)
-	}
-
-	gob.Register(protos.MapStruct{})
 }
 
 func InitWithOption(option *protos.OptionStruct) (e error) {
@@ -91,12 +89,6 @@ func InitWithOption(option *protos.OptionStruct) (e error) {
 	}
 
 	ServConfig.AccessControl = option.AccessControl
-	if ServConfig.AccessControl == true {
-		if e = accessctl.InitAccessControl("rbac_with_domains_model.conf", option.MysqlURN); e != nil {
-			return e
-		}
-	}
-
 	ServConfig.IsTenant = option.IsTenant
 	ServConfig.SessionStoreType = option.SessionStoreType
 

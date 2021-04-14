@@ -38,6 +38,10 @@ func removePolicy(sub, domain, obj, act string) (err error) {
 	return
 }
 
+func getFilteredPolicy(domain string) [][]string {
+	return enforcer.GetFilteredPolicy(1, domain);
+}
+
 func addRoleForUserInDomain(user, role, domain string) (err error) {
 	if _, err = enforcer.AddRoleForUserInDomain(user, role, domain); err != nil {
 		return
@@ -60,4 +64,8 @@ func deleteRoleForUserInDomain(user, role, domain string) (err error) {
 	}
 
 	return
+}
+
+func getUsersForRoleInDomain(role, domain string) []string {
+	return enforcer.GetUsersForRoleInDomain(role, domain)
 }

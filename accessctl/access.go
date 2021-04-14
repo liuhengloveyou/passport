@@ -3,12 +3,26 @@ package accessctl
 import (
 	"database/sql"
 	"fmt"
+	"github.com/liuhengloveyou/passport/common"
+	"github.com/liuhengloveyou/passport/dao"
+	"github.com/liuhengloveyou/passport/protos"
+	"strconv"
+	"strings"
 	"time"
 
 	sqladapter "github.com/Blank-Xu/sql-adapter"
 	"github.com/casbin/casbin/v2"
 )
 
+var policyCache = make(map[string]bool, 10000)
+
+func init() {
+	if common.ServConfig.AccessControl == true {
+		if e := InitAccessControl("rbac_with_domains_model.conf", common.ServConfig.MysqlURN); e != nil {
+			panic(e)
+		}
+	}
+}
 func InitAccessControl(rbacModel, mysqlURN string) (err error) {
 	// connect to the database first.
 	db, err := sql.Open("mysql", mysqlURN)
@@ -65,6 +79,17 @@ func Enforce(uid, tenantID uint64, obj, act string) (bool, error){
 }
 
 func AddRoleForUserInDomain(uid, tenantID uint64, role string) (err error) {
+	var userInfo *protos.User
+
+	if userInfo, err = dao.UserSelectByID(uid); err != nil {
+		common.Logger.Sugar().Errorf("AddRoleForUserInDomain UserSelectByID ERR: %v\n", err)
+		return common.ErrService
+	}
+	if userInfo == nil || userInfo.TenantID != tenantID {
+		common.Logger.Sugar().Errorf("AddRoleForUserInDomain userInfo ERR: %d %d %v\n", uid, tenantID, userInfo)
+		return common.ErrNoAuth
+	}
+
 	return addRoleForUserInDomain(genUserByUID(uid), role, genDomainByTenantID(tenantID))
 }
 
@@ -72,12 +97,16 @@ func DeleteRoleForUserInDomain(uid, tenantID uint64, role string) (err error) {
 	return deleteRoleForUserInDomain(genUserByUID(uid), role, genDomainByTenantID(tenantID))
 }
 
-func AddPolicyToUser(uid, tenantID uint64, obj, act string) (err error) {
-	return addPolicy(genUserByUID(uid), genDomainByTenantID(tenantID), obj, act)
-}
+func GetUsersForRoleInDomain(role string, tenantID uint64) (ids []uint64) {
+	users := getUsersForRoleInDomain(role, genDomainByTenantID(tenantID))
 
-func RemovePolicyFromUser(uid, tenantID uint64, obj, act string) (err error) {
-	return removePolicy(genUserByUID(uid), genDomainByTenantID(tenantID), obj, act)
+	ids = make([]uint64, len(users))
+	for i := 0; i < len(users); i ++ {
+		uid, _ := strconv.Atoi(strings.Split(users[i], "-")[1])
+		ids[i] = uint64(uid)
+	}
+
+	return
 }
 
 func AddPolicyToRole(tenantID uint64, role, obj, act string) (err error) {
@@ -86,6 +115,10 @@ func AddPolicyToRole(tenantID uint64, role, obj, act string) (err error) {
 
 func RemovePolicyFromRole(tenantID uint64, role, obj, act string) (err error) {
 	return removePolicy(role, genDomainByTenantID(tenantID), obj, act)
+}
+
+func GetFilteredPolicy(tenantID uint64) [][]string {
+	return getFilteredPolicy(genDomainByTenantID(tenantID))
 }
 
 func genUserByUID(uid uint64) string {

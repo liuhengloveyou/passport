@@ -61,6 +61,7 @@ func (t TenantConfiguration) Value() (driver.Value, error) {
 
 type UserReq struct {
 	UID       uint64 `json:"uid,omitempty" validate:"-"`
+	TenantID  uint64 `json:"tenant_id" validate:"-"`
 	Cellphone string `json:"cellphone,omitempty" validate:"omitempty,phone"`
 	Email     string `json:"email,omitempty" validate:"omitempty,email"`
 	Nickname  string `json:"nickname,omitempty" validate:"omitempty,min=2,max=64"`

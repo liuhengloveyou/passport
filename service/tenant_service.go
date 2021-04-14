@@ -85,3 +85,12 @@ func TenantGetRole(tenantId uint64) (roles []string) {
 
 	return tenant.Configuration.Roles
 }
+
+func TenantUserDel(uid, currTenantID uint64) (r int64, e error) {
+	if r, e = dao.UserUpdateTenantID(uid, 0, currTenantID); e != nil {
+		common.Logger.Sugar().Errorf("TenantUserDel ERR: ", e)
+		return  0 , common.ErrService
+	}
+
+	return
+}

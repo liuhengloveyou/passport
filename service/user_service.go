@@ -53,6 +53,23 @@ func AddUserService(p *protos.UserReq) (id int64, e error) {
 	return dao.UserInsert(p)
 }
 
+
+func GetUser(m *protos.UserReq) (r *protos.User, e error) {
+	if m.UID > 0 {
+		r, e = dao.UserSelectByID(m.UID)
+	}
+
+	return
+}
+
+func SelectUsers(m *protos.UserReq) (rr []protos.User, e error) {
+	if m.TenantID > 0 {
+		rr, e = dao.UserSelectByTenantID(m.TenantID)
+	}
+
+	return
+}
+
 func UpdateUserService(p *protos.UserReq) (rows int64, e error) {
 	if p.UID <= 0 {
 		return 0, fmt.Errorf("用户错误")

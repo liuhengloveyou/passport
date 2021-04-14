@@ -66,23 +66,33 @@ func init() {
 		},
 
 		//访问控制
-		"access/role/add": {
+		"access/addRoleForUser": {
 			Handler:   AddRoleForUser,
 			NeedLogin: true,
 			NeedAccess: true,
 		},
-		"access/role/del": {
+		"access/removeRoleForUser": {
 			Handler:   RemoveRoleForUser,
 			NeedLogin: true,
 			NeedAccess: true,
 		},
-		"access/policy/add": {
-			Handler:   AddPolicy,
+		"access/getUsersForRole": {
+			Handler:   GetUsersForRole,
 			NeedLogin: true,
 			NeedAccess: true,
 		},
-		"access/policy/del": {
-			Handler:   RemovePolicy,
+		"access/addPolicyToRole": {
+			Handler: AddPolicyToRole,
+			NeedLogin: true,
+			NeedAccess: true,
+		},
+		"access/removePolicyFromRole": {
+			Handler: RemovePolicyFromRole,
+			NeedLogin: true,
+			NeedAccess: true,
+		},
+		"access/getPolicy": {
+			Handler: GetPolicy,
 			NeedLogin: true,
 			NeedAccess: true,
 		},
@@ -92,10 +102,23 @@ func init() {
 			Handler:   TenantAdd,
 			NeedLogin: true,
 		},
+		"tenant/user/add": {
+			Handler:   TenantUserAdd,
+			NeedLogin: true,
+			NeedAccess: true,
+		},
+		"tenant/user/del": {
+			Handler:   TenantUserDel,
+			NeedLogin: true,
+			NeedAccess: true,
+		},
+		"tenant/user/get": {
+			Handler:   TenantUserGet,
+			NeedLogin: true,
+		},
 		"tenant/role/get": {
 			Handler:   GetRole,
 			NeedLogin: true,
-			NeedAccess: true,
 		},
 		"tenant/role/add": {
 			Handler:   RoleAdd,

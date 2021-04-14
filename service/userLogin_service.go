@@ -57,10 +57,12 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 	}
 
 	if one == nil {
+		common.Logger.Sugar().Errorf("login user nil: %v\n", user)
 		return nil, common.ErrLogin
 	}
 
 	if EncryPWD(user.Password) != one.Password {
+		common.Logger.Sugar().Errorf("login pwd ERR: %v %v \n", user.Password, one.Password)
 		return nil, common.ErrPWD
 	}
 	one.Password = ""

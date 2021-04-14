@@ -61,7 +61,28 @@ func RemoveRoleForUser(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func AddPolicy(w http.ResponseWriter, r *http.Request) {
+func GetUsersForRole(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
+		logger.Error("GetUsersForRole session ERR")
+		return
+	}
+
+	roleName := r.FormValue("role")
+	if roleName == "" {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+
+	roles := accessctl.GetUsersForRoleInDomain(roleName, sessionUser.TenantID);
+	gocommon.HttpErr(w, http.StatusOK, 0, roles)
+	logger.Infof("AddPolicy OK: %#v\n", roles)
+
+	return
+}
+
+func AddPolicyToRole(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
@@ -86,7 +107,7 @@ func AddPolicy(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func RemovePolicy(w http.ResponseWriter, r *http.Request) {
+func RemovePolicyFromRole(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
@@ -107,6 +128,21 @@ func RemovePolicy(w http.ResponseWriter, r *http.Request) {
 
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
 	logger.Infof("RemovePolicy OK: %#v\n", req)
+
+	return
+}
+
+func GetPolicy(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
+		logger.Error("GetPolicy TenantID ERR")
+		return
+	}
+
+	policy := accessctl.GetFilteredPolicy(sessionUser.TenantID)
+	gocommon.HttpErr(w, http.StatusOK, 0,  policy)
+	logger.Infof("GetPolicy OK: %#v\n", policy)
 
 	return
 }

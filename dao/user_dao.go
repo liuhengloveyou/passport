@@ -98,8 +98,30 @@ func UserUpdatePWD(UID uint64, oldPWD, newPWD string) (rows int64, e error) {
 	return rst.RowsAffected()
 }
 
+func UserUpdateTenantID(UID, tenantID, currTenantID uint64) (rows int64, e error) {
+	var rst sql.Result
+
+	rst, e = common.DB.Exec("UPDATE users SET tenant_id = ? WHERE (uid = ?) AND (tenant_id = ?)", tenantID, UID, currTenantID)
+	if e != nil {
+		return
+	}
+
+	return rst.RowsAffected()
+}
+
 func UserDelete(tx *sql.Tx) (int64, error) {
 	return -1, nil
+}
+
+func UserSelectByID(uid uint64) (r *protos.User, e error) {
+	r = &protos.User{}
+	e = common.DB.Get(r, "SELECT uid, tenant_id, cellphone, email, nickname, avatar_url, gender, addr, tags FROM users WHERE uid = ?", uid)
+	return
+}
+
+func UserSelectByTenantID(tenantID uint64) (rr []protos.User, e error) {
+	e = common.DB.Select(&rr, "SELECT uid, tenant_id, cellphone, email, nickname, avatar_url, gender, addr, tags FROM users where tenant_id = ?", tenantID)
+	return
 }
 
 func UserSelect(p *protos.UserReq, pageNo, pageSize int) (rr []protos.User, e error) {
