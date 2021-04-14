@@ -5,7 +5,6 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"github.com/go-playground/validator/v10"
 	"github.com/liuhengloveyou/passport/accessctl"
 	"io/ioutil"
 	"net/http"
@@ -278,7 +277,7 @@ func readJsonBodyFromRequest(r *http.Request, dst interface{}) error {
 		return err
 	}
 
-	if err = validator.New().Struct(dst); err != nil {
+	if err = common.Validate.Struct(dst); err != nil {
 		logger.Errorf("readJsonBodyFromRequest validator ERR: ", err)
 		return common.ErrParam
 	}

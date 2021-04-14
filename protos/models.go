@@ -35,8 +35,8 @@ type Tenant struct {
 	AddTime    *time.Time `json:"addTime,omitempty" validate:"-" db:"add_time"`
 	UpdateTime *time.Time `json:"updateTime,omitempty" validate:"-" db:"update_time"`
 
-	Info          MapStruct           `json:"info,omitempty" db:"info"`
-	Configuration TenantConfiguration `json:"configuration,omitempty" db:"configuration"`
+	Info          *MapStruct           `json:"info,omitempty" db:"info"`
+	Configuration *TenantConfiguration `json:"configuration,omitempty" db:"configuration"`
 }
 
 // 租户配置字段

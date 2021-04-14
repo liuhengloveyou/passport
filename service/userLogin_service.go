@@ -26,7 +26,7 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 
 	userPreTreat(user)
 
-	if err := validate.Struct(user); err != nil {
+	if err := Validate.Struct(user); err != nil {
 		if errs, ok := err.(validator.ValidationErrors); ok {
 			switch errs[0].Field() {
 			case "Cellphone":
@@ -56,15 +56,26 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 		e = common.ErrService
 	}
 
-	if one != nil {
-		one.Password = ""
+	if one == nil {
+		return nil, common.ErrLogin
 	}
+
+	if EncryPWD(user.Password) != one.Password {
+		return nil, common.ErrPWD
+	}
+	one.Password = ""
+	one.AddTime = nil
+	one.UpdateTime = nil
 
 	// tenant
 	if common.ServConfig.IsTenant && one.TenantID > 0 {
 		if one.Tenant, e = dao.TenantGetByID(one.TenantID); e != nil {
 			common.Logger.Sugar().Errorf("TenantGetByID ERR: ", e)
 		}
+		one.Tenant.Configuration = nil
+		one.Tenant.Info = nil
+		one.Tenant.AddTime = nil
+		one.Tenant.UpdateTime = nil
 	}
 
 	return
@@ -80,12 +91,6 @@ func loginByCellphone(p *protos.UserReq) (one *protos.User, e error) {
 		return // 不存在用户
 	}
 
-	if EncryPWD(p.Password) != rr[0].Password {
-		return nil, fmt.Errorf("密码不正确")
-	}
-
-	rr[0].Password = ""
-
 	return &rr[0], nil
 }
 
@@ -94,5 +99,14 @@ func loginByEmail(p *protos.UserReq) (one *protos.User, e error) {
 }
 
 func loginByNickname(p *protos.UserReq) (one *protos.User, e error) {
-	return nil, nil
+	rr, e := dao.UserSelect(p, 1, 1)
+	if e != nil {
+		return
+	}
+
+	if len(rr) == 0 {
+		return // 不存在用户
+	}
+
+	return &rr[0], nil
 }

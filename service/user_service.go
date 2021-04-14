@@ -6,7 +6,7 @@ import (
 	"github.com/liuhengloveyou/passport/protos"
 	"strings"
 
-	. "github.com/liuhengloveyou/passport/common"
+	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/dao"
 
 	validator "github.com/go-playground/validator/v10"
@@ -48,7 +48,7 @@ func AddUserService(p *protos.UserReq) (id int64, e error) {
 		}
 	}
 
-	p.Password = EncryPWD(p.Password)
+	p.Password = common.EncryPWD(p.Password)
 
 	return dao.UserInsert(p)
 }
@@ -62,7 +62,7 @@ func UpdateUserService(p *protos.UserReq) (rows int64, e error) {
 		return -1, e
 	}
 
-	if e := validate.Struct(p); e != nil {
+	if e := common.Validate.Struct(p); e != nil {
 		validationErrors := e.(validator.ValidationErrors)
 		for _, validationErr := range validationErrors {
 			if validationErr.ActualTag() != "required" {
@@ -103,8 +103,8 @@ func UpdateUserPWD(uid uint64, oldPWD, newPWD string) (rows int64, e error) {
 		return -1, fmt.Errorf("新密码不能为空")
 	}
 
-	newPWD = EncryPWD(newPWD)
-	oldPWD = EncryPWD(oldPWD)
+	newPWD = common.EncryPWD(newPWD)
+	oldPWD = common.EncryPWD(oldPWD)
 
 	rows, e = dao.UserUpdatePWD(uid, oldPWD, newPWD)
 	if rows < 1 {
@@ -179,10 +179,9 @@ func userPreTreat(p *protos.UserReq) error {
 		}
 	}
 
-	if e := validate.Struct(p); e != nil {
-		return errors.New(e.(validator.ValidationErrors)[0].Translate(trans))
+	if e := common.Validate.Struct(p); e != nil {
+		return errors.New(e.(validator.ValidationErrors)[0].Translate(common.Trans))
 	}
-	
 
 	return nil
 }

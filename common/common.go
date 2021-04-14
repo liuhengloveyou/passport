@@ -54,6 +54,10 @@ func init() {
 		panic(e)
 	}
 
+	if e = InitValidate(); e != nil {
+		panic(e)
+	}
+
 	gob.Register(protos.MapStruct{})
 }
 
