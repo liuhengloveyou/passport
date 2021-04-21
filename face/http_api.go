@@ -5,11 +5,11 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"github.com/liuhengloveyou/passport/accessctl"
 	"io/ioutil"
 	"net/http"
 	"time"
 
+	"github.com/liuhengloveyou/passport/accessctl"
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/sessions"
@@ -41,7 +41,7 @@ func init() {
 			Handler: userLogin,
 		},
 		"user/auth": {
-			Handler:   userAuth,
+			Handler:   UserAuth,
 			NeedLogin: true,
 		},
 		"user/logout": {
@@ -67,33 +67,33 @@ func init() {
 
 		//访问控制
 		"access/addRoleForUser": {
-			Handler:   AddRoleForUser,
-			NeedLogin: true,
+			Handler:    AddRoleForUser,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 		"access/removeRoleForUser": {
-			Handler:   RemoveRoleForUser,
-			NeedLogin: true,
+			Handler:    RemoveRoleForUser,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 		"access/getUsersForRole": {
-			Handler:   GetUsersForRole,
-			NeedLogin: true,
+			Handler:    GetUsersForRole,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 		"access/addPolicyToRole": {
-			Handler: AddPolicyToRole,
-			NeedLogin: true,
+			Handler:    AddPolicyToRole,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 		"access/removePolicyFromRole": {
-			Handler: RemovePolicyFromRole,
-			NeedLogin: true,
+			Handler:    RemovePolicyFromRole,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 		"access/getPolicy": {
-			Handler: GetPolicy,
-			NeedLogin: true,
+			Handler:    GetPolicy,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 
@@ -103,13 +103,13 @@ func init() {
 			NeedLogin: true,
 		},
 		"tenant/user/add": {
-			Handler:   TenantUserAdd,
-			NeedLogin: true,
+			Handler:    TenantUserAdd,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 		"tenant/user/del": {
-			Handler:   TenantUserDel,
-			NeedLogin: true,
+			Handler:    TenantUserDel,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 		"tenant/user/get": {
@@ -121,8 +121,8 @@ func init() {
 			NeedLogin: true,
 		},
 		"tenant/role/add": {
-			Handler:   RoleAdd,
-			NeedLogin: true,
+			Handler:    RoleAdd,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 	}
@@ -209,7 +209,7 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func AuthFilter(r *http.Request) (sess *sessions.Session, auth bool) {
 	var err error
 
-	sess, err = sessionStore.New(r, common.SessionKey)
+	sess, err = sessionStore.Get(r, common.SessionKey)
 	if err != nil {
 		logger.Error("session ERR: ", err)
 		return nil, false
@@ -251,7 +251,7 @@ func AccessFilter(r *http.Request) bool {
 
 	sess, err := sessionStore.Get(r, common.SessionKey)
 	if err != nil {
-		return  false
+		return false
 	}
 
 	sessUser := sess.Values[common.SessUserInfoKey].(protos.User)
@@ -283,10 +283,30 @@ func GetUserInfoFromSession(w http.ResponseWriter, r *http.Request) (user protos
 	return
 }
 
-func userAuth(w http.ResponseWriter, r *http.Request) {
-	userInfo := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey]
-	gocommon.HttpErr(w, http.StatusOK, 0, userInfo)
-	logger.Infof("auth OK: %#v", userInfo)
+func UserAuth(w http.ResponseWriter, r *http.Request) {
+	sess, auth := AuthFilter(r)
+	if auth == false || sess == nil {
+		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoLogin)
+		return
+	}
+
+	if sess.Values[common.SessUserInfoKey] == nil {
+		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoLogin)
+		return
+	}
+	if _, ok := sess.Values[common.SessUserInfoKey].(protos.User); !ok {
+		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoLogin)
+		return
+	}
+	uid := sess.Values[common.SessUserInfoKey].(protos.User).UID
+	if uid <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoLogin)
+		return
+	}
+
+	gocommon.HttpErr(w, http.StatusOK, 0, sess.Values[common.SessUserInfoKey].(protos.User))
+	logger.Infof("auth OK: %#v", sess.Values[common.SessUserInfoKey].(protos.User))
+
 	return
 }
 

@@ -1,11 +1,10 @@
 package face
 
 import (
-	"github.com/liuhengloveyou/passport/common"
 	"net/http"
 
+	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
-
 	"github.com/liuhengloveyou/passport/sessions"
 
 	gocommon "github.com/liuhengloveyou/go-common"
@@ -17,7 +16,7 @@ func userLogout(w http.ResponseWriter, r *http.Request) {
 		uid = r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User).UID
 	}
 
-	session, err := sessionStore.Get(r, common.SessionKey)
+	session, err := sessionStore.New(r, common.SessionKey)
 	if err != nil {
 		logger.Error("userLogout session ERR: ", err)
 		gocommon.HttpErr(w, http.StatusOK, -1, "会话错误")

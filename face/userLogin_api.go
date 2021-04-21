@@ -2,6 +2,7 @@ package face
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
@@ -32,13 +33,14 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := sessionStore.Get(r, common.SessionKey)
+	session, err := sessionStore.New(r, common.SessionKey)
 	if err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
 		logger.Error("userLogin session ERR: ", err)
 		return
 	}
 
+	one.LoginTime = time.Now()
 	session.Values[common.SessUserInfoKey] = one
 
 	if err := session.Save(r, w); err != nil {
@@ -50,6 +52,4 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 	logger.Infof("user login ok: %v sess :%#v\n", user, session)
 
 	gocommon.HttpErr(w, http.StatusOK, 0, one)
-
-	return
 }

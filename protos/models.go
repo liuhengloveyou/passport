@@ -24,6 +24,8 @@ type User struct {
 
 	Tags   MapStruct `json:"tags,omitempty" validate:"-" db:"tags"`
 	Tenant *Tenant   `json:"tenant,omitempty" validate:"-" db:"tenant"`
+
+	LoginTime time.Time `json:"LoginTime,omitempty" validate:"-" db:"-"`
 }
 
 // 租户

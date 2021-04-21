@@ -180,19 +180,16 @@ curl -v -X POST -H "X-API: user/login" -d \
 ### 登出
 
 ```
-curl -v -X GET -H "X-API: user/logout" --cookie "go-session-id=MTYxNDE0N" "http://127.0.0.1:8080/user"
+curl -v -X GET -H "X-API: user/logout" --cookie "go-session-id=MTY" "http://127.0.0.1:8080/user"
 
-成功: 200 {code: 0, data: "sucess"}
+成功: 200 {code: 0, data: "OK"}
 失败: 200 {code: -1, errmsg:"错误信息"}
 ```
 
 ### 签权
 
 ```
-GET /user
-Header: {
-    cookie: gsessionid=xxxxxx
-}
+curl -v -X GET -H "X-API: user/auth" --cookie "go-session-id=Opc=" "http://127.0.0.1:8080/user"
 
 成功: 200 {code: 0, data: {
 	"cellphone":"18510511015", 
