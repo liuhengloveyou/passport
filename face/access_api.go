@@ -75,7 +75,7 @@ func GetUsersForRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roles := accessctl.GetUsersForRoleInDomain(roleName, sessionUser.TenantID);
+	roles := accessctl.GetUsersForRoleInDomain(roleName, sessionUser.TenantID)
 	gocommon.HttpErr(w, http.StatusOK, 0, roles)
 	logger.Infof("AddPolicy OK: %#v\n", roles)
 

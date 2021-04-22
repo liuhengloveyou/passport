@@ -270,7 +270,7 @@ curl -v -X GET -H "X-API: info" --cookie "go-session-id=MTYxNDE0N" "http://127.0
 ### 为用户添加角色
 
 ```shell
-curl -v -X POST -H "X-API: access/role/add" --cookie "go-session-id=MTYxO“ -d \
+curl -v -X POST -H "X-API: access/addRoleForUser" --cookie "go-session-id=MTYxO“ -d \
 '{
   "uid": 123,
   "role": "role1"
@@ -280,17 +280,22 @@ curl -v -X POST -H "X-API: access/role/add" --cookie "go-session-id=MTYxO“ -d 
 ### 从用户删除角色
 
 ```shell
-curl -v -X POST -H "X-API: access/role/del" --cookie "go-session-id=MTYxO“ -d \
+curl -v -X POST -H "X-API: access/removeRoleForUser" --cookie "go-session-id=MTYxO“ -d \
 '{
    "uid": 123,
    "role": "role1"
 }' "http://127.0.0.1:8080/user"
 ```
 
+### 查询拥有一个角色的用户列表
+```shell
+curl -v -X GET -H "X-API: access/getUsersForRole" --cookie "go-session-id=MTYxO“ "http://127.0.0.1:8080/user?role=role1"
+```
+
 ### 为角色添加权限
 
 ```shell
-curl -v -X POST -H "X-API: access/policy/add" --cookie "go-session-id=MTYxO” -d \
+curl -v -X POST -H "X-API: access/addPolicyToRole" --cookie "go-session-id=MTYxO” -d \
 '{
   "role": "role1",
   "obj": "data1",
@@ -301,12 +306,18 @@ curl -v -X POST -H "X-API: access/policy/add" --cookie "go-session-id=MTYxO” -
 ### 从主体删除权限
 
 ```shell
-curl -v -X POST -H "X-API: access/policy/del" -d \
+curl -v -X POST -H "X-API: access/removePolicyFromRole" -d \
 '{
   "uid": 123,
   "sub": "data1",
   "act": "read"
 }' "http://127.0.0.1:8080/user"
+```
+
+### 查询策略列表
+
+```shell
+curl -v -X GET -H "X-API: access/getPolicy" "http://127.0.0.1:8080/user"
 ```
 
 
@@ -327,7 +338,7 @@ curl -v -X POST -H "X-API: tenant/add" --cookie "go-session-id=V6VbtYfgFKSlOYwQ=
 }' "http://127.0.0.1:8080/user"
 ```
 
-### 添加角色
+### 添加角色字典
 
 管理员向当前租户添加角色字典
 
@@ -338,7 +349,7 @@ curl -v -X POST -H "X-API: tenant/role/add" --cookie "go-session-id=VbtYfgFKSlOY
 }' "http://127.0.0.1:8080/user"
 ```
 
-### 查询当前租户的角色列表
+### 查询当前租户的角色字典
 ```shell
 curl -v -X GET -H "X-API: tenant/role/get" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
 "http://127.0.0.1:8080/user"
@@ -347,14 +358,18 @@ curl -v -X GET -H "X-API: tenant/role/get" --cookie "go-session-id=MTYfgFKSlOYwQ
 ### 向租户添加用户
 
 ```shell
-curl -v -X GET -H "X-API: tenant/user/add" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
-"http://127.0.0.1:8080/user"
+curl -v -X POST -H "X-API: tenant/user/add" --cookie "go-session-id=MTYfgFKSlOYwQ==" -d \
+'{
+  "uid": 123,
+}' "http://127.0.0.1:8080/user"
 ```
 
 ### 从当前租户删除用户
 ```shell
-curl -v -X GET -H "X-API: tenant/user/add" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
-"http://127.0.0.1:8080/user"
+curl -v -X POST -H "X-API: tenant/user/del" --cookie "go-session-id=MTYfgFKSlOYwQ==" -d \
+'{
+  "uid": 123,
+}' "http://127.0.0.1:8080/user"
 ```
 
 ### 查询当前租户用户列表
@@ -362,6 +377,8 @@ curl -v -X GET -H "X-API: tenant/user/add" --cookie "go-session-id=MTYfgFKSlOYwQ
 curl -v -X GET -H "X-API: tenant/user/get" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
 "http://127.0.0.1:8080/user"
 ```
+
+
 
 ## 应答格式说明
 
