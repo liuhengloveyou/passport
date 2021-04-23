@@ -53,7 +53,6 @@ func AddUserService(p *protos.UserReq) (id int64, e error) {
 	return dao.UserInsert(p)
 }
 
-
 func GetUser(m *protos.UserReq) (r *protos.User, e error) {
 	if m.UID > 0 {
 		r, e = dao.UserSelectByID(m.UID)

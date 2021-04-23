@@ -3,6 +3,7 @@ package face
 import (
 	"github.com/liuhengloveyou/passport/dao"
 	"net/http"
+	"strings"
 
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
@@ -152,27 +153,58 @@ func RoleAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := protos.RoleReq{}
+	req := protos.RoleStruct{}
 	if err := readJsonBodyFromRequest(r, &req); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		logger.Error("RoleAdd param ERR: ", err)
 		return
 	}
-	if "" == req.Role {
+	if "" == req.RoleTitle || "" == req.RoleValue {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		logger.Error("RoleAdd param ERR: ", req)
 		return
 	}
 	logger.Infof("RoleAdd body: %#v\n", req)
 
-	if sessionUser.TenantID <= 0 {
-		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
-		logger.Error("RoleAdd session ERR: ", sessionUser)
+	if err := service.TenantAddRole(sessionUser.TenantID, req); err != nil {
+		logger.Error("TenantAddRole service ERR: ", err)
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
 
-	if err := service.TenantAddRole(sessionUser.TenantID, req.Role); err != nil {
-		logger.Error("TenantAddRole service ERR: ", err)
+	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
+	return
+}
+
+func UpdateConfiguration(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
+		return
+	}
+
+	var req map[string]interface{}
+	if err := readJsonBodyFromRequest(r, &req); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("UpdateConfiguration param ERR: ", err)
+		return
+	}
+	k, ok := req["k"].(string)
+	if !ok {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("UpdateConfiguration param k nil")
+		return
+	}
+	if len(strings.TrimSpace(k)) == 0 || len(strings.TrimSpace(k)) > 64 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("UpdateConfiguration param k nil")
+		return
+	}
+
+	logger.Infof("UpdateConfiguration : %v\n", req)
+
+	if err := service.TenantUpdateConfiguration(sessionUser.TenantID, k, req["v"]); err != nil {
+		logger.Error("UpdateConfiguration service ERR: ", err)
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}

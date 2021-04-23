@@ -63,7 +63,7 @@ func InitHttpApi(addr string) error {
 		LogLevel: "debug",  // 日志级别
 		MysqlURN: "root:lhisroot@tcp(127.0.0.1:3306)/kuge?charset=utf8mb4&parseTime=true&loc=Local",
 	}
-	http.Handle("/user", passport.InitAndRunHttpApi(options))
+	http.Handle("/usercenter", passport.InitAndRunHttpApi(options))
 	// 业务可以挂在这里
 	http.Handle("/", &HttpServer{})
 

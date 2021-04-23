@@ -37,13 +37,14 @@ type Tenant struct {
 	AddTime    *time.Time `json:"addTime,omitempty" validate:"-" db:"add_time"`
 	UpdateTime *time.Time `json:"updateTime,omitempty" validate:"-" db:"update_time"`
 
-	Info          *MapStruct           `json:"info,omitempty" db:"info"`
+	Info          MapStruct            `json:"info,omitempty" db:"info"`
 	Configuration *TenantConfiguration `json:"configuration,omitempty" db:"configuration"`
 }
 
 // 租户配置字段
 type TenantConfiguration struct {
-	Roles []string `json:"roles"` // 用户角色字典列表
+	Roles []RoleStruct `json:"roles"` // 用户角色字典列表
+	More  MapStruct    `json:"more"`
 }
 
 func (t *TenantConfiguration) Scan(src interface{}) error {
@@ -96,7 +97,9 @@ type PolicyReq struct {
 	Act  string `json:"act" validate:"required,min=2,max=32"`
 }
 
-type RoleReq struct {
-	UID  uint64 `json:"uid,omitempty" validate:"-"`
-	Role string `json:"role" validate:"required,min=2,max=32"`
+type RoleStruct struct {
+	RoleTitle string `json:"title" validate:"required,min=2,max=10"`
+	RoleValue string `json:"value" validate:"required,min=2,max=10"`
+
+	UID uint64 `json:"uid,omitempty" validate:"-"`
 }

@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"github.com/go-playground/validator/v10"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -102,26 +103,31 @@ func init() {
 			Handler:   TenantAdd,
 			NeedLogin: true,
 		},
-		"tenant/user/add": {
+		"tenant/addUser": {
 			Handler:    TenantUserAdd,
 			NeedLogin:  true,
 			NeedAccess: true,
 		},
-		"tenant/user/del": {
+		"tenant/delUser": {
 			Handler:    TenantUserDel,
 			NeedLogin:  true,
 			NeedAccess: true,
 		},
-		"tenant/user/get": {
+		"tenant/getUsers": {
 			Handler:   TenantUserGet,
 			NeedLogin: true,
 		},
-		"tenant/role/get": {
+		"tenant/addRole": {
+			Handler:    RoleAdd,
+			NeedLogin:  true,
+			NeedAccess: true,
+		},
+		"tenant/getRoles": {
 			Handler:   GetRole,
 			NeedLogin: true,
 		},
-		"tenant/role/add": {
-			Handler:    RoleAdd,
+		"tenant/updateConfiguration": {
+			Handler:    UpdateConfiguration,
 			NeedLogin:  true,
 			NeedAccess: true,
 		},
@@ -147,7 +153,7 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 	handler = &PassportHttpServer{}
 
 	if "" != options.Addr {
-		http.Handle("/user", handler)
+		http.Handle("/usercenter", handler)
 		s := &http.Server{
 			Addr:           options.Addr,
 			ReadTimeout:    10 * time.Minute,
@@ -177,7 +183,7 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	apiHandler, ok := apis[apiName]
 	if !ok {
-		gocommon.HttpErr(w, http.StatusMethodNotAllowed, 0, "")
+		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -317,12 +323,15 @@ func readJsonBodyFromRequest(r *http.Request, dst interface{}) error {
 	}
 
 	if err = json.Unmarshal(body, dst); err != nil {
+		fmt.Println(">>>>>>>>>>>>>>>>>>", string( body), err)
 		return err
 	}
 
 	if err = common.Validate.Struct(dst); err != nil {
-		logger.Errorf("readJsonBodyFromRequest validator ERR: ", err)
-		return common.ErrParam
+		logger.Errorf("readJsonBodyFromRequest validator ERR: %#v\n", err)
+		if _, ok := err.(*validator.InvalidValidationError); !ok {
+			return common.ErrParam
+		}
 	}
 
 	return nil

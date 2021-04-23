@@ -28,7 +28,7 @@ func GetUserInfoService(uid uint64) (r protos.User, e error) {
 		rr[0].Password = ""
 		return rr[0], nil
 	}
-	
+
 	return
 }
 

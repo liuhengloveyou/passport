@@ -146,7 +146,7 @@ curl -v -X PUT -H "X-API: register" -d \
   '{
       "cellphone": "17688396387",
       "password": "123456"
-  }' "http://127.0.0.1:8080/user"
+  }' "http://127.0.0.1:8080/usercenter"
 ```
 
 
@@ -164,7 +164,7 @@ curl -v -X POST -H "X-API: user/login" -d \
 '{
     "cellphone": "17688396387",
     "password": "123456"
-}' "http://127.0.0.1:8080/user"
+}' "http://127.0.0.1:8080/usercenter"
 	  
 成功返回:
 {
@@ -180,7 +180,7 @@ curl -v -X POST -H "X-API: user/login" -d \
 ### 登出
 
 ```
-curl -v -X GET -H "X-API: user/logout" --cookie "go-session-id=MTY" "http://127.0.0.1:8080/user"
+curl -v -X GET -H "X-API: user/logout" --cookie "go-session-id=MTY" "http://127.0.0.1:8080/usercenter"
 
 成功: 200 {code: 0, data: "OK"}
 失败: 200 {code: -1, errmsg:"错误信息"}
@@ -189,7 +189,7 @@ curl -v -X GET -H "X-API: user/logout" --cookie "go-session-id=MTY" "http://127.
 ### 签权
 
 ```
-curl -v -X GET -H "X-API: user/auth" --cookie "go-session-id=Opc=" "http://127.0.0.1:8080/user"
+curl -v -X GET -H "X-API: user/auth" --cookie "go-session-id=Opc=" "http://127.0.0.1:8080/usercenter"
 
 成功: 200 {code: 0, data: {
 	"cellphone":"18510511015", 
@@ -248,7 +248,7 @@ Body: {
 ### 查询自己的账号详情
 
 ```
-curl -v -X GET -H "X-API: info" --cookie "go-session-id=MTYxNDE0N" "http://127.0.0.1:8080/user"
+curl -v -X GET -H "X-API: info" --cookie "go-session-id=MTYxNDE0N" "http://127.0.0.1:8080/usercenter"
 
 成功返回:
 {
@@ -274,7 +274,7 @@ curl -v -X POST -H "X-API: access/addRoleForUser" --cookie "go-session-id=MTYxO�
 '{
   "uid": 123,
   "role": "role1"
-}' "http://127.0.0.1:8080/user"
+}' "http://127.0.0.1:8080/usercenter"
 ```
 
 ### 从用户删除角色
@@ -284,12 +284,12 @@ curl -v -X POST -H "X-API: access/removeRoleForUser" --cookie "go-session-id=MTY
 '{
    "uid": 123,
    "role": "role1"
-}' "http://127.0.0.1:8080/user"
+}' "http://127.0.0.1:8080/usercenter"
 ```
 
 ### 查询拥有一个角色的用户列表
 ```shell
-curl -v -X GET -H "X-API: access/getUsersForRole" --cookie "go-session-id=MTYxO“ "http://127.0.0.1:8080/user?role=role1"
+curl -v -X GET -H "X-API: access/getUsersForRole" --cookie "go-session-id=MTYxO“ "http://127.0.0.1:8080/usercenter?role=role1"
 ```
 
 ### 为角色添加权限
@@ -300,7 +300,7 @@ curl -v -X POST -H "X-API: access/addPolicyToRole" --cookie "go-session-id=MTYxO
   "role": "role1",
   "obj": "data1",
   "act": "read"
-}' "http://127.0.0.1:8080/user"
+}' "http://127.0.0.1:8080/usercenter"
 ```
 
 ### 从主体删除权限
@@ -311,13 +311,13 @@ curl -v -X POST -H "X-API: access/removePolicyFromRole" -d \
   "uid": 123,
   "sub": "data1",
   "act": "read"
-}' "http://127.0.0.1:8080/user"
+}' "http://127.0.0.1:8080/usercenter"
 ```
 
 ### 查询策略列表
 
 ```shell
-curl -v -X GET -H "X-API: access/getPolicy" "http://127.0.0.1:8080/user"
+curl -v -X GET -H "X-API: access/getPolicy" "http://127.0.0.1:8080/usercenter"
 ```
 
 
@@ -335,7 +335,31 @@ curl -v -X POST -H "X-API: tenant/add" --cookie "go-session-id=V6VbtYfgFKSlOYwQ=
 '{
   "tenant_name": "tenant1",
   "tenant_type": "t1"
-}' "http://127.0.0.1:8080/user"
+}' "http://127.0.0.1:8080/usercenter"
+```
+
+
+### 向租户添加用户
+
+```shell
+curl -v -X POST -H "X-API: tenant/addUser" --cookie "go-session-id=MTYfgFKSlOYwQ==" -d \
+'{
+  "uid": 123,
+}' "http://127.0.0.1:8080/usercenter"
+```
+
+### 从当前租户删除用户
+```shell
+curl -v -X POST -H "X-API: tenant/delUser" --cookie "go-session-id=MTYfgFKSlOYwQ==" -d \
+'{
+  "uid": 123,
+}' "http://127.0.0.1:8080/usercenter"
+```
+
+### 查询当前租户用户列表
+```shell
+curl -v -X GET -H "X-API: tenant/getUsers" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
+"http://127.0.0.1:8080/usercenter"
 ```
 
 ### 添加角色字典
@@ -343,39 +367,29 @@ curl -v -X POST -H "X-API: tenant/add" --cookie "go-session-id=V6VbtYfgFKSlOYwQ=
 管理员向当前租户添加角色字典
 
 ```shell
-curl -v -X POST -H "X-API: tenant/role/add" --cookie "go-session-id=VbtYfgFKSlOYwQ==" -d \
+curl -v -X POST -H "X-API: tenant/addRole" --cookie "go-session-id=VbtYfgFKSlOYwQ==" -d \
 '{
-  "role": "role1"
-}' "http://127.0.0.1:8080/user"
+  "title": "角色1",
+  "value": "role1"
+}' "http://127.0.0.1:8080/usercenter"
 ```
 
 ### 查询当前租户的角色字典
 ```shell
-curl -v -X GET -H "X-API: tenant/role/get" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
-"http://127.0.0.1:8080/user"
+curl -v -X GET -H "X-API: tenant/getRoles" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
+"http://127.0.0.1:8080/usercenter"
 ```
 
-### 向租户添加用户
+### 更新租户配置信息
 
 ```shell
-curl -v -X POST -H "X-API: tenant/user/add" --cookie "go-session-id=MTYfgFKSlOYwQ==" -d \
+curl -v -X POST -H "X-API: tenant/updateConfiguration" --cookie "go-session-id=VbtYfgFKSlOYwQ==" -d \
 '{
-  "uid": 123,
-}' "http://127.0.0.1:8080/user"
-```
-
-### 从当前租户删除用户
-```shell
-curl -v -X POST -H "X-API: tenant/user/del" --cookie "go-session-id=MTYfgFKSlOYwQ==" -d \
-'{
-  "uid": 123,
-}' "http://127.0.0.1:8080/user"
-```
-
-### 查询当前租户用户列表
-```shell
-curl -v -X GET -H "X-API: tenant/user/get" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
-"http://127.0.0.1:8080/user"
+  "k": "角aaa",
+  "v": {
+       "aaa": "aaaaaaaaaaaaaaa"
+  }
+}' "http://127.0.0.1:8080/usercenter"
 ```
 
 
@@ -446,7 +460,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `email_UNIQUE` (`email`),
   UNIQUE KEY `nickname_UNIQUE` (`nickname`),
   KEY `tenant_index` (`tenant_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 CREATE TABLE `tenant` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -459,6 +473,6 @@ CREATE TABLE `tenant` (
   `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `tenant_name_unique` (`tenant_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=10031 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 ```
 

@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	SYS_PWD = "When you forgive, You love. And when you love, God's light shines on you."
+	SYS_PWD         = "When you forgive, You love. And when you love, God's light shines on you. Now, 2021"
 	SessionKey      = "go-session-id"
 	SessUserInfoKey = "sessionUserInfo"
 	MAX_UPLOAD_LEN  = (5 * 1024 * 1024) // 最大上传文件大小

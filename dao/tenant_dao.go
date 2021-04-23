@@ -10,7 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func TenantInsert(tx *sqlx.Tx, m *protos.Tenant) (id int64, e error) {
+func TenantInsert(tx *sqlx.Tx, m *protos.Tenant) (tenantID int64, e error) {
 	rst, err := tx.Exec("INSERT INTO tenant (uid, tenant_name, tenant_type, configuration, add_time) VALUES (?, ?, ?, ?, ?)",
 		m.UID, m.TenantName, m.TenantType, m.Configuration, time.Now())
 	if err != nil {
@@ -22,16 +22,16 @@ func TenantInsert(tx *sqlx.Tx, m *protos.Tenant) (id int64, e error) {
 		return -1, err
 	}
 
-	if id, e = rst.LastInsertId(); e != nil {
+	if tenantID, e = rst.LastInsertId(); e != nil {
 		return
 	}
 
-	if rst, e = tx.Exec("UPDATE users SET tenant_id = ? WHERE (uid = ?) AND (tenant_id = 0)", id, m.UID); e != nil {
+	if rst, e = tx.Exec("UPDATE users SET tenant_id = ? WHERE (uid = ?) AND (tenant_id = 0)", tenantID, m.UID); e != nil {
 		return
 	}
-	row, _ := rst.RowsAffected()
-	if row != 1 {
-		return -1, common.ErrService
+	row, err := rst.RowsAffected()
+	if row != 1 || err != nil {
+		return -1, err
 	}
 
 	return

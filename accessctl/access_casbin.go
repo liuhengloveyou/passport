@@ -13,7 +13,6 @@ func enforce(sub, domain, obj, act string) (bool, error) {
 	return enforcer.Enforce(sub, domain, obj, act)
 }
 
-
 func addPolicy(sub, domain, obj, act string) (err error) {
 	if _, err = enforcer.AddPolicy(sub, domain, obj, act); err != nil {
 		return
@@ -39,7 +38,7 @@ func removePolicy(sub, domain, obj, act string) (err error) {
 }
 
 func getFilteredPolicy(domain string) [][]string {
-	return enforcer.GetFilteredPolicy(1, domain);
+	return enforcer.GetFilteredPolicy(1, domain)
 }
 
 func addRoleForUserInDomain(user, role, domain string) (err error) {

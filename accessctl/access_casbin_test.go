@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestAccess(t *testing.T)  {
+func TestAccess(t *testing.T) {
 	err := InitAccessControl("../rbac_with_domains_model.conf", "root:lhisroot@tcp(127.0.0.1:3306)/passport?charset=utf8&parseTime=true&loc=Local")
 	fmt.Println("InitAccessControl: ", err)
 
