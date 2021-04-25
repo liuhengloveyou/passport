@@ -2,6 +2,8 @@ package face
 
 import (
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
@@ -31,6 +33,43 @@ func getMyInfo(w http.ResponseWriter, r *http.Request) {
 
 	gocommon.HttpErr(w, http.StatusOK, 0, rst)
 	logger.Infof("GetMyInfo OK: %#v %#v\n", uid, rst)
+
+	return
+}
+
+
+func getInfoByUID(w http.ResponseWriter, r *http.Request) {
+	sessioinUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessioinUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Error("getInfoByUID ERR uid nil.")
+		return
+	}
+
+	uid := strings.TrimSpace(r.FormValue("uid"))
+	if uid == "" {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("getInfoByUID ERR uid nil.")
+		return
+	}
+
+	iuid, _ := strconv.ParseUint(uid, 10, 64)
+	userInfo, err := service.GetUserInfoService(iuid)
+	if err != nil {
+		gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
+		logger.Error("getInfoByUID ERR: " + err.Error())
+		return
+	}
+
+	if sessioinUser.TenantID > 0 || userInfo.TenantID > 0 {
+		if sessioinUser.TenantID != userInfo.TenantID {
+			userInfo.Tenant = nil
+			userInfo.TenantID = 0
+		}
+	}
+
+	gocommon.HttpErr(w, http.StatusOK, 0, userInfo)
+	logger.Infof("getInfoByUID OK: %#v %#v\n", uid, userInfo)
 
 	return
 }

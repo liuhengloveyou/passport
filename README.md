@@ -142,11 +142,11 @@ GET请求使用标准的URL参数，POST用JSON格式的body。
 示例：
 
 ```shell
-curl -v -X PUT -H "X-API: register" -d \
-  '{
-      "cellphone": "17688396387",
-      "password": "123456"
-  }' "http://127.0.0.1:8080/usercenter"
+curl -v -X PUT -H "X-API: user/register" -d \
+'{
+	"cellphone": "17688396389",
+	"password": "123456"
+}' "http://127.0.0.1:8080/usercenter"
 ```
 
 
@@ -162,7 +162,7 @@ curl -v -X PUT -H "X-API: register" -d \
 ```
 curl -v -X POST -H "X-API: user/login" -d \
 '{
-    "cellphone": "17688396387",
+    "cellphone": "17688396389",
     "password": "123456"
 }' "http://127.0.0.1:8080/usercenter"
 	  
@@ -248,7 +248,23 @@ Body: {
 ### 查询自己的账号详情
 
 ```
-curl -v -X GET -H "X-API: info" --cookie "go-session-id=MTYxNDE0N" "http://127.0.0.1:8080/usercenter"
+curl -v -X GET -H "X-API: user/info" --cookie "go-session-id=MTYxNDE0N" "http://127.0.0.1:8080/usercenter"
+
+成功返回:
+{
+    code: 0,
+    "data": {
+        "uid":10000,
+        "cellphone":"17688396387",
+        "nickname":"17688396387",
+    }
+}
+```
+
+### 用UID查询账号详情
+
+```
+curl -v -X GET -H "X-API: user/infoByUID" --cookie "go-session-id=MTYxNDE0N" "http://127.0.0.1:8080/usercenter?uid=10000"
 
 成功返回:
 {
@@ -290,6 +306,11 @@ curl -v -X POST -H "X-API: access/removeRoleForUser" --cookie "go-session-id=MTY
 ### 查询拥有一个角色的用户列表
 ```shell
 curl -v -X GET -H "X-API: access/getUsersForRole" --cookie "go-session-id=MTYxO“ "http://127.0.0.1:8080/usercenter?role=role1"
+```
+
+### 查询一个用户拥有的角色列表
+```shell
+curl -v -X GET -H "X-API: access/getRolesForUser" --cookie "go-session-id=MTYxO“ "http://127.0.0.1:8080/usercenter?uid=123"
 ```
 
 ### 为角色添加权限

@@ -53,6 +53,10 @@ func init() {
 			Handler:   getMyInfo,
 			NeedLogin: true,
 		},
+		"user/infoByUID": {
+			Handler:   getInfoByUID,
+			NeedLogin: true,
+		},
 		"user/modify": {
 			Handler:   userModify,
 			NeedLogin: true,
@@ -76,6 +80,10 @@ func init() {
 			Handler:    RemoveRoleForUser,
 			NeedLogin:  true,
 			NeedAccess: true,
+		},
+		"access/getRolesForUser": {
+			Handler:    GetRolesForUser,
+			NeedLogin:  true,
 		},
 		"access/getUsersForRole": {
 			Handler:    GetUsersForRole,
@@ -266,6 +274,7 @@ func AccessFilter(r *http.Request) bool {
 	}
 
 	access, err := accessctl.Enforce(sessUser.UID, sessUser.TenantID, obj, r.Method)
+	logger.Debugf("AccessFilter: %v %v %v %v %v\n", sessUser.UID, sessUser.TenantID, obj, r.Method, access)
 	if err != nil {
 		panic(err)
 	}

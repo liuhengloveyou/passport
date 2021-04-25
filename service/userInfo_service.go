@@ -26,6 +26,7 @@ func GetUserInfoService(uid uint64) (r protos.User, e error) {
 
 	if rr != nil && len(rr) == 1 {
 		rr[0].Password = ""
+		rr[0].UpdateTime = nil
 		return rr[0], nil
 	}
 

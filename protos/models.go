@@ -10,7 +10,7 @@ import (
 
 type User struct {
 	UID        uint64       `json:"uid,omitempty" validate:"-" db:"uid"`
-	TenantID   uint64       `json:"tenant_id" validate:"-" db:"tenant_id"`
+	TenantID   uint64       `json:"tenant_id,omitempty" validate:"-" db:"tenant_id"`
 	Password   string       `json:"password,omitempty" validate:"required,min=6,max=256" db:"password"`
 	Cellphone  *null.String `json:"cellphone,omitempty" validate:"omitempty,phone" db:"cellphone"`
 	Email      *null.String `json:"email,omitempty" validate:"omitempty,email" db:"email"`
@@ -25,7 +25,7 @@ type User struct {
 	Tags   MapStruct `json:"tags,omitempty" validate:"-" db:"tags"`
 	Tenant *Tenant   `json:"tenant,omitempty" validate:"-" db:"tenant"`
 
-	LoginTime time.Time `json:"LoginTime,omitempty" validate:"-" db:"-"`
+	LoginTime *time.Time `json:"LoginTime,omitempty" validate:"-" db:"-"`
 }
 
 // 租户

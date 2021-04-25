@@ -7,6 +7,7 @@ import (
 	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/sessions"
 	"net/http"
+	"strconv"
 )
 
 func AddRoleForUser(w http.ResponseWriter, r *http.Request) {
@@ -56,6 +57,29 @@ func RemoveRoleForUser(w http.ResponseWriter, r *http.Request) {
 
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
 	logger.Infof("DeleteRoleForUser OK: %#v\n", req)
+
+	return
+}
+
+func GetRolesForUser(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
+		logger.Error("GetUsersForRole session ERR")
+		return
+	}
+
+	uid := r.FormValue("uid")
+	if uid == "" {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+
+	iuid,_ := strconv.ParseUint(uid, 10, 64)
+
+	roles := accessctl.GetRoleForUserInDomain(iuid, sessionUser.TenantID)
+	gocommon.HttpErr(w, http.StatusOK, 0, roles)
+	logger.Infof("AddPolicy OK: %#v\n", roles)
 
 	return
 }

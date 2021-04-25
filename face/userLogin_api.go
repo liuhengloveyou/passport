@@ -40,7 +40,8 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	one.LoginTime = time.Now()
+	now := time.Now()
+	one.LoginTime = &now
 	session.Values[common.SessUserInfoKey] = one
 
 	if err := session.Save(r, w); err != nil {

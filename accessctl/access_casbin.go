@@ -65,6 +65,10 @@ func deleteRoleForUserInDomain(user, role, domain string) (err error) {
 	return
 }
 
+func getRoleForUserInDomain(user, domain string) []string {
+	return enforcer.GetRolesForUserInDomain(user, domain)
+}
+
 func getUsersForRoleInDomain(role, domain string) []string {
 	return enforcer.GetUsersForRoleInDomain(role, domain)
 }

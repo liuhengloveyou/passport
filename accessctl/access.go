@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/liuhengloveyou/passport/common"
+	"github.com/liuhengloveyou/passport/dao"
+	"github.com/liuhengloveyou/passport/protos"
 	"strconv"
 	"strings"
 	"time"
@@ -92,6 +94,22 @@ func AddRoleForUserInDomain(uid, tenantID uint64, role string) (err error) {
 
 func DeleteRoleForUserInDomain(uid, tenantID uint64, role string) (err error) {
 	return deleteRoleForUserInDomain(genUserByUID(uid), role, genDomainByTenantID(tenantID))
+}
+
+func GetRoleForUserInDomain(uid, tenantID uint64) (roles []string) {
+	var userInfo *protos.User
+
+	userInfo, err := dao.UserSelectByID(uid)
+	if err != nil {
+		common.Logger.Sugar().Errorf("GetRoleForUserInDomain UserSelectByID ERR: %v\n", err)
+		return
+	}
+	if userInfo == nil || userInfo.TenantID != tenantID {
+		common.Logger.Sugar().Errorf("GetRoleForUserInDomain userInfo ERR: %d %d %v\n", uid, tenantID, userInfo)
+		return
+	}
+
+	return getRoleForUserInDomain(genUserByUID(uid), genDomainByTenantID(tenantID))
 }
 
 func GetUsersForRoleInDomain(role string, tenantID uint64) (ids []uint64) {
