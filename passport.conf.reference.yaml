@@ -9,4 +9,6 @@ session_store_type: "mem"
 session_expire: 86400
 
 access_control: true # 是否启用权限控制模块
-is_enant: true # 是否启用租户模块
+is_tenant: true # 是否启用租户模块
+admin_tenant_id: 10030 # 管理接口只有指定的租户可用
+

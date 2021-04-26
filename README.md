@@ -415,6 +415,27 @@ curl -v -X POST -H "X-API: tenant/updateConfiguration" --cookie "go-session-id=V
 
 
 
+## SAAS系统管理接口
+
+
+管理接口只有指定的租户可用
+
+
+### 更新租户配置信息
+
+```shell
+curl -v -X POST -H "X-API: admin/updateTenantConfiguration" --cookie "go-session-id=VbtYfgFKSlOYwQ==" -d \
+'{
+	"tenant_id": 123,
+  "k": "角aaa",
+  "v": {
+       "aaa": "aaaaaaaaaaaaaaa"
+  }
+}' "http://127.0.0.1:8080/usercenter"
+```
+
+
+
 ## 应答格式说明
 
 应答格式为JSON。正常情况：

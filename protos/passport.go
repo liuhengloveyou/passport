@@ -14,5 +14,6 @@ type OptionStruct struct {
 	AvatarDir      string `yaml:"avatar_dir"`
 
 	AccessControl bool `yaml:"access_control"` // 是否启用权限控制模块
-	IsTenant      bool `yaml:"is_enant"`       // 是否启用多租户
+	IsTenant      bool `yaml:"is_tenant"`       // 是否启用多租户
+	AdminTenantID uint64 `yaml:"admin_tenant_id"`       // admin接口只有一个租户有权限
 }

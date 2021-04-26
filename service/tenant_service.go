@@ -102,10 +102,6 @@ func TenantGetRole(tenantId uint64) (roles []protos.RoleStruct) {
 }
 
 func TenantUpdateConfiguration(tenantId uint64, k string, v interface{}) error {
-	if k == "roles" {
-		return common.ErrParam
-	}
-
 	tenant, err := dao.TenantGetByID(tenantId)
 	if err != nil {
 		common.Logger.Sugar().Errorf("TenantUpdateConfiguration db ERR: ", err)

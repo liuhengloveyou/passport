@@ -8,6 +8,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/liuhengloveyou/passport/accessctl"
@@ -136,6 +137,13 @@ func init() {
 		},
 		"tenant/updateConfiguration": {
 			Handler:    UpdateConfiguration,
+			NeedLogin:  true,
+			NeedAccess: true,
+		},
+
+		// 管理接口
+		"admin/updateTenantConfiguration": {
+			Handler:    UpdateTenantConfiguration,
 			NeedLogin:  true,
 			NeedAccess: true,
 		},
@@ -273,6 +281,15 @@ func AccessFilter(r *http.Request) bool {
 		return false
 	}
 
+	logger.Debugf("obj: %v\n", obj)
+	// 管理接口只有指定的租户可用
+	if strings.HasPrefix(obj, "admin") {
+		if sessUser.TenantID != common.ServConfig.AdminTenantID {
+			logger.Warnf("obj: %v; user: %v; %v", obj, sessUser, common.ServConfig.AdminTenantID)
+			return false
+		}
+	}
+
 	access, err := accessctl.Enforce(sessUser.UID, sessUser.TenantID, obj, r.Method)
 	logger.Debugf("AccessFilter: %v %v %v %v %v\n", sessUser.UID, sessUser.TenantID, obj, r.Method, access)
 	if err != nil {
@@ -330,14 +347,13 @@ func readJsonBodyFromRequest(r *http.Request, dst interface{}) error {
 	if err != nil {
 		return err
 	}
+	logger.Debugf("request body: '%v'\n", string(body))
 
 	if err = json.Unmarshal(body, dst); err != nil {
-		fmt.Println(">>>>>>>>>>>>>>>>>>", string( body), err)
 		return err
 	}
 
 	if err = common.Validate.Struct(dst); err != nil {
-		logger.Errorf("readJsonBodyFromRequest validator ERR: %#v\n", err)
 		if _, ok := err.(*validator.InvalidValidationError); !ok {
 			return common.ErrParam
 		}
