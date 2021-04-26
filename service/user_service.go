@@ -13,7 +13,7 @@ import (
 )
 
 func AddUserService(p *protos.UserReq) (id int64, e error) {
-	if p.Cellphone == "" && p.Email == "" {
+	if p.Cellphone == "" && p.Email == "" && p.Nickname == "" {
 		return -1, fmt.Errorf("手机号和邮箱同时为空")
 	}
 	if p.Password == "" {
