@@ -46,3 +46,40 @@ func UpdateTenantConfiguration(w http.ResponseWriter, r *http.Request) {
 
 	return
 }
+
+
+
+func modifyPWDByUID(w http.ResponseWriter, r *http.Request) {
+	var req map[string]interface{}
+	if err := readJsonBodyFromRequest(r, &req); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("modifyPWDByID param ERR: ", err)
+		return
+	}
+
+	uid, ok := req["uid"].(float64)
+	if !ok || uint64(uid) <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("modifyPWDByUID param ERR: ", req)
+		return
+	}
+
+	pwd, ok := req["pwd"].(string)
+	pwd = strings.TrimSpace(pwd)
+	if len(pwd) < 4 || len(pwd) > 16 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("modifyPWDByUID param ERR: ", req)
+		return
+	}
+
+	logger.Infof("modifyPWDByUID %v %s\n", uid, pwd)
+
+	if _, err := service.SetUserPWD(uint64(uid), pwd); err != nil {
+		logger.Errorf("modifyPWDByUID %d %s %s %s\n", uid, pwd, err.Error())
+		gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
+		return
+	}
+
+	gocommon.HttpErr(w, http.StatusOK, 0, "OK")
+	return
+}

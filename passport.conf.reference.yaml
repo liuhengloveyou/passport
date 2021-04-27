@@ -3,7 +3,7 @@ addr: ":8080"
 log_dir: "./logs"
 log_level: "debug"
 redis: "127.0.0.1:19738"
-mysql: "root:lhisroot@tcp(127.0.0.1:3306)/passport?charset=utf8&parseTime=true&loc=Local"
+mysql: "root:lhisroot@tcp(127.0.0.1:3306)/passport?charset=utf8mb4&parseTime=True&loc=Local"
 
 session_store_type: "mem"
 session_expire: 86400

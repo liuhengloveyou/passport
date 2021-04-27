@@ -98,6 +98,17 @@ func UserUpdatePWD(UID uint64, oldPWD, newPWD string) (rows int64, e error) {
 	return rst.RowsAffected()
 }
 
+func SetUserPWD(UID uint64, PWD string) (rows int64, e error) {
+	var rst sql.Result
+
+	rst, e = common.DB.Exec(fmt.Sprintf("UPDATE %s SET password=? WHERE (uid=?)", common.ServConfig.MysqlTableName), PWD, UID)
+	if e != nil {
+		return
+	}
+
+	return rst.RowsAffected()
+}
+
 func UserUpdateTenantID(UID, tenantID, currTenantID uint64) (rows int64, e error) {
 	var rst sql.Result
 

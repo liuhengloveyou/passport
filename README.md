@@ -144,7 +144,7 @@ GET请求使用标准的URL参数，POST用JSON格式的body。
 ```shell
 curl -v -X PUT -H "X-API: user/register" -d \
 '{
-	"cellphone": "17688396389",
+	"nickname": "17688396389",
 	"password": "123456"
 }' "http://127.0.0.1:8080/usercenter"
 ```
@@ -434,6 +434,15 @@ curl -v -X POST -H "X-API: admin/updateTenantConfiguration" --cookie "go-session
 }' "http://127.0.0.1:8080/usercenter"
 ```
 
+### 更新用户密码
+
+```shell
+curl -v -X POST -H "X-API: admin/modifyUserPassword" --cookie "go-session-id=VbtYfgFKSlOYwQ==" -d \
+'{
+	"uid": 123,
+  "pwd": "pwd"
+}' "http://127.0.0.1:8080/usercenter"
+```
 
 
 ## 应答格式说明
@@ -452,7 +461,7 @@ curl -v -X POST -H "X-API: admin/updateTenantConfiguration" --cookie "go-session
 ```json
 {
   "code": -1,
-  "message": "错误信息"
+  "msg": "错误信息"
 }
 ```
 

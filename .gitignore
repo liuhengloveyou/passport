@@ -1,3 +1,5 @@
 passport.conf.yaml
 logs
 passport.log
+passport_unix
+go.sum

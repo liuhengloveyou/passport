@@ -130,6 +130,25 @@ func UpdateUserPWD(uid uint64, oldPWD, newPWD string) (rows int64, e error) {
 	return
 }
 
+
+func SetUserPWD(uid uint64, PWD string) (rows int64, e error) {
+	if uid <= 0 {
+		return 0, fmt.Errorf("用户错误")
+	}
+	if PWD == "" {
+		return -1, fmt.Errorf("密码不能为空")
+	}
+
+	PWD = common.EncryPWD(PWD)
+
+	rows, e = dao.SetUserPWD(uid, PWD)
+	if rows < 1 {
+		return 0, fmt.Errorf("更改密码失败")
+	}
+
+	return
+}
+
 func duplicatePhone(phone string) (has bool) {
 	rr, err := dao.UserSelect(&protos.UserReq{Cellphone: phone}, 1, 1)
 	if err != nil {

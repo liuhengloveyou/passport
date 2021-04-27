@@ -147,6 +147,10 @@ func init() {
 			NeedLogin:  true,
 			NeedAccess: true,
 		},
+		"admin/modifyUserPassword": {
+			Handler:   modifyPWDByUID,
+			NeedLogin: true,
+		},
 	}
 }
 
