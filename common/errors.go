@@ -18,6 +18,6 @@ var (
 	ErrTenantNotFound = errors.NewError(-2000, "租户不存在")
 	ErrTenantNameNull = errors.NewError(-2001, "租户名字为空")
 	ErrTenantTypeNull = errors.NewError(-2002, "租户类型为空")
-	ErrTenantLimit    = errors.NewError(-2003, "只能属于一个租户")
+	ErrTenantLimit    = errors.NewError(-2003, "用户只能属于一个租户")
 	ErrTenantAddERR   = errors.NewError(-2004, "添加租户失败")
 )

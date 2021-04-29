@@ -31,7 +31,7 @@ func TenantInsert(tx *sqlx.Tx, m *protos.Tenant) (tenantID int64, e error) {
 	}
 	row, err := rst.RowsAffected()
 	if row != 1 || err != nil {
-		return -1, err
+		return -1, common.ErrTenantLimit
 	}
 
 	return

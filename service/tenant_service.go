@@ -16,12 +16,18 @@ func TenantAdd(m *protos.Tenant) (tenantID int64, e error) {
 		return -1, common.ErrTenantTypeNull
 	}
 
+	if m.Configuration == nil {
+		m.Configuration = &protos.TenantConfiguration{}
+	}
+	if len(m.Configuration.More) > 100 {
+		return -1, common.ErrService
+	}
+
 	// 默认添加超级管理员角色
-	m.Configuration = &protos.TenantConfiguration{
-		Roles: []protos.RoleStruct{{
-			RoleTitle: "超级管理员",
-			RoleValue: "root",
-		}}}
+	m.Configuration.Roles = []protos.RoleStruct{{
+		RoleTitle: "超级管理员",
+		RoleValue: "root",
+	}}
 
 	tx := common.DB.MustBegin()
 	defer func() {
@@ -74,7 +80,9 @@ func TenantAddRole(tenantId uint64, role protos.RoleStruct) error {
 	}
 
 	common.Logger.Sugar().Debugf("tenant: %v\n", tenant)
-
+	if len(tenant.Configuration.Roles) > 100 {
+		return common.ErrService
+	}
 	for i := 0; i < len(tenant.Configuration.Roles); i++ {
 		if tenant.Configuration.Roles[i].RoleTitle == role.RoleTitle || tenant.Configuration.Roles[i].RoleValue == role.RoleValue {
 			return common.ErrMysql1062
@@ -115,6 +123,9 @@ func TenantUpdateConfiguration(tenantId uint64, k string, v interface{}) error {
 	}
 
 	if v != nil {
+		if len(tenant.Configuration.More) > 100 {
+			return common.ErrService
+		}
 		tenant.Configuration.More[k] = v
 	} else {
 		delete(tenant.Configuration.More, k)

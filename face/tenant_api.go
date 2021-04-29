@@ -30,6 +30,8 @@ func TenantAdd(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Infof("tenantAdd body: %#v\n", req)
 
+	req.TenantName = strings.TrimSpace(req.TenantName)
+	req.TenantType= strings.TrimSpace(req.TenantType)
 	if req.TenantName == "" {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNameNull)
 		logger.Error("tenantAdd param ERR: ", req)

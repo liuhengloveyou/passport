@@ -355,7 +355,15 @@ curl -v -X GET -H "X-API: access/getPolicy" "http://127.0.0.1:8080/usercenter"
 curl -v -X POST -H "X-API: tenant/add" --cookie "go-session-id=V6VbtYfgFKSlOYwQ==" -d \
 '{
   "tenant_name": "tenant1",
-  "tenant_type": "t1"
+  "tenant_type": "t1",
+  "configuration": {
+  	"more": {
+  		"k": "conf-aaa",
+      "v": {
+           "aaa": "aaaaaaaaaaaaaaa"
+      }
+  	}
+  }
 }' "http://127.0.0.1:8080/usercenter"
 ```
 
