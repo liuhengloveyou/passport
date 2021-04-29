@@ -8,6 +8,7 @@ import (
 	"github.com/liuhengloveyou/passport/sessions"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func AddRoleForUser(w http.ResponseWriter, r *http.Request) {
@@ -163,9 +164,19 @@ func GetPolicy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	policy := accessctl.GetFilteredPolicy(sessionUser.TenantID)
-	gocommon.HttpErr(w, http.StatusOK, 0, policy)
-	logger.Infof("GetPolicy OK: %#v\n", policy)
+	r.ParseForm()
+
+	req := strings.Split(r.FormValue("roles"), ",")
+	logger.Info("GetPolicy param: ", req)
+	if len(req) > 10 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("GetPolicy param ERR: ", req)
+		return
+	}
+
+	policys := accessctl.GetFilteredPolicy(sessionUser.TenantID, req)
+	gocommon.HttpErr(w, http.StatusOK, 0, policys)
+	logger.Infof("GetPolicy OK: %#v\n", policys)
 
 	return
 }

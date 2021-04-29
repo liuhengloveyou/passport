@@ -132,8 +132,28 @@ func RemovePolicyFromRole(tenantID uint64, role, obj, act string) (err error) {
 	return removePolicy(role, genDomainByTenantID(tenantID), obj, act)
 }
 
-func GetFilteredPolicy(tenantID uint64) [][]string {
-	return getFilteredPolicy(genDomainByTenantID(tenantID))
+func GetFilteredPolicy(tenantID uint64, roles []string) (lists [][]string) {
+	policys := getFilteredPolicy(genDomainByTenantID(tenantID))
+	common.Logger.Sugar().Debugf("getFilteredPolicy: ", policys, roles)
+	if len(policys) == 0 {
+		return
+	}
+
+	if roles == nil || len(roles) <= 0 {
+		lists = policys
+		return
+	}
+
+	lists = make([][]string, 0)
+	for i := 0; i < len(policys); i++ {
+		for j := 0; j < len(roles); j++ {
+			if policys[i][0] == roles[j] {
+				lists = append(lists, policys[i])
+			}
+		}
+	}
+
+	return
 }
 
 func genUserByUID(uid uint64) string {

@@ -11,6 +11,7 @@ func TestAccess(t *testing.T) {
 
 	AddPolicyToRole(10030, "role-1", "data-1", "read")
 	addRoleForUserInDomain("uid-123", "role-1", "tenant-10030")
+	addRoleForUserInDomain("uid-123", "root", "tenant-10030")
 
 	r, e := Enforce(123, 10030, "data-1", "read")
 	fmt.Println(">>>>>>>>>>>>>", r, e)
@@ -18,11 +19,13 @@ func TestAccess(t *testing.T) {
 	r, e = Enforce(143, 10030, "data-1", "read")
 	fmt.Println(">>>>>>>>>>>>>", r, e)
 
+	p, _ := enforcer.GetImplicitPermissionsForUser("uid-123", "tenant-10030")
+	fmt.Println("enforcer.GetPermissionsForUserInDomain: ", p)
 	roles := enforcer.GetRolesForUserInDomain("uid-10000", "tenant-10030")
 	fmt.Println("enforcer.GetRolesForUser(): ", roles)
 	fmt.Println("enforcer.GetAllActions(): ", enforcer.GetAllNamedActions("p"))
 	fmt.Println("enforcer.GetAllObjects(): ", enforcer.GetAllNamedObjects("p"))
 	fmt.Println("enforcer.GetAllSubjects(): ", enforcer.GetAllSubjects())
 	fmt.Println("enforcer.GetAllRoles(): ", enforcer.GetAllRoles())
-	fmt.Println("enforcer.GetPolicy(): ", enforcer.GetFilteredPolicy(1, "tenant-10000"))
+	fmt.Println("enforcer.GetPolicy(): ", enforcer.GetFilteredPolicy(1, "tenant-10030"))
 }
