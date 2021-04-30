@@ -33,6 +33,7 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Header.Del("Cookie") // 删除老的会话信息
 	session, err := sessionStore.New(r, common.SessionKey)
 	if err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)

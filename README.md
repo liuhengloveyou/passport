@@ -142,9 +142,9 @@ GET请求使用标准的URL参数，POST用JSON格式的body。
 示例：
 
 ```shell
-curl -v -X PUT -H "X-API: user/register" -d \
+curl -v -H "X-API: user/register" -d \
 '{
-	"nickname": "17688396389",
+	"nickname": "17688396380",
 	"password": "123456"
 }' "http://127.0.0.1:8080/usercenter"
 ```
@@ -209,7 +209,7 @@ Header: {
 Body: {
 	"cellphone":"18510511015", 
 	"email":"liuhengloveyou@gmail.com",
-	"nickname":"恒恒",
+	"nickname":"lll",
 	"password":"123456"
 }
 ```
