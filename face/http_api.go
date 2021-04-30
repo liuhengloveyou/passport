@@ -160,6 +160,7 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 			panic(err)
 		}
 	}
+
 	logger = common.Logger.Sugar()
 
 	sessPWD := md5.Sum([]byte(common.SYS_PWD))
@@ -169,6 +170,7 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 	default:
 		sessionStore = sessions.NewCookieStore([]byte(common.SYS_PWD), sessPWD[:])
 	}
+	sessionStore.(*sessions.CookieStore).MaxAge(common.ServConfig.SessionExpire)
 
 	handler = &PassportHttpServer{}
 

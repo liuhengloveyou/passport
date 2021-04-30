@@ -44,7 +44,7 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	one.LoginTime = &now
 	session.Values[common.SessUserInfoKey] = one
-
+	
 	if err := session.Save(r, w); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
 		logger.Error("userLogin session ERR: ", err)

@@ -289,7 +289,7 @@ curl -v -X GET -H "X-API: user/infoByUID" --cookie "go-session-id=MTYxNDE0N" "ht
 curl -v -X POST -H "X-API: access/addRoleForUser" --cookie "go-session-id=MTYxO“ -d \
 '{
   "uid": 123,
-  "role": "role1"
+  "value": "role1"
 }' "http://127.0.0.1:8080/usercenter"
 ```
 
@@ -299,7 +299,7 @@ curl -v -X POST -H "X-API: access/addRoleForUser" --cookie "go-session-id=MTYxO�
 curl -v -X POST -H "X-API: access/removeRoleForUser" --cookie "go-session-id=MTYxO“ -d \
 '{
    "uid": 123,
-   "role": "role1"
+   "value": "role1"
 }' "http://127.0.0.1:8080/usercenter"
 ```
 

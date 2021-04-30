@@ -97,8 +97,8 @@ type PolicyReq struct {
 }
 
 type RoleStruct struct {
-	RoleTitle string `json:"title" validate:"required,min=2,max=10"`
-	RoleValue string `json:"value" validate:"required,min=2,max=10"`
+	RoleTitle string `json:"title" validate:"max=10"`
+	RoleValue string `json:"value" validate:"max=10"`
 
 	UID uint64 `json:"uid,omitempty" validate:"-"`
 }
