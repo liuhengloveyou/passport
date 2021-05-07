@@ -336,11 +336,17 @@ curl -v -X POST -H "X-API: access/removePolicyFromRole" -d \
 ```
 
 ### 查询策略列表
-
+默认查询全部，可以用角色过滤
 ```shell
 curl -v -X GET -H "X-API: access/getPolicy" --cookie "go-session-id=MTY" "http://127.0.0.1:8080/usercenter?roles=role1,role2,role3"
 ```
 
+
+### 查询当前用户策略列表
+
+```shell
+curl -v -X GET -H "X-API: access/getPolicyForUser" --cookie "go-session-id=MTY" "http://127.0.0.1:8080/usercenter"
+```
 
 
 ## 多租户相关接口

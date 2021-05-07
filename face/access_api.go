@@ -180,3 +180,21 @@ func GetPolicy(w http.ResponseWriter, r *http.Request) {
 
 	return
 }
+
+
+func GetPolicyForUser(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
+		logger.Error("GetPolicyForUser TenantID ERR")
+		return
+	}
+
+	roles := accessctl.GetRoleForUserInDomain(sessionUser.UID, sessionUser.TenantID)
+
+	policys := accessctl.GetFilteredPolicy(sessionUser.TenantID, roles)
+	gocommon.HttpErr(w, http.StatusOK, 0, policys)
+	logger.Infof("GetPolicyForUser OK: %#v\n", policys)
+
+	return
+}

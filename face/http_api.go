@@ -106,6 +106,10 @@ func init() {
 			NeedLogin:  true,
 			NeedAccess: true,
 		},
+		"access/getPolicyForUser": {
+			Handler:    GetPolicyForUser,
+			NeedLogin:  true,
+		},
 
 		// 多租户
 		"tenant/add": {
