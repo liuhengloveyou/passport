@@ -91,9 +91,9 @@ func (t MapStruct) Value() (driver.Value, error) {
 }
 
 type PolicyReq struct {
-	Role string `json:"role" validate:"required,min=2,max=32"`
-	Obj  string `json:"obj" validate:"required,min=2,max=32"`
-	Act  string `json:"act" validate:"required,min=2,max=32"`
+	Role string `json:"role" validate:"required,min=2,max=128"`
+	Obj  string `json:"obj" validate:"required,min=2,max=128"`
+	Act  string `json:"act" validate:"required,min=2,max=128"`
 }
 
 type RoleStruct struct {
