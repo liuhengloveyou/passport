@@ -1,3 +1,4 @@
+pid_file: "/tmp/passport.pid"
 face: "http"
 addr: ":8080"
 log_dir: "./logs"

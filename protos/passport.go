@@ -2,6 +2,7 @@ package protos
 
 type OptionStruct struct {
 	ServID           string `yaml:"serv_id"`
+	PidFile          string `yaml:"pid_file"`
 	Face             string `yaml:"face"`
 	Addr             string `yaml:"addr"`               // 启动http的端口
 	LogDir           string `yaml:"log_dir"`            // 日志目录

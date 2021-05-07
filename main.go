@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"runtime/pprof"
 
+	gocommon "github.com/liuhengloveyou/go-common"
+	
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/face"
 )
@@ -32,6 +34,8 @@ func main() {
 		os.Exit(0)
 	}
 
+	gocommon.SingleInstane(common.ServConfig.PidFile)
+
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
@@ -54,13 +58,6 @@ func main() {
 		}
 		f.Close()
 	}
-
-	//// 启用访问控制模块
-	//if common.ServConfig.AccessControl {
-	//	if err := accessctl.InitAccessControl("./rbac_model.conf", common.ServConfig.MysqlURN); err != nil {
-	//		panic(err)
-	//	}
-	//}
 
 	switch common.ServConfig.Face {
 	case "http":

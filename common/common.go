@@ -29,7 +29,6 @@ const (
 
 var (
 	passportconfile = flag.String("passport", "./passport.conf.yaml", "配置文件路径")
-
 	ServConfig protos.OptionStruct
 
 	DB          *sqlx.DB
@@ -43,6 +42,9 @@ func (p *NilWriter) Write(b []byte) (n int, err error) { return 0, nil }
 
 func init() {
 	var e error
+
+	// 默认配置参数
+	ServConfig.PidFile = "/tmp/passport.pid"
 
 	gob.Register(protos.MapStruct{})
 	if e = InitValidate(); e != nil {

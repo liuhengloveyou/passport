@@ -18,6 +18,7 @@ var policyCache = make(map[string]bool, 10000)
 
 func init() {
 	if common.ServConfig.AccessControl == true {
+		fmt.Println("init Access Control")
 		if e := InitAccessControl("rbac_with_domains_model.conf", common.ServConfig.MysqlURN); e != nil {
 			panic(e)
 		}
