@@ -85,11 +85,6 @@ func InitWithOption(option *protos.OptionStruct) (e error) {
 		ServConfig.AvatarDir = option.AvatarDir // 头像上传目录
 	}
 
-	ServConfig.MysqlTableName = "users"
-	if "" != option.MysqlTableName {
-		ServConfig.MysqlTableName = option.MysqlTableName // 数据库表名
-	}
-
 	ServConfig.AccessControl = option.AccessControl
 	ServConfig.IsTenant = option.IsTenant
 	ServConfig.SessionStoreType = option.SessionStoreType

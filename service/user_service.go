@@ -143,6 +143,7 @@ func SetUserPWD(uid uint64, PWD string) (rows int64, e error) {
 
 	rows, e = dao.SetUserPWD(uid, PWD)
 	if rows < 1 {
+		common.Logger.Sugar().Errorf("SetUserPWD ERR: %d %d %v\n", uid, rows, e)
 		return 0, fmt.Errorf("更改密码失败")
 	}
 

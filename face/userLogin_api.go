@@ -2,7 +2,7 @@ package face
 
 import (
 	"net/http"
-	"time"
+	"strings"
 
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
@@ -12,7 +12,12 @@ import (
 )
 
 func userLogin(w http.ResponseWriter, r *http.Request) {
+	useCookie := true
 	user := &protos.UserReq{}
+
+	if strings.ToLower(r.Header.Get("USE-COOKIE")) == "false" {
+		useCookie = false
+	}
 
 	if err := readJsonBodyFromRequest(r, user); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
@@ -41,14 +46,17 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	now := time.Now()
-	one.LoginTime = &now
 	session.Values[common.SessUserInfoKey] = one
-	
+
 	if err := session.Save(r, w); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
 		logger.Error("userLogin session ERR: ", err)
 		return
+	}
+
+	if !useCookie {
+		one.Ext["TOKEN"] = strings.Split(w.Header().Get("Set-Cookie"), "=")[1]
+		w.Header().Del("Set-Cookie")
 	}
 
 	logger.Infof("user login ok: %v sess :%#v\n", user, session)

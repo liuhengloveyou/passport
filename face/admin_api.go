@@ -47,8 +47,6 @@ func UpdateTenantConfiguration(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-
-
 func modifyPWDByUID(w http.ResponseWriter, r *http.Request) {
 	var req map[string]interface{}
 	if err := readJsonBodyFromRequest(r, &req); err != nil {
@@ -75,7 +73,7 @@ func modifyPWDByUID(w http.ResponseWriter, r *http.Request) {
 	logger.Infof("modifyPWDByUID %v %s\n", uid, pwd)
 
 	if _, err := service.SetUserPWD(uint64(uid), pwd); err != nil {
-		logger.Errorf("modifyPWDByUID %d %s %s %s\n", uid, pwd, err.Error())
+		logger.Errorf("modifyPWDByUID %v %s %s\n", uid, pwd, err.Error())
 		gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
 		return
 	}

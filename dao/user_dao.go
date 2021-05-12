@@ -2,7 +2,6 @@ package dao
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/liuhengloveyou/passport/protos"
@@ -13,7 +12,7 @@ import (
 )
 
 func UserInsert(p *protos.UserReq) (id int64, e error) {
-	table := common.ServConfig.MysqlTableName
+	table := "users"
 	data := builder.Eq{
 		"password": p.Password,
 		"add_time": time.Now(),
@@ -48,7 +47,7 @@ func UserInsert(p *protos.UserReq) (id int64, e error) {
 func UserUpdate(p *protos.UserReq) (rows int64, e error) {
 	var rst sql.Result
 
-	table := common.ServConfig.MysqlTableName
+	table := "users"
 	where := builder.Eq{
 		"uid": p.UID,
 	}
@@ -90,7 +89,7 @@ func UserUpdate(p *protos.UserReq) (rows int64, e error) {
 func UserUpdatePWD(UID uint64, oldPWD, newPWD string) (rows int64, e error) {
 	var rst sql.Result
 
-	rst, e = common.DB.Exec(fmt.Sprintf("UPDATE %s SET password=? WHERE (uid=? AND password=?)", common.ServConfig.MysqlTableName), newPWD, UID, oldPWD)
+	rst, e = common.DB.Exec("UPDATE users SET password=? WHERE (uid=? AND password=?)", newPWD, UID, oldPWD)
 	if e != nil {
 		return
 	}
@@ -101,7 +100,8 @@ func UserUpdatePWD(UID uint64, oldPWD, newPWD string) (rows int64, e error) {
 func SetUserPWD(UID uint64, PWD string) (rows int64, e error) {
 	var rst sql.Result
 
-	rst, e = common.DB.Exec(fmt.Sprintf("UPDATE %s SET password=? WHERE (uid=?)", common.ServConfig.MysqlTableName), PWD, UID)
+	rst, e = common.DB.Exec("UPDATE users SET password=? WHERE (uid=?)", PWD, UID)
+	common.Logger.Sugar().Debugf("SetUserPWD sql: [UPDATE users SET password=%v WHERE (uid=%v)]", PWD, UID)
 	if e != nil {
 		return
 	}
@@ -120,23 +120,34 @@ func UserUpdateTenantID(UID, tenantID, currTenantID uint64) (rows int64, e error
 	return rst.RowsAffected()
 }
 
+func UserUpdateLoginTime(UID uint64, t *time.Time) (rows int64, e error) {
+	var rst sql.Result
+
+	rst, e = common.DB.Exec("UPDATE users SET login_time = ? WHERE (uid = ?)", t, UID)
+	if e != nil {
+		return
+	}
+
+	return rst.RowsAffected()
+}
+
 func UserDelete(tx *sql.Tx) (int64, error) {
 	return -1, nil
 }
 
 func UserSelectByID(uid uint64) (r *protos.User, e error) {
 	r = &protos.User{}
-	e = common.DB.Get(r, "SELECT uid, tenant_id, cellphone, email, nickname, avatar_url, gender, addr, tags FROM users WHERE uid = ?", uid)
+	e = common.DB.Get(r, "SELECT uid, tenant_id, cellphone, email, nickname, avatar_url, gender, addr, ext FROM users WHERE uid = ?", uid)
 	return
 }
 
 func UserSelectByTenantID(tenantID uint64) (rr []protos.User, e error) {
-	e = common.DB.Select(&rr, "SELECT uid, tenant_id, cellphone, email, nickname, avatar_url, gender, addr, tags FROM users where tenant_id = ?", tenantID)
+	e = common.DB.Select(&rr, "SELECT uid, tenant_id, cellphone, email, nickname, avatar_url, gender, addr, ext FROM users where tenant_id = ?", tenantID)
 	return
 }
 
 func UserSelect(p *protos.UserReq, pageNo, pageSize int) (rr []protos.User, e error) {
-	table := common.ServConfig.MysqlTableName
+	table := "users"
 	where := builder.Eq{}
 	if p.UID > 0 {
 		where["uid"] = p.UID
@@ -151,7 +162,7 @@ func UserSelect(p *protos.UserReq, pageNo, pageSize int) (rr []protos.User, e er
 		where["nickname"] = p.Nickname
 	}
 
-	cond, values, err := builder.MySQL().Select("uid, tenant_id, cellphone, email, nickname, password, avatar_url, gender, addr, add_time, update_time, tags").Where(where).From(table).ToSQL()
+	cond, values, err := builder.MySQL().Select("uid, tenant_id, cellphone, email, nickname, password, avatar_url, gender, addr, add_time, update_time, ext").Where(where).From(table).ToSQL()
 	common.Logger.Sugar().Debugf("%v %v %v", cond, values, err)
 	if e = common.DB.Select(&rr, cond, values...); e != nil {
 		return
@@ -161,7 +172,7 @@ func UserSelect(p *protos.UserReq, pageNo, pageSize int) (rr []protos.User, e er
 }
 
 func BusinessSelect(p *protos.UserReq, models interface{}, pageNo, pageSize int) (e error) {
-	table := common.ServConfig.MysqlTableName
+	table := "users"
 	where := make(builder.Eq)
 	if p.UID > 0 {
 		where["uid"] = p.UID

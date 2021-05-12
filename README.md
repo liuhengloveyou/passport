@@ -160,7 +160,7 @@ curl -v -H "X-API: user/register" -d \
 | nickname  | 昵称     | 否       |
 
 ```
-curl -v -X POST -H "X-API: user/login" -d \
+curl -v -X POST -H "X-API: user/login" -H "USE-COOKIE: true" -d \
 '{
     "cellphone": "17688396389",
     "password": "123456"
@@ -168,14 +168,27 @@ curl -v -X POST -H "X-API: user/login" -d \
 	  
 成功返回:
 {
-    code: 0,
-    "data": {
-        "uid":10000,
-        "cellphone":"17688396387",
-        "nickname":"17688396387",
+	"code":0,
+	"data":{
+    "uid":10000,
+    "tenant_id":10049,
+    "cellphone":"17688396389",
+    "nickname":"17688396389",
+    "LoginTime":"2021-05-12T10:48:43.132678+08:00",
+    "ext":{
+      "TOKEN":"MTYyMDc4Nz"
+    },
+    "tenant":{
+      "id":10049,
+      "uid":10000,
+      "tenant_name":"tenant6",
+      "tenant_type":"t1"
     }
+	}
 }
 ```
+
+> USE-COOKIE默认为true；此时，返回token头，body没有ext字段。
 
 ### 登出
 
@@ -517,7 +530,7 @@ CREATE TABLE `users` (
   `avatar_url` varchar(255) COLLATE utf8_bin DEFAULT NULL COMMENT '头像URL',
   `gender` int(11) DEFAULT NULL COMMENT '性别；1=男，2=女',
   `addr` varchar(100) COLLATE utf8_bin DEFAULT NULL COMMENT '通讯地址',
-  `tags` json DEFAULT NULL,
+  `ext` json DEFAULT NULL COMMENT '扩展信息',
   `add_time` datetime NOT NULL,
   `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`uid`),
@@ -525,7 +538,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `email_UNIQUE` (`email`),
   UNIQUE KEY `nickname_UNIQUE` (`nickname`),
   KEY `tenant_index` (`tenant_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 CREATE TABLE `tenant` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,

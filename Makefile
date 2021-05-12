@@ -22,5 +22,5 @@ clean:
 	rm -f $(BINARY_UNIX)
 
 # Cross compilation
-build-linux:
+linux:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) --ldflags ${flags} -o $(BINARY_UNIX) -v

@@ -24,8 +24,12 @@ func AddRoleForUser(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
+	if strings.TrimSpace(req.RoleValue) == "" {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
 
-	if err := accessctl.AddRoleForUserInDomain(req.UID, sessionUser.TenantID, req.RoleValue); err != nil {
+	if err := accessctl.AddRoleForUserInDomain(req.UID, sessionUser.TenantID, strings.TrimSpace(req.RoleValue)); err != nil {
 		logger.Errorf("AddRoleForUser AddRoleForUserInDomain ERR: ", err)
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return

@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
@@ -65,6 +66,17 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 		common.Logger.Sugar().Errorf("login pwd ERR: [%v] [%v] \n", user.Password, one.Password)
 		return nil, common.ErrPWD
 	}
+
+	now := time.Now()
+	one.LoginTime = &now
+
+	rows, err := dao.UserUpdateLoginTime(one.UID, one.LoginTime)
+	if err != nil || rows != 1 {
+		common.Logger.Sugar().Errorf("UserUpdateLoginTime db err: %v %v\n", e, rows)
+		e = common.ErrService
+		return
+	}
+
 	one.Password = ""
 	one.AddTime = nil
 	one.UpdateTime = nil

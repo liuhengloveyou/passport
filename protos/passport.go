@@ -12,7 +12,6 @@ type OptionStruct struct {
 
 	RedisAddr      string `yaml:"redis"`
 	MysqlURN       string `yaml:"mysql"`
-	MysqlTableName string `yaml:"mysql_table_name"`
 	AvatarDir      string `yaml:"avatar_dir"`
 
 	AccessControl bool   `yaml:"access_control"`  // 是否启用权限控制模块
