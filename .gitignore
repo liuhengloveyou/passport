@@ -4,3 +4,4 @@ passport.log
 passport_unix
 go.sum
 passport
+nohup.out

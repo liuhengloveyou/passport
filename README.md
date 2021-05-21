@@ -433,11 +433,16 @@ curl -v -X GET -H "X-API: tenant/getRoles" --cookie "go-session-id=MTYfgFKSlOYwQ
 ```shell
 curl -v -X POST -H "X-API: tenant/updateConfiguration" --cookie "go-session-id=VbtYfgFKSlOYwQ==" -d \
 '{
-  "k": "角aaa",
-  "v": {
+  "key": {
        "aaa": "aaaaaaaaaaaaaaa"
   }
 }' "http://127.0.0.1:8080/usercenter"
+```
+
+### 查询当前租户配置信息
+
+```shell
+curl -v -X GET -H "X-API: tenant/loadConfiguration" --cookie "go-session-id=gFKSlOYwQ==" "http://127.0.0.1:8080/usercenter?k=key"
 ```
 
 

@@ -12,7 +12,7 @@ if not field then
 end
 
 ngx.req.set_header("X-API", "user/auth")
-local res = ngx.location.capture("/user", {})
+local res = ngx.location.capture("/usercenter", {})
 if not res then
     ngx.say('{"code":-1,"message":"请登录"}')
     return
@@ -25,4 +25,6 @@ if res then
     end
 end
 
+ngx.log(ngx.ERR, ">>>", res.body)
 ngx.req.set_header("session", res.body)
+ngx.req.clear_header("X-API")

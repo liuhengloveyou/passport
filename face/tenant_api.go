@@ -178,6 +178,27 @@ func RoleAdd(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func LoadConfiguration(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
+		return
+	}
+
+	r.ParseForm()
+	k := strings.TrimSpace(r.FormValue("k"))
+
+	confMap, err := service.TenantLoadConfiguration(sessionUser.TenantID, k)
+	if err != nil {
+		logger.Error("LoadConfiguration service ERR: ", err)
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+
+	logger.Debug("LoadConfiguration OK:", sessionUser.UID, sessionUser.TenantID, confMap)
+	gocommon.HttpErr(w, http.StatusOK, 0, confMap)
+}
+
 func UpdateConfiguration(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
 	if sessionUser.TenantID <= 0 {
@@ -212,5 +233,4 @@ func UpdateConfiguration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
-	return
 }

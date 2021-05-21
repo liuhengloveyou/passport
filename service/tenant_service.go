@@ -109,6 +109,24 @@ func TenantGetRole(tenantId uint64) (roles []protos.RoleStruct) {
 	return tenant.Configuration.Roles
 }
 
+func TenantLoadConfiguration(tenantId uint64, key string) (interface{}, error) {
+	tenant, err := dao.TenantGetByID(tenantId)
+	if err != nil {
+		common.Logger.Sugar().Errorf("TenantLoadConfiguration db ERR: ", err)
+		return nil, common.ErrService
+	}
+	if nil == tenant {
+		common.Logger.Sugar().Errorf("TenantLoadConfiguration nil: ", tenantId)
+		return nil, common.ErrTenantNotFound
+	}
+
+	if key != "" && tenant.Configuration.More != nil {
+		return tenant.Configuration.More[key], nil
+	}
+
+	return tenant.Configuration.More, nil
+}
+
 func TenantUpdateConfiguration(tenantId uint64, k string, v interface{}) error {
 	tenant, err := dao.TenantGetByID(tenantId)
 	if err != nil {

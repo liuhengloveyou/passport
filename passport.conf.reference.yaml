@@ -6,10 +6,9 @@ log_level: "debug"
 redis: "127.0.0.1:19738"
 mysql: "root:lhisroot@tcp(127.0.0.1:3306)/passport?charset=utf8mb4&parseTime=True&loc=Local"
 
-session_store_type: "mem"
+session_store_type: "mem" # cookie
 session_expire: 86400
 
 access_control: true # 是否启用权限控制模块
 is_tenant: true # 是否启用租户模块
 admin_tenant_id: 10030 # 管理接口只有指定的租户可用
-

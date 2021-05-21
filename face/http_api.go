@@ -144,6 +144,10 @@ func init() {
 			NeedLogin:  true,
 			NeedAccess: true,
 		},
+		"tenant/loadConfiguration": {
+			Handler:    LoadConfiguration,
+			NeedLogin:  true,
+		},
 
 		// 管理接口
 		"admin/updateTenantConfiguration": {
