@@ -538,6 +538,7 @@ CREATE TABLE `users` (
   `ext` json DEFAULT NULL COMMENT '扩展信息',
   `add_time` datetime NOT NULL,
   `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `login_time` timestamp NULL DEFAULT NULL COMMENT '最后登录时间戳(秒)',
   PRIMARY KEY (`uid`),
   UNIQUE KEY `cellphone_UNIQUE` (`cellphone`),
   UNIQUE KEY `email_UNIQUE` (`email`),
