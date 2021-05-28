@@ -16,8 +16,8 @@ type User struct {
 	Email      *null.String `json:"email,omitempty" validate:"omitempty,email" db:"email"`
 	Nickname   *null.String `json:"nickname,omitempty" validate:"omitempty,min=2,max=64" db:"nickname"`
 	AvatarURL  *null.String `json:"avatarUrl,omitempty" db:"avatar_url"`
-	Gender     *null.Int    `json:"gender,omitempty" db:"gender"`
 	Addr       *null.String `json:"addr,omitempty" db:"addr"`
+	Gender     *null.Int    `json:"gender,omitempty" db:"gender"`
 	AddTime    *time.Time   `json:"addTime,omitempty" validate:"-" db:"add_time"`
 	UpdateTime *time.Time   `json:"updateTime,omitempty" validate:"-" db:"update_time"`
 	DeleteTime *time.Time   `json:"deleteTime,omitempty" validate:"-" db:"delete_time"`
@@ -29,13 +29,12 @@ type User struct {
 
 // 租户
 type Tenant struct {
-	ID         uint64     `json:"id" validate:"-" db:"id"`
-	UID        uint64     `json:"uid,omitempty" validate:"-" db:"uid"`
-	TenantName string     `json:"tenant_name" db:"tenant_name"`
-	TenantType string     `json:"tenant_type" db:"tenant_type"`
-	AddTime    *time.Time `json:"addTime,omitempty" validate:"-" db:"add_time"`
-	UpdateTime *time.Time `json:"updateTime,omitempty" validate:"-" db:"update_time"`
-
+	ID            uint64               `json:"id" validate:"-" db:"id"`
+	UID           uint64               `json:"uid,omitempty" validate:"-" db:"uid"`
+	TenantName    string               `json:"tenant_name" db:"tenant_name"`
+	TenantType    string               `json:"tenant_type" db:"tenant_type"`
+	AddTime       *time.Time           `json:"addTime,omitempty" validate:"-" db:"add_time"`
+	UpdateTime    *time.Time           `json:"updateTime,omitempty" validate:"-" db:"update_time"`
 	Info          MapStruct            `json:"info,omitempty" db:"info"`
 	Configuration *TenantConfiguration `json:"configuration,omitempty" db:"configuration"`
 }

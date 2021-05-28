@@ -7,7 +7,7 @@ redis: "127.0.0.1:19738"
 mysql: "root:lhisroot@tcp(127.0.0.1:3306)/passport?charset=utf8mb4&parseTime=True&loc=Local"
 
 session_store_type: "mem" # cookie
-session_expire: 86400
+session_expire: 0 # -1: 删除；0: 本会话; >0...
 
 access_control: true # 是否启用权限控制模块
 is_tenant: true # 是否启用租户模块

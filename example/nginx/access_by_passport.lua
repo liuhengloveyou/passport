@@ -6,18 +6,30 @@ if not cookie then
 end
 
 local field, err = cookie:get("go-session-id")
-if not field then
-    ngx.say('{"code":-1,"message":"请登录"}')
+if not token then
+    token = ngx.req.get_headers()["Access-Token"]
+end
+if not token then
+    ngx.say('{"code":-1,"msg":"请登录"}')
     return
 end
 
-ngx.req.set_header("X-API", "user/auth")
-local res = ngx.location.capture("/usercenter", {})
+local httpc = require("resty.http").new()
+local res, err = httpc:request_uri("http://127.0.0.1:8001/", {
+    path = "/usercenter",
+    headers = {
+        ["Host"] = "demo.passport.com",
+        ["Content-Type"] = "application/json;charset-UTF-8",
+        ["X-API"] = "user/auth",
+        ["Cookie"] = "go-session-id="..token..";")
+    },
+})
 if not res then
+    ngx.log(ngx.ERR, "usercenter ERR: ", err)
     ngx.say('{"code":-1,"message":"请登录"}')
     return
 end
-
+ngx.log(ngx.ERR, "passport resp: ", res.body)
 if res then
     if tonumber(res.status) ~= tonumber(200) then
         ngx.say(res.body)
@@ -25,6 +37,4 @@ if res then
     end
 end
 
-ngx.log(ngx.ERR, ">>>", res.body)
 ngx.req.set_header("session", res.body)
-ngx.req.clear_header("X-API")
