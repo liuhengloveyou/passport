@@ -270,13 +270,9 @@ func AuthFilter(r *http.Request) (sess *sessions.Session, auth bool) {
 func AccessFilter(r *http.Request) bool {
 	var err error
 
-	if common.ServConfig.AccessControl == false {
-		return true
-	}
-
-	obj := r.Header.Get("X-API")
+	obj := r.Header.Get("X-Requested-By")
 	if obj == "" {
-		obj = r.Header.Get("X-DATA")
+		obj = r.Header.Get("X-API")
 	}
 	if obj == "" {
 		obj = r.RequestURI
@@ -313,22 +309,8 @@ func AccessFilter(r *http.Request) bool {
 	return access
 }
 
-func GetUserInfoFromSession(w http.ResponseWriter, r *http.Request) (user protos.User) {
-	sess, err := sessionStore.New(r, common.SessionKey)
-	if err != nil {
-		logger.Error("session ERR: ", err)
-		return
-	}
-
-	if sess.Values[common.SessUserInfoKey] == nil {
-		return
-	}
-
-	user, _ = sess.Values[common.SessUserInfoKey].(protos.User)
-
-	return
-}
-
+// passport内部接口用来验证cookie、会话是不是合法
+// 业务服务用来验证用户是否有接口权限
 func UserAuth(w http.ResponseWriter, r *http.Request) {
 	sess, auth := AuthFilter(r)
 	if auth == false || sess == nil {
@@ -348,6 +330,24 @@ func UserAuth(w http.ResponseWriter, r *http.Request) {
 	if uid <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoLogin)
 		return
+	}
+
+	serviceApi := r.Header.Get("X-Requested-By")
+	if serviceApi != "" {
+		apiConf, ok := common.ServConfig.ApiConf[serviceApi]
+		if !ok {
+			apiConf, ok = common.ServConfig.ApiConf["*"]
+		}
+		if ! ok {
+			return
+		}
+
+		if apiConf.NeedAccess {
+			if false == AccessFilter(r) {
+				gocommon.HttpJsonErr(w, http.StatusForbidden, common.ErrNoAuth)
+				return
+			}
+		}
 	}
 
 	gocommon.HttpErr(w, http.StatusOK, 0, sess.Values[common.SessUserInfoKey].(protos.User))

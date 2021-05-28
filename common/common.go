@@ -52,7 +52,7 @@ func init() {
 	}
 
 	if e = gocommon.LoadYamlConfig(*passportconfile, &ServConfig); e != nil {
-		fmt.Println("There is no ./passport.conf.yaml")
+		fmt.Println("passport.conf.yaml ERR: ", e)
 		return
 	}
 
@@ -85,8 +85,6 @@ func InitWithOption(option *protos.OptionStruct) (e error) {
 		ServConfig.AvatarDir = option.AvatarDir // 头像上传目录
 	}
 
-	ServConfig.AccessControl = option.AccessControl
-	ServConfig.IsTenant = option.IsTenant
 	ServConfig.SessionStoreType = option.SessionStoreType
 
 	return nil

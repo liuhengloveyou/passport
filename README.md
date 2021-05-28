@@ -202,7 +202,7 @@ curl -v -X GET -H "X-API: user/logout" --cookie "go-session-id=MTY" "http://127.
 ### 签权
 
 ```
-curl -v -X GET -H "X-API: user/auth" --cookie "go-session-id=Opc=" "http://127.0.0.1:8080/usercenter"
+curl -v -X GET -H "X-API: user/auth" -H "X-Requested-By: api1" --cookie "go-session-id=Opc=" "http://127.0.0.1:8080/usercenter"
 
 成功: 200 {code: 0, data: {
 	"cellphone":"18510511015", 
@@ -211,6 +211,8 @@ curl -v -X GET -H "X-API: user/auth" --cookie "go-session-id=Opc=" "http://127.0
 	}}
 失败: 200 {code: -1, errmsg:"错误信息"}
 ```
+
+> X-Requested-By：业务服务API
 
 ### 更新信息
 

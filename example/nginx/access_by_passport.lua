@@ -14,6 +14,10 @@ if not token then
     return
 end
 
+local xRequestedBy = ngx.var.xRequestBy
+if not xRequestedBy then
+    xRequestedBy = ngx.var.uri
+end
 local httpc = require("resty.http").new()
 local res, err = httpc:request_uri("http://127.0.0.1:8001/", {
     path = "/usercenter",
@@ -21,6 +25,7 @@ local res, err = httpc:request_uri("http://127.0.0.1:8001/", {
         ["Host"] = "demo.passport.com",
         ["Content-Type"] = "application/json;charset-UTF-8",
         ["X-API"] = "user/auth",
+        ["X-Requested-By"] = xRequestedBy,
         ["Cookie"] = "go-session-id="..token..";")
     },
 })

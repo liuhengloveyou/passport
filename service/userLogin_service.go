@@ -82,7 +82,7 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 	one.UpdateTime = nil
 
 	// tenant
-	if common.ServConfig.IsTenant && one.TenantID > 0 {
+	if one.TenantID > 0 {
 		if one.Tenant, e = dao.TenantGetByID(one.TenantID); e != nil {
 			common.Logger.Sugar().Errorf("TenantGetByID ERR: ", e)
 			one.TenantID, e = 0, nil // 没有租户也可以登录成功
