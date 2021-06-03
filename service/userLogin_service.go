@@ -14,15 +14,8 @@ import (
 )
 
 func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
-	if user == nil {
-		return nil, fmt.Errorf("请求参数错误")
-	}
-	if user.Password == "" {
-		return nil, fmt.Errorf("密码不能为空")
-	}
-
-	if user.Cellphone == "" && user.Nickname == "" {
-		return nil, fmt.Errorf("请求参数错误")
+	if user == nil || user.Password == "" || (user.Cellphone == "" && user.Nickname == "") {
+		return nil, common.ErrParam
 	}
 
 	userPreTreat(user)

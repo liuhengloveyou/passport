@@ -1,6 +1,8 @@
 BUILD_TIME=$(shell date "+%FZ%T")
 COMMIT_SHA1=$(shell git rev-parse HEAD)
-flags="-X main.BuildTime=${BUILD_TIME} -X main.CommitID=${COMMIT_SHA1}"
+GIT_TAG=$(shell git describe --abbrev=0 --always)
+
+flags="-X main.BuildTime=${BUILD_TIME} -X main.CommitID=${COMMIT_SHA1} -X main.GitTag=${GIT_TAG}"
 
 GOCMD=go
 GOBUILD=$(GOCMD) build

@@ -17,6 +17,7 @@ import (
 var (
 	BuildTime string
 	CommitID  string
+	GitTag    string
 
 	showVer = flag.Bool("version", false, "show version")
 	initSys = flag.Bool("init", false, "初始化系统.")
@@ -30,7 +31,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	if *showVer {
-		fmt.Printf("%s\t%s\n", BuildTime, CommitID)
+		fmt.Printf("%s\t%s\t%s\n", GitTag, CommitID, BuildTime)
 		os.Exit(0)
 	}
 

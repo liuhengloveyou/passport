@@ -21,7 +21,7 @@ type User struct {
 	AddTime    *time.Time   `json:"addTime,omitempty" validate:"-" db:"add_time"`
 	UpdateTime *time.Time   `json:"updateTime,omitempty" validate:"-" db:"update_time"`
 	DeleteTime *time.Time   `json:"deleteTime,omitempty" validate:"-" db:"delete_time"`
-	LoginTime  *time.Time   `json:"LoginTime,omitempty" validate:"-" db:"login_time"`
+	LoginTime  *time.Time   `json:"loginTime,omitempty" validate:"-" db:"login_time"`
 
 	Ext    MapStruct `json:"ext,omitempty" validate:"-" db:"ext"`
 	Tenant *Tenant   `json:"tenant,omitempty" validate:"-" db:"tenant"`
