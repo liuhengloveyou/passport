@@ -13,7 +13,7 @@ import (
 
 func userAdd(w http.ResponseWriter, r *http.Request) {
 	user := &protos.UserReq{}
-	if err := readJsonBodyFromRequest(r, user); err != nil {
+	if err := readJsonBodyFromRequest(r, user, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		logger.Error("userAdd param ERR: ", err)
 		return
@@ -41,7 +41,7 @@ func userAdd(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
 

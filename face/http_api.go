@@ -77,6 +77,11 @@ func init() {
 			NeedLogin:  true,
 			NeedAccess: true,
 		},
+		"access/updateRoleForUser": {
+			Handler:    updateRoleForUser,
+			NeedLogin:  true,
+			NeedAccess: true,
+		},
 		"access/removeRoleForUser": {
 			Handler:    RemoveRoleForUser,
 			NeedLogin:  true,
@@ -130,6 +135,16 @@ func init() {
 			Handler:   TenantUserGet,
 			NeedLogin: true,
 		},
+		"tenant/userDisableByUID": {
+			Handler: TenantUserDisableByUID,
+			NeedLogin: true,
+			NeedAccess: true,
+		},
+		"tenant/modifyUserPassword": {
+			Handler:   tenantModifyPWDByUID,
+			NeedLogin: true,
+			NeedAccess: true,
+		},
 		"tenant/addRole": {
 			Handler:    RoleAdd,
 			NeedLogin:  true,
@@ -158,6 +173,7 @@ func init() {
 		"admin/modifyUserPassword": {
 			Handler:   modifyPWDByUID,
 			NeedLogin: true,
+			NeedAccess: true,
 		},
 	}
 }
@@ -356,12 +372,16 @@ func UserAuth(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func readJsonBodyFromRequest(r *http.Request, dst interface{}) error {
+func readJsonBodyFromRequest(r *http.Request, dst interface{}, bodyMaxLen int) error {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return err
 	}
 	logger.Debugf("request body: '%v'\n", string(body))
+	if len(body) >= bodyMaxLen {
+		logger.Errorf("readJsonBodyFromRequest len ERR: %d %d\n", len(body), bodyMaxLen)
+		return common.ErrParam
+	}
 
 	if err = json.Unmarshal(body, dst); err != nil {
 		return err
@@ -369,6 +389,7 @@ func readJsonBodyFromRequest(r *http.Request, dst interface{}) error {
 
 	if err = common.Validate.Struct(dst); err != nil {
 		if _, ok := err.(*validator.InvalidValidationError); !ok {
+			logger.Errorf("readJsonBodyFromRequest Validate ERR: %v \n", err.Error())
 			return common.ErrParam
 		}
 	}

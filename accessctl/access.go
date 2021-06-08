@@ -48,7 +48,7 @@ func InitAccessControl(rbacModel, mysqlURN string) (err error) {
 		return err
 	}
 
-	//enforcer.StartAutoLoadPolicy(time.Minute)
+	enforcer.StartAutoLoadPolicy(time.Minute)
 
 	enforcer.AddFunction("MyMatch", func(args ...interface{}) (interface{}, error) {
 		rsub, rdom, robj, ract := args[0].(string), args[1].(string), args[2].(string), args[3].(string)
@@ -94,6 +94,10 @@ func DeleteRoleForUserInDomain(uid, tenantID uint64, role string) (err error) {
 	return deleteRoleForUserInDomain(genUserByUID(uid), role, genDomainByTenantID(tenantID))
 }
 
+func DeleteRolesForUserInDomain(uid, tenantID uint64) (err error) {
+	return deleteRolesForUserInDomain(genUserByUID(uid), genDomainByTenantID(tenantID))
+}
+
 func GetRoleForUserInDomain(uid, tenantID uint64) (roles []string) {
 	var userInfo *protos.User
 
@@ -132,7 +136,7 @@ func RemovePolicyFromRole(tenantID uint64, role, obj, act string) (err error) {
 
 func GetFilteredPolicy(tenantID uint64, roles []string) (lists [][]string) {
 	policys := getFilteredPolicy(genDomainByTenantID(tenantID))
-	common.Logger.Sugar().Debugf("getFilteredPolicy: ", policys, roles)
+	common.Logger.Sugar().Debugf("getFilteredPolicy: %v %v\n", policys, roles)
 	if len(policys) == 0 {
 		return
 	}

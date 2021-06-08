@@ -60,10 +60,98 @@ func TenantAdd(m *protos.Tenant) (tenantID int64, e error) {
 	return
 }
 
+func TenantUserAdd(uid, currTenantID uint64, roles []string, disable int8) (e error) {
+	row, e := dao.UserUpdateTenantID(uid, currTenantID, 0)
+	if e != nil {
+		logger.Error("TenantUserAdd db ERR: ", e)
+		return common.ErrService
+	}
+	if row != 1 {
+		logger.Error("TenantUserAdd UserUpdateTenantID ERR: ", row, e)
+		return common.ErrService
+	}
+
+	for _, role := range roles {
+		if e = accessctl.AddRoleForUserInDomain(uid, currTenantID, role); e != nil {
+			common.Logger.Sugar().Errorf("TenantUserAdd AddRoleForUserInDomain ERR: %v\n", e)
+			return common.ErrService
+		}
+	}
+
+	if e = TenantUserDisabledService(uid, currTenantID, disable); e != nil {
+		logger.Warnf("TenantUserAdd TenantUserDisabledService ERR: %v\n", e)
+		e = nil
+	}
+
+	return
+}
+
 func TenantUserDel(uid, currTenantID uint64) (r int64, e error) {
-	if r, e = dao.UserUpdateTenantID(uid, 0, currTenantID); e != nil {
-		common.Logger.Sugar().Errorf("TenantUserDel ERR: ", e)
+	// 删除所有角色
+	if e = accessctl.DeleteRolesForUserInDomain(uid, currTenantID); e != nil {
+		common.Logger.Sugar().Errorf("TenantUserDel ERR: %v\n", e)
 		return 0, common.ErrService
+	}
+
+	if r, e = dao.UserUpdateTenantID(uid, 0, currTenantID); e != nil {
+		common.Logger.Sugar().Errorf("TenantUserDel ERR: %v\n", e)
+		return 0, common.ErrService
+	}
+
+	return
+}
+
+func TenantUserDisabledService(uid, currTenantID uint64, disabled int8) (e error) {
+	if uid <= 0 {
+		return common.ErrParam
+	}
+
+	userInfo, e := dao.UserSelectByID(uid)
+	if e != nil {
+		logger.Errorf("TenantUserDisabledService db ERR: %v\n", e)
+		return common.ErrService
+	}
+
+	if userInfo.TenantID != currTenantID {
+		logger.Errorf("TenantUserDisabledService tenant ERR: %v %v\n", userInfo.TenantID, currTenantID)
+		return common.ErrNoAuth
+	}
+
+	userInfo.Ext["disabled"] = disabled
+
+	rows, e := dao.UserUpdateExt(uid, userInfo.UpdateTime, &userInfo.Ext)
+	if e != nil {
+		logger.Errorf("UserDisabledService ERR: %v\n", e)
+		return common.ErrService
+	}
+	if rows < 1 {
+		logger.Warnf("UpdateUserExtService RowsAffected 0")
+	}
+
+	return
+}
+
+func TenantUserGet(tenantID, page, pageSize uint64, nickname string, uids []uint64, hasTotal bool) (rst protos.PageResponse, e error) {
+	var rr []protos.User
+	rr, e = dao.UserSelectByTenant(tenantID, page, pageSize, nickname, uids)
+	if e != nil {
+		logger.Error("TenantUserGet db ERR: ", e)
+		e = common.ErrService
+		return
+	}
+	if len(rr) == 0 {
+		e = common.ErrNull
+		return
+	}
+	rst.List = rr
+
+	if hasTotal {
+		rst.Total, e = dao.UserCountByTenant(tenantID)
+		if e != nil {
+			logger.Error("TenantUserGet db ERR: ", e)
+			e = common.ErrService
+			return
+		}
 	}
 
 	return
@@ -72,7 +160,7 @@ func TenantUserDel(uid, currTenantID uint64) (r int64, e error) {
 func TenantAddRole(tenantId uint64, role protos.RoleStruct) error {
 	tenant, err := dao.TenantGetByID(tenantId)
 	if err != nil {
-		common.Logger.Sugar().Errorf("TenantAddRole db ERR: ", err)
+		common.Logger.Sugar().Errorf("TenantAddRole db ERR: %v\n", err)
 		return common.ErrService
 	}
 	if nil == tenant {
@@ -97,7 +185,7 @@ func TenantAddRole(tenantId uint64, role protos.RoleStruct) error {
 func TenantGetRole(tenantId uint64) (roles []protos.RoleStruct) {
 	tenant, err := dao.TenantGetByID(tenantId)
 	if err != nil {
-		common.Logger.Sugar().Errorf("TenantAddRole db ERR: ", err)
+		common.Logger.Sugar().Errorf("TenantAddRole db ERR: %v\n", err)
 		return
 	}
 	if nil == tenant {
@@ -112,11 +200,11 @@ func TenantGetRole(tenantId uint64) (roles []protos.RoleStruct) {
 func TenantLoadConfiguration(tenantId uint64, key string) (interface{}, error) {
 	tenant, err := dao.TenantGetByID(tenantId)
 	if err != nil {
-		common.Logger.Sugar().Errorf("TenantLoadConfiguration db ERR: ", err)
+		common.Logger.Sugar().Errorf("TenantLoadConfiguration db ERR: %v\n", err)
 		return nil, common.ErrService
 	}
 	if nil == tenant {
-		common.Logger.Sugar().Errorf("TenantLoadConfiguration nil: ", tenantId)
+		common.Logger.Sugar().Errorf("TenantLoadConfiguration nil: %v\n", tenantId)
 		return nil, common.ErrTenantNotFound
 	}
 
@@ -127,10 +215,21 @@ func TenantLoadConfiguration(tenantId uint64, key string) (interface{}, error) {
 	return tenant.Configuration.More, nil
 }
 
-func TenantUpdateConfiguration(tenantId uint64, k string, v interface{}) error {
+func TenantUpdateConfiguration(tenantId uint64, data map[string]interface{}) error {
+	if len(data) <= 0 || len(data) > 100 {
+		logger.Error("UpdateTenantConfiguration param len ERR: ", len(data))
+		return common.ErrParam
+	}
+	for k, _ := range data {
+		if len(k) > 64 {
+			logger.Error("UpdateTenantConfiguration param k len")
+			return common.ErrParam
+		}
+	}
+
 	tenant, err := dao.TenantGetByID(tenantId)
 	if err != nil {
-		common.Logger.Sugar().Errorf("TenantUpdateConfiguration db ERR: ", err)
+		common.Logger.Sugar().Errorf("TenantUpdateConfiguration db ERR: %v\n", err)
 		return common.ErrService
 	}
 	if nil == tenant {
@@ -140,13 +239,16 @@ func TenantUpdateConfiguration(tenantId uint64, k string, v interface{}) error {
 		tenant.Configuration.More = make(protos.MapStruct, 1)
 	}
 
-	if v != nil {
-		if len(tenant.Configuration.More) > 100 {
-			return common.ErrService
+	for k, v := range data {
+		if v != nil {
+			if len(tenant.Configuration.More) > 100 {
+				logger.Errorf("tenant.Configuration.More too len: %d\n", len(tenant.Configuration.More))
+				return common.ErrService
+			}
+			tenant.Configuration.More[k] = v
+		} else {
+			delete(tenant.Configuration.More, k)
 		}
-		tenant.Configuration.More[k] = v
-	} else {
-		delete(tenant.Configuration.More, k)
 	}
 
 	return dao.TenantUpdateConfiguration(tenant)

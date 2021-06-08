@@ -3,6 +3,7 @@ package accessctl
 import (
 	casbin "github.com/casbin/casbin/v2"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/liuhengloveyou/passport/common"
 )
 
 var (
@@ -41,8 +42,23 @@ func getFilteredPolicy(domain string) [][]string {
 	return enforcer.GetFilteredPolicy(1, domain)
 }
 
-func addRoleForUserInDomain(user, role, domain string) (err error) {
-	if _, err = enforcer.AddRoleForUserInDomain(user, role, domain); err != nil {
+func addRoleForUserInDomain(user, role, domain string) error {
+	ok, err := enforcer.AddRoleForUserInDomain(user, role, domain)
+	common.Logger.Sugar().Info("addRoleForUserInDomain: ", user, role, domain, ok , err)
+	if err != nil {
+		return err
+	}
+
+	if err = enforcer.SavePolicy(); err != nil {
+		common.Logger.Sugar().Errorf("SavePolicy ERR: %v\n", err)
+		return err
+	}
+
+	return nil
+}
+
+func deleteRolesForUserInDomain(user, domain string) (err error) {
+	if _, err = enforcer.DeleteRolesForUserInDomain(user, domain); err != nil {
 		return
 	}
 
@@ -51,7 +67,9 @@ func addRoleForUserInDomain(user, role, domain string) (err error) {
 	}
 
 	return
+
 }
+
 
 func deleteRoleForUserInDomain(user, role, domain string) (err error) {
 	if _, err = enforcer.DeleteRoleForUserInDomain(user, role, domain); err != nil {

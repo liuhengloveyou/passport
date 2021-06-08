@@ -6,6 +6,7 @@ import (
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 )
@@ -53,4 +54,39 @@ func TenantUpdateConfiguration(m *protos.Tenant) error {
 	_, err := common.DB.Exec("UPDATE tenant SET configuration = ? WHERE (id = ?) AND (update_time = ?)", m.Configuration, m.ID, m.UpdateTime)
 
 	return err
+}
+
+
+func UserSelectByTenant(tenantID, page, pageSize uint64, nickname string, uids []uint64) (rr []protos.User, e error) {
+	act := sq.Select("uid", "tenant_id", "cellphone", "email", "nickname", "avatar_url", "gender", "addr", "ext", "add_time").From("users").Where(sq.Eq{"tenant_id": tenantID})
+	if nickname != "" {
+		act = act.Where(sq.Like{"nickname": "%"+nickname+"%"})
+	} else if len(uids) > 0 {
+		ors := make(sq.Or, len(uids))
+		for i := 0; i < len(uids); i ++ {
+			ors[i] = sq.Eq{"uid": uids[i]}
+		}
+		act = act.Where(ors)
+	}
+
+	sql, args, err := act.Offset((page - 1) * pageSize).Limit(pageSize).ToSql()
+	common.Logger.Sugar().Debugf("%v %v %v", sql, args, err)
+	if e = common.DB.Select(&rr, sql, args...); e != nil {
+		return
+	}
+
+	return
+}
+
+func UserCountByTenant(tenantID uint64) (r uint64, e error) {
+	m := make([]int64, 0)
+	if e = common.DB.Select(&m, "SELECT COUNT(*) FROM users where tenant_id = ?", tenantID); e != nil {
+		return
+	}
+
+	if len(m) == 1 {
+		r = uint64(m[0])
+	}
+
+	return
 }

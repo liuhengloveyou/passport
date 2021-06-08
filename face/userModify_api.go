@@ -21,7 +21,7 @@ func userModify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := &protos.UserReq{}
-	if err := readJsonBodyFromRequest(r, user); err != nil {
+	if err := readJsonBodyFromRequest(r, user, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		logger.Error("userLogin param ERR: ", err)
 		return

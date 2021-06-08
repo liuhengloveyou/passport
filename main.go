@@ -3,15 +3,17 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math/rand"
 	_ "net/http/pprof"
 	"os"
 	"runtime"
 	"runtime/pprof"
-
-	gocommon "github.com/liuhengloveyou/go-common"
+	"time"
 
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/face"
+
+	gocommon "github.com/liuhengloveyou/go-common"
 )
 
 var (
@@ -36,6 +38,7 @@ func main() {
 	}
 
 	gocommon.SingleInstane(common.ServConfig.PidFile)
+	rand.Seed(time.Now().UnixNano())
 
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)

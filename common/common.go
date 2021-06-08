@@ -43,10 +43,11 @@ func (p *NilWriter) Write(b []byte) (n int, err error) { return 0, nil }
 func init() {
 	var e error
 
+	gob.Register(protos.MapStruct{})
+
 	// 默认配置参数
 	ServConfig.PidFile = "/tmp/passport.pid"
 
-	gob.Register(protos.MapStruct{})
 	if e = InitValidate(); e != nil {
 		panic(e)
 	}
@@ -103,8 +104,11 @@ func InitLog(logDir, logLevel string) error {
 		return e
 	}
 
+	encoder := zap.NewProductionEncoderConfig()
+	encoder.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05.000")
+
 	core := zapcore.NewCore(
-		zapcore.NewConsoleEncoder(zap.NewProductionEncoderConfig()),
+		zapcore.NewConsoleEncoder(encoder),
 		zapcore.AddSync(writer),
 		level)
 

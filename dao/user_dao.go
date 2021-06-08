@@ -4,9 +4,8 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/liuhengloveyou/passport/protos"
-
 	"github.com/liuhengloveyou/passport/common"
+	"github.com/liuhengloveyou/passport/protos"
 
 	builder "xorm.io/builder"
 )
@@ -62,9 +61,6 @@ func UserUpdate(p *protos.UserReq) (rows int64, e error) {
 	if p.Nickname != "" {
 		update["nickname"] = p.Nickname
 	}
-	if p.AvatarURL != "" {
-		update["avatar_url"] = p.AvatarURL
-	}
 	if p.Addr != "" {
 		update["addr"] = p.Addr
 	}
@@ -86,6 +82,19 @@ func UserUpdate(p *protos.UserReq) (rows int64, e error) {
 	return rows, nil
 }
 
+
+func UserUpdateExt(uid uint64, updateTime *time.Time, ext *protos.MapStruct) (rows int64, e error) {
+	var rst sql.Result
+
+	rst, e = common.DB.Exec("UPDATE users SET ext=? WHERE (uid=? AND update_time=?)", ext, uid, updateTime)
+	if e != nil {
+		return
+	}
+
+	return rst.RowsAffected()
+}
+
+
 func UserUpdatePWD(UID uint64, oldPWD, newPWD string) (rows int64, e error) {
 	var rst sql.Result
 
@@ -97,11 +106,15 @@ func UserUpdatePWD(UID uint64, oldPWD, newPWD string) (rows int64, e error) {
 	return rst.RowsAffected()
 }
 
-func SetUserPWD(UID uint64, PWD string) (rows int64, e error) {
+func SetUserPWD(UID, tenantId uint64, PWD string) (rows int64, e error) {
 	var rst sql.Result
 
-	rst, e = common.DB.Exec("UPDATE users SET password=? WHERE (uid=?)", PWD, UID)
-	common.Logger.Sugar().Debugf("SetUserPWD sql: [UPDATE users SET password=%v WHERE (uid=%v)]", PWD, UID)
+	if tenantId  <= 0 {
+		rst, e = common.DB.Exec("UPDATE users SET password=? WHERE (uid=?)", PWD, UID)
+	} else {
+		rst, e = common.DB.Exec("UPDATE users SET password=? WHERE (uid=?) AND (tenant_id = ?)", PWD, UID, tenantId)
+	}
+
 	if e != nil {
 		return
 	}
@@ -137,12 +150,7 @@ func UserDelete(tx *sql.Tx) (int64, error) {
 
 func UserSelectByID(uid uint64) (r *protos.User, e error) {
 	r = &protos.User{}
-	e = common.DB.Get(r, "SELECT uid, tenant_id, cellphone, email, nickname, avatar_url, gender, addr, ext FROM users WHERE uid = ?", uid)
-	return
-}
-
-func UserSelectByTenantID(tenantID uint64) (rr []protos.User, e error) {
-	e = common.DB.Select(&rr, "SELECT uid, tenant_id, cellphone, email, nickname, avatar_url, gender, addr, ext FROM users where tenant_id = ?", tenantID)
+	e = common.DB.Get(r, "SELECT uid, tenant_id, cellphone, email, nickname, avatar_url, gender, addr, add_time, update_time, ext FROM users WHERE uid = ?", uid)
 	return
 }
 

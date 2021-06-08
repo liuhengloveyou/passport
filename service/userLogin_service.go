@@ -55,6 +55,12 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 		return nil, common.ErrLogin
 	}
 
+	disabled := one.Ext["disabled"]
+	if disabled != nil && int8(disabled.(float64)) == 1 {
+		common.Logger.Sugar().Errorf("login Disabled ERR: [%v] \n", one.Ext)
+		return nil, common.ErrDisable
+	}
+
 	if EncryPWD(user.Password) != one.Password {
 		common.Logger.Sugar().Errorf("login pwd ERR: [%v] [%v] \n", user.Password, one.Password)
 		return nil, common.ErrPWD

@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"github.com/go-sql-driver/mysql"
 	"github.com/liuhengloveyou/passport/protos"
 	"strings"
 
@@ -12,21 +13,22 @@ import (
 	validator "github.com/go-playground/validator/v10"
 )
 
-func AddUserService(p *protos.UserReq) (id int64, e error) {
+func AddUserService(p *protos.UserReq) (id uint64, e error) {
 	if p.Cellphone == "" && p.Email == "" && p.Nickname == "" {
-		return -1, fmt.Errorf("手机号和邮箱同时为空")
+		return 0, common.ErrUserNmae
 	}
 	if p.Password == "" {
-		return -1, fmt.Errorf("用户密码为空")
+		return 0, common.ErrPWDNil
 	}
 
 	if e = userPreTreat(p); e != nil {
-		return -1, e
+		logger.Errorf("AddUserService userPreTreat ERR: %v\n", e)
+		return 0, common.ErrParam
 	}
 
 	if p.Cellphone != "" {
 		if duplicatePhone(p.Cellphone) == true {
-			return -1, fmt.Errorf("手机号码重复")
+			return 0, common.ErrPhoneDup
 		}
 		if p.Nickname == "" {
 			p.Nickname = p.Cellphone
@@ -35,7 +37,7 @@ func AddUserService(p *protos.UserReq) (id int64, e error) {
 
 	if p.Email != "" {
 		if duplicateEmail(p.Email) == true {
-			return -1, fmt.Errorf("邮箱重复")
+			return 0, common.ErrEmailDup
 		}
 		if p.Nickname == "" {
 			p.Nickname = p.Email
@@ -44,13 +46,23 @@ func AddUserService(p *protos.UserReq) (id int64, e error) {
 
 	if p.Nickname != "" {
 		if duplicateNickname(p.Nickname) == true {
-			return -1, fmt.Errorf("昵称重复")
+			return 0, common.ErrNickDup
 		}
 	}
 
 	p.Password = common.EncryPWD(p.Password)
 
-	return dao.UserInsert(p)
+	uid, err := dao.UserInsert(p)
+	if err != nil {
+		logger.Errorf("dao.UserInsert ERR: %v\n", err)
+		merr, ok := err.(*mysql.MySQLError)
+		if ok && merr.Number == 1062 {
+			return 0, common.ErrMysql1062
+		}
+		return 0, common.ErrService
+	}
+	
+	return uint64(uid), err
 }
 
 func GetUser(m *protos.UserReq) (r *protos.User, e error) {
@@ -61,13 +73,13 @@ func GetUser(m *protos.UserReq) (r *protos.User, e error) {
 	return
 }
 
-func SelectUsers(m *protos.UserReq) (rr []protos.User, e error) {
-	if m.TenantID > 0 {
-		rr, e = dao.UserSelectByTenantID(m.TenantID)
-	}
-
-	return
-}
+//func SelectUsers(m *protos.UserReq) (rr []protos.User, e error) {
+//	if m.TenantID > 0 {
+//		rr, e = dao.UserSelectByTenantID(m.TenantID, "")
+//	}
+//
+//	return
+//}
 
 func UpdateUserService(p *protos.UserReq) (rows int64, e error) {
 	if p.UID <= 0 {
@@ -130,21 +142,20 @@ func UpdateUserPWD(uid uint64, oldPWD, newPWD string) (rows int64, e error) {
 	return
 }
 
-
-func SetUserPWD(uid uint64, PWD string) (rows int64, e error) {
+func SetUserPWD(uid, tenantId uint64, PWD string) (rows int64, e error) {
 	if uid <= 0 {
-		return 0, fmt.Errorf("用户错误")
+		return 0, common.ErrParam
 	}
 	if PWD == "" {
-		return -1, fmt.Errorf("密码不能为空")
+		return -1, common.ErrPWD
 	}
 
 	PWD = common.EncryPWD(PWD)
 
-	rows, e = dao.SetUserPWD(uid, PWD)
+	rows, e = dao.SetUserPWD(uid, tenantId, PWD)
 	if rows < 1 {
-		common.Logger.Sugar().Errorf("SetUserPWD ERR: %d %d %v\n", uid, rows, e)
-		return 0, fmt.Errorf("更改密码失败")
+		logger.Errorf("SetUserPWD ERR: %d %d %v\n", uid, rows, e)
+		return 0, common.ErrModify
 	}
 
 	return

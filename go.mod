@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/Blank-Xu/sql-adapter v0.0.0-20201228072413-5276c89fa383
+	github.com/Masterminds/squirrel v1.5.0
 	github.com/casbin/casbin/v2 v2.29.2
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-playground/locales v0.13.0
@@ -27,6 +28,5 @@ require (
 	golang.org/x/sys v0.0.0-20210503173754-0981d6026fa6 // indirect
 	golang.org/x/text v0.3.6 // indirect
 	gopkg.in/guregu/null.v3 v3.5.0
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	xorm.io/builder v0.3.9
 )

@@ -19,7 +19,7 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 		useCookie = false
 	}
 
-	if err := readJsonBodyFromRequest(r, user); err != nil {
+	if err := readJsonBodyFromRequest(r, user, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		logger.Error("userLogin param ERR: ", err)
 		return
