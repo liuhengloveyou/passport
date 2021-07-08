@@ -122,13 +122,11 @@ func UpdateUserService(p *protos.UserReq) (rows int64, e error) {
 
 func UpdateUserPWD(uid uint64, oldPWD, newPWD string) (rows int64, e error) {
 	if uid <= 0 {
-		return 0, fmt.Errorf("用户错误")
+		return 0, common.ErrSession
 	}
 
-	if oldPWD == "" {
-		return -1, fmt.Errorf("旧密码不能为空")
-	} else if newPWD == "" {
-		return -1, fmt.Errorf("新密码不能为空")
+	if oldPWD == "" || newPWD == "" {
+		return -1, common.ErrParam
 	}
 
 	newPWD = common.EncryPWD(newPWD)
@@ -136,7 +134,7 @@ func UpdateUserPWD(uid uint64, oldPWD, newPWD string) (rows int64, e error) {
 
 	rows, e = dao.UserUpdatePWD(uid, oldPWD, newPWD)
 	if rows < 1 {
-		return 0, fmt.Errorf("更改密码失败")
+		return 0, common.ErrModify
 	}
 
 	return

@@ -9,29 +9,30 @@ import (
 )
 
 type User struct {
-	UID        uint64        `json:"uid,omitempty" validate:"-" db:"uid"`
-	TenantID   uint64        `json:"tenant_id,omitempty" validate:"-" db:"tenant_id"`
-	Password   string        `json:"password,omitempty" validate:"required,min=6,max=256" db:"password"`
-	Cellphone  *null.String  `json:"cellphone,omitempty" validate:"omitempty,phone" db:"cellphone"`
-	Email      *null.String  `json:"email,omitempty" validate:"omitempty,email" db:"email"`
-	Nickname   *null.String  `json:"nickname,omitempty" validate:"omitempty,min=2,max=64" db:"nickname"`
-	AvatarURL  *null.String  `json:"avatarUrl" db:"avatar_url"`
-	Addr       *null.String  `json:"addr" db:"addr"`
-	Gender     *null.Int     `json:"gender" db:"gender"`
-	AddTime    *time.Time    `json:"addTime,omitempty" validate:"-" db:"add_time"`
-	UpdateTime *time.Time    `json:"updateTime,omitempty" validate:"-" db:"update_time"`
-	DeleteTime *time.Time    `json:"deleteTime,omitempty" validate:"-" db:"delete_time"`
-	LoginTime  *time.Time    `json:"loginTime,omitempty" validate:"-" db:"login_time"`
-	Tenant     *Tenant       `json:"tenant,omitempty" validate:"-" db:"tenant"`
+	UID        uint64       `json:"uid,omitempty" validate:"-" db:"uid"`
+	TenantID   uint64       `json:"tenant_id,omitempty" validate:"-" db:"tenant_id"`
+	Password   string       `json:"password,omitempty" validate:"required,min=6,max=256" db:"password"`
+	Cellphone  *null.String `json:"cellphone,omitempty" validate:"omitempty,phone" db:"cellphone"`
+	Email      *null.String `json:"email,omitempty" validate:"omitempty,email" db:"email"`
+	Nickname   *null.String `json:"nickname,omitempty" validate:"omitempty,min=2,max=64" db:"nickname"`
+	AvatarURL  *null.String `json:"avatarUrl" db:"avatar_url"`
+	Addr       *null.String `json:"addr" db:"addr"`
+	Gender     *null.Int    `json:"gender" db:"gender"`
+	AddTime    *time.Time   `json:"addTime,omitempty" validate:"-" db:"add_time"`
+	UpdateTime *time.Time   `json:"updateTime,omitempty" validate:"-" db:"update_time"`
+	DeleteTime *time.Time   `json:"deleteTime,omitempty" validate:"-" db:"delete_time"`
+	LoginTime  *time.Time   `json:"loginTime,omitempty" validate:"-" db:"login_time"`
 
+	Tenant *Tenant  `json:"tenant,omitempty" validate:"-" db:"tenant"`
+	Roles  []RoleStruct `json:"roles,omitempty" validate:"-"`
 	/*
-	{
-		"disabled": [1 | 0]
+		{
+			"disabled": [1 | 0]
 
-		"TOKEN": "xxx"
-	}
+			"TOKEN": "xxx"
+		}
 	*/
-	Ext        MapStruct `json:"ext,omitempty" validate:"-" db:"ext"`
+	Ext MapStruct `json:"ext,omitempty" validate:"-" db:"ext"`
 }
 
 // 租户

@@ -1,16 +1,13 @@
 package face
 
 import (
-	"encoding/json"
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
-	"io/ioutil"
+	"github.com/liuhengloveyou/passport/sessions"
 	"net/http"
 
-	"github.com/liuhengloveyou/passport/service"
-	"github.com/liuhengloveyou/passport/sessions"
-
 	gocommon "github.com/liuhengloveyou/go-common"
+	"github.com/liuhengloveyou/passport/service"
 )
 
 func userModify(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +23,7 @@ func userModify(w http.ResponseWriter, r *http.Request) {
 		logger.Error("userLogin param ERR: ", err)
 		return
 	}
-	logger.Infof("userModify: %#vv\n", user)
+	logger.Infof("userModify: %#v\n", user)
 
 	info := sess.Values[common.SessUserInfoKey].(protos.User)
 	logger.Info("userModify", user, info)
@@ -74,48 +71,23 @@ func userModify(w http.ResponseWriter, r *http.Request) {
 }
 
 func modifyPWD(w http.ResponseWriter, r *http.Request) {
-	var uid uint64
+	uid := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User).UID
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		logger.Error("modifyPWD body ERR: ", err)
-		gocommon.HttpErr(w, http.StatusBadRequest, -1, err.Error())
+	req := protos.ModifyPwdReq{}
+	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("modifyPWD param ERR: ", err)
 		return
 	}
 
-	logger.Info("modifyPWD body: ", string(body))
+	logger.Infof("modifyPWD body: %v %v\n", uid, req)
 
-	pwd := make(map[string]string)
-	err = json.Unmarshal(body, &pwd)
-	if err != nil {
-		logger.Error("modifyPWD json ERR: ", err)
-		gocommon.HttpErr(w, http.StatusBadRequest, -1, err.Error())
+	if _, err := service.UpdateUserPWD(uid, req.OldPwd, req.NewPwd); err != nil {
+		logger.Errorf("modifyPWD %d %v %s\n", uid, req, err.Error())
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
 
-	o := pwd["o"]
-	n := pwd["n"]
-
-	if o == "" {
-		logger.Error("modifyPWD old nil")
-		gocommon.HttpErr(w, http.StatusBadRequest, -1, "旧密码不能为空")
-		return
-	} else if n == "" {
-		logger.Error("modifyPWD new nil")
-		gocommon.HttpErr(w, http.StatusBadRequest, -1, "新密码不能为空")
-		return
-	}
-
-	uid = r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User).UID
-
-	logger.Infof("modifyPWD %d %s %s\n", uid, o, n)
-
-	if _, err := service.UpdateUserPWD(uid, o, n); err != nil {
-		logger.Errorf("modifyPWD %d %s %s %s\n", uid, o, n, err.Error())
-		gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
-		return
-	}
-
-	gocommon.HttpErr(w, http.StatusOK, 0, "OK")
+	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
 	return
 }

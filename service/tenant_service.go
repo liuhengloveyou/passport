@@ -1,7 +1,6 @@
 package service
 
 import (
-	"github.com/liuhengloveyou/go-errors"
 	"github.com/liuhengloveyou/passport/accessctl"
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/dao"
@@ -39,9 +38,7 @@ func TenantAdd(m *protos.Tenant) (tenantID int64, e error) {
 	tenantID, e = dao.TenantInsert(tx, m)
 	if e != nil {
 		common.Logger.Sugar().Errorf("TenantAdd TenantInsert ERR: %v %v %v\n", m.UID, tenantID, e)
-		if _, ok := e.(errors.Error); !ok {
-			e = common.ErrService
-		}
+		e = common.ErrService
 		return
 	}
 	if tenantID <= 0 {
@@ -145,8 +142,14 @@ func TenantUserGet(tenantID, page, pageSize uint64, nickname string, uids []uint
 	}
 	rst.List = rr
 
+	for i := 0; i < len(rr); i++ {
+		if rr[i].Roles, e = getTenantUserRoles(rr[i].UID, rr[i].TenantID); e != nil {
+			logger.Warnf("TenantUserGet getTenantUserRole ERR: %v\n", e)
+		}
+	}
+
 	if hasTotal {
-		rst.Total, e = dao.UserCountByTenant(tenantID)
+		rst.Total, e = dao.UserCountByTenant(tenantID, nickname, uids)
 		if e != nil {
 			logger.Error("TenantUserGet db ERR: ", e)
 			e = common.ErrService
@@ -252,4 +255,37 @@ func TenantUpdateConfiguration(tenantId uint64, data map[string]interface{}) err
 	}
 
 	return dao.TenantUpdateConfiguration(tenant)
+}
+
+
+func getTenantUserRoles(uid, tenantId uint64) (roles []protos.RoleStruct, err error) {
+	tenant, err := dao.TenantGetByID(tenantId)
+	if err != nil {
+		common.Logger.Sugar().Errorf("getTenantUserRole db ERR: %v\n", err)
+		return nil, common.ErrService
+	}
+	if nil == tenant {
+		common.Logger.Sugar().Errorf("getTenantUserRole db nil\n")
+		return nil, common.ErrTenantNotFound
+	}
+
+	common.Logger.Sugar().Debugf("tenant: %v\n", tenant)
+
+	roleVals := accessctl.GetRoleForUserInDomain(uid, tenantId)
+	if roleVals == nil || len(roleVals) == 0 {
+		common.Logger.Sugar().Errorf("getTenantUserRole roles nil\n")
+		return nil, nil
+	}
+
+	roles = make([]protos.RoleStruct, len(roleVals))
+	for i := 0; i < len(roleVals); i++ {
+		roles[i].RoleValue = roleVals[i]
+		for j := 0; j < len(tenant.Configuration.Roles); j ++ {
+			if tenant.Configuration.Roles[j].RoleValue == roleVals[i] {
+				roles[i].RoleTitle = tenant.Configuration.Roles[j].RoleTitle
+			}
+		}
+	}
+
+	return roles, nil
 }

@@ -14,6 +14,7 @@ import (
 func TenantInsert(tx *sqlx.Tx, m *protos.Tenant) (tenantID int64, e error) {
 	rst, err := tx.Exec("INSERT INTO tenant (uid, tenant_name, tenant_type, configuration, add_time) VALUES (?, ?, ?, ?, ?)",
 		m.UID, m.TenantName, m.TenantType, m.Configuration, time.Now())
+
 	if err != nil {
 		if merr, ok := err.(*mysql.MySQLError); ok {
 			if merr.Number == 1062 {
@@ -78,9 +79,23 @@ func UserSelectByTenant(tenantID, page, pageSize uint64, nickname string, uids [
 	return
 }
 
-func UserCountByTenant(tenantID uint64) (r uint64, e error) {
+func UserCountByTenant(tenantID uint64, nickname string, uids []uint64) (r uint64, e error) {
+	act := sq.Select("count(uid) as count").From("users").Where(sq.Eq{"tenant_id": tenantID})
+	if nickname != "" {
+		act = act.Where(sq.Like{"nickname": "%"+nickname+"%"})
+	} else if len(uids) > 0 {
+		ors := make(sq.Or, len(uids))
+		for i := 0; i < len(uids); i ++ {
+			ors[i] = sq.Eq{"uid": uids[i]}
+		}
+		act = act.Where(ors)
+	}
+
+	sql, args, err := act.ToSql()
+	common.Logger.Sugar().Debugf("%v %v %v", sql, args, err)
+
 	m := make([]int64, 0)
-	if e = common.DB.Select(&m, "SELECT COUNT(*) FROM users where tenant_id = ?", tenantID); e != nil {
+	if e = common.DB.Select(&m, sql, args...); e != nil {
 		return
 	}
 

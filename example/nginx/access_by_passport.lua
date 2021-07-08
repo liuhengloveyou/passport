@@ -1,6 +1,6 @@
 local conf = {
-    passportUri = "http://127.0.0.1:8001/",
-    passportHost = "demo.passport.com"
+    passportUri = "http://193.112.206.31:80/",
+    passportHost = "passport.ibingli.cn"
 }
 
 local ngx = ngx
@@ -15,6 +15,7 @@ local token, err = cookie:get("go-session-id")
 if not token then
     token = ngx.req.get_headers()["Access-Token"]
 end
+ngx.log(ngx.ERR, "cookie: ", token)
 if not token then
     ngx.exit(ngx.HTTP_UNAUTHORIZED)
 end
@@ -23,6 +24,8 @@ local xRequestedBy = ngx.var.xRequestedBy -- 可以自己设置接口名
 if not xRequestedBy then
     xRequestedBy = ngx.var.uri
 end
+ngx.log(ngx.ERR, "api: ", xRequestedBy)
+
 local httpc = require("resty.http").new()
 local res, err = httpc:request_uri(conf.passportUri, {
     path = "/usercenter",
@@ -38,9 +41,14 @@ if not res then
     ngx.log(ngx.ERR, "usercenter ERR: ", err)
     ngx.exit(ngx.HTTP_UNAUTHORIZED)
 end
-ngx.log(ngx.ERR, "passport resp: ", res.body)
+ngx.log(ngx.ERR, "passport resp: ", res.status, res.body)
 if res and tonumber(res.status) ~= tonumber(200) then
     ngx.exit(res.status)
+end
+
+if res.body == nil or res.body == ngx.null or string.len(res.body) < 2 then
+    ngx.log(ngx.ERR, "usercenter body nil")
+    ngx.exit(ngx.HTTP_UNAUTHORIZED)
 end
 
 -- 只有某个租户可访问

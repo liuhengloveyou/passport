@@ -15,6 +15,11 @@ type UserReq struct {
 	Disable int8     `json:"disable" validate:"-"`
 }
 
+type ModifyPwdReq struct {
+	OldPwd string `json:"o" validate:"required,min=6,max=64"`
+	NewPwd string `json:"n" validate:"required,min=6,max=64"`
+}
+
 type PolicyReq struct {
 	Role string `json:"role" validate:"required,max=100"`
 	Obj  string `json:"obj" validate:"required,min=1,max=100"`

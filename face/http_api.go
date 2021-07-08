@@ -330,20 +330,24 @@ func AccessFilter(r *http.Request) bool {
 func UserAuth(w http.ResponseWriter, r *http.Request) {
 	sess, auth := AuthFilter(r)
 	if auth == false || sess == nil {
+		logger.Error("UserAuth auth false")
 		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoLogin)
 		return
 	}
 
 	if sess.Values[common.SessUserInfoKey] == nil {
+		logger.Error("UserAuth sess ERR")
 		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoLogin)
 		return
 	}
 	if _, ok := sess.Values[common.SessUserInfoKey].(protos.User); !ok {
+		logger.Error("UserAuth sess ERR")
 		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoLogin)
 		return
 	}
 	uid := sess.Values[common.SessUserInfoKey].(protos.User).UID
 	if uid <= 0 {
+		logger.Error("UserAuth sess ERR")
 		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoLogin)
 		return
 	}
@@ -355,11 +359,14 @@ func UserAuth(w http.ResponseWriter, r *http.Request) {
 			apiConf, ok = common.ServConfig.ApiConf["*"]
 		}
 		if ! ok {
+			logger.Error("UserAuth conf ERR")
+			gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrService)
 			return
 		}
 
 		if apiConf.NeedAccess {
 			if false == AccessFilter(r) {
+				logger.Error("UserAuth AccessFilter false")
 				gocommon.HttpJsonErr(w, http.StatusForbidden, common.ErrNoAuth)
 				return
 			}
