@@ -494,6 +494,7 @@ curl -v -X POST -H "X-API: tenant/addUser" --cookie "go-session-id=MTYfgFKSlOYwQ
 '{
   "uid": 123,
   "nickname": "xxx",
+  "password": "123456",
   "role": ["r1", "r2", ...],
   "disable": 1
 }' "http://127.0.0.1:8080/usercenter"
