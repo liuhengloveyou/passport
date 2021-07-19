@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"flag"
 	"fmt"
+	"log"
 	"net/url"
 	"time"
 
@@ -29,7 +30,7 @@ const (
 
 var (
 	passportconfile = flag.String("passport", "./passport.conf.yaml", "配置文件路径")
-	ServConfig protos.OptionStruct
+	ServConfig      protos.OptionStruct
 
 	DB          *sqlx.DB
 	Logger      *zap.Logger
@@ -53,16 +54,18 @@ func init() {
 	}
 
 	if e = gocommon.LoadYamlConfig(*passportconfile, &ServConfig); e != nil {
-		fmt.Println("passport.conf.yaml ERR: ", e)
+		log.Println(e)
 		return
 	}
 
 	if e = InitWithOption(&ServConfig); e != nil {
-		panic(e)
+		log.Panic("InitWithOption ", e)
 	}
 }
 
 func InitWithOption(option *protos.OptionStruct) (e error) {
+	log.Println("InitWithOption: ", option)
+
 	if option.MysqlURN != "" && DB == nil {
 		if e = InitMysql(option.MysqlURN); e != nil {
 			return e
@@ -82,7 +85,7 @@ func InitWithOption(option *protos.OptionStruct) (e error) {
 	}
 
 	ServConfig.AvatarDir = "./avatar/"
-	if "" != option.AvatarDir {
+	if option.AvatarDir != "" {
 		ServConfig.AvatarDir = option.AvatarDir // 头像上传目录
 	}
 

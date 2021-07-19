@@ -3,12 +3,13 @@ package accessctl
 import (
 	"database/sql"
 	"fmt"
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/dao"
-	"github.com/liuhengloveyou/passport/protos"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/liuhengloveyou/passport/common"
+	"github.com/liuhengloveyou/passport/dao"
+	"github.com/liuhengloveyou/passport/protos"
 
 	sqladapter "github.com/Blank-Xu/sql-adapter"
 	"github.com/casbin/casbin/v2"
@@ -16,11 +17,6 @@ import (
 
 var policyCache = make(map[string]bool, 10000)
 
-func init() {
-	if e := InitAccessControl("rbac_with_domains_model.conf", common.ServConfig.MysqlURN); e != nil {
-		panic(e)
-	}
-}
 func InitAccessControl(rbacModel, mysqlURN string) (err error) {
 	// connect to the database first.
 	db, err := sql.Open("mysql", mysqlURN)

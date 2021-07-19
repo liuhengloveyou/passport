@@ -51,12 +51,33 @@ func TenantGetByID(tenantId uint64) (m *protos.Tenant, e error) {
 	return
 }
 
+func TenantCount() (r uint64, e error) {
+	m := make([]int64, 0)
+	if e = common.DB.Select(&m, "SELECT count(id) FROM tenant"); e != nil {
+		return
+	}
+
+	if len(m) == 1 {
+		r = uint64(m[0])
+	}
+
+	return
+}
+
+func TenantList(page, pageSize uint64) (rr []protos.Tenant, e error) {
+	sql, args, err := sq.Select("id", "uid", "tenant_name", "tenant_type", "add_time", "update_time").From("tenant").Offset((page - 1) * pageSize).Limit(pageSize).ToSql()
+	common.Logger.Sugar().Debugf("%v %v %v", sql, args, err)
+
+	e = common.DB.Select(&rr, sql, args...)
+
+	return
+}
+
 func TenantUpdateConfiguration(m *protos.Tenant) error {
 	_, err := common.DB.Exec("UPDATE tenant SET configuration = ? WHERE (id = ?) AND (update_time = ?)", m.Configuration, m.ID, m.UpdateTime)
 
 	return err
 }
-
 
 func UserSelectByTenant(tenantID, page, pageSize uint64, nickname string, uids []uint64) (rr []protos.User, e error) {
 	act := sq.Select("uid", "tenant_id", "cellphone", "email", "nickname", "avatar_url", "gender", "addr", "ext", "add_time").From("users").Where(sq.Eq{"tenant_id": tenantID})

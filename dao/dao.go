@@ -3,9 +3,9 @@ package dao
 import (
 	"database/sql"
 	"encoding/gob"
-	"github.com/liuhengloveyou/passport/protos"
 
 	. "github.com/liuhengloveyou/passport/common"
+	"github.com/liuhengloveyou/passport/protos"
 
 	_ "github.com/go-sql-driver/mysql"
 )

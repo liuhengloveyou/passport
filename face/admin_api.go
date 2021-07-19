@@ -5,8 +5,37 @@ import (
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/service"
 	"net/http"
+	"strconv"
 	"strings"
 )
+
+func TenantList(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+
+	hasTotal, _ := strconv.ParseUint(r.FormValue("hasTotal"), 10, 64)
+	page, _ := strconv.ParseUint(r.FormValue("page"), 10, 64)
+	pageSize, _ := strconv.ParseUint(r.FormValue("pageSize"), 10, 64)
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 1
+	}
+	if pageSize > 1000 {
+		pageSize = 1000
+	}
+
+	rr, e := service.TenantList(page, pageSize, hasTotal == 1)
+	if e != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, e)
+		logger.Error("TenantList ERR: ", e)
+		return
+	}
+
+	gocommon.HttpErr(w, http.StatusOK, 0, rr)
+
+	return
+}
 
 func UpdateTenantConfiguration(w http.ResponseWriter, r *http.Request) {
 	var req map[string]interface{}
@@ -68,7 +97,7 @@ func modifyPWDByUID(w http.ResponseWriter, r *http.Request) {
 
 	logger.Infof("modifyPWDByUID %v %s\n", uid, pwd)
 
-	if _, err := service.SetUserPWD(uint64(uid), 0,  pwd); err != nil {
+	if _, err := service.SetUserPWD(uint64(uid), 0, pwd); err != nil {
 		logger.Errorf("modifyPWDByUID %v %s %s\n", uid, pwd, err.Error())
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return

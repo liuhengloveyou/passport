@@ -64,7 +64,7 @@ func InitHttpApi(addr string) error {
 	options := &passportprotos.OptionStruct{
 		LogDir:    "./logs", // 日志目录
 		LogLevel:  "debug",  // 日志级别
-		MysqlURN:  "root:lhisroot@tcp(127.0.0.1:3306)/xxx?charset=utf8mb4&parseTime=true&loc=Local",
+		MysqlURN:  "root:root@tcp(127.0.0.1:3306)/passport?charset=utf8mb4&parseTime=true&loc=Local",
 	}
 	http.Handle("/usercenter", passport.InitAndRunHttpApi(options))
 	// 业务可以挂在这里
@@ -597,8 +597,14 @@ curl -v -X GET -H "X-API: tenant/loadConfiguration" --cookie "go-session-id=gFKS
 
 ## SAAS系统管理接口
 
-
 管理接口只有指定的租户(saas系统总管理后台)可用
+
+### 查询租户列表
+
+```bash
+curl -v -H "X-API: admin/tenantList" --cookie "go-session-id=VbtYfgFKSlOYwQ==" \
+"http://127.0.0.1:8080/usercenter?page=1&pageSize=1&hasTotal=1"
+```
 
 ### 更新租户配置信息
 

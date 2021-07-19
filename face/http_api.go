@@ -5,11 +5,12 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"github.com/go-playground/validator/v10"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/go-playground/validator/v10"
 
 	"github.com/liuhengloveyou/passport/accessctl"
 	"github.com/liuhengloveyou/passport/common"
@@ -88,8 +89,8 @@ func init() {
 			NeedAccess: true,
 		},
 		"access/getRolesForUser": {
-			Handler:    GetRolesForUser,
-			NeedLogin:  true,
+			Handler:   GetRolesForUser,
+			NeedLogin: true,
 		},
 		"access/getUsersForRole": {
 			Handler:    GetUsersForRole,
@@ -112,8 +113,8 @@ func init() {
 			NeedAccess: true,
 		},
 		"access/getPolicyForUser": {
-			Handler:    GetPolicyForUser,
-			NeedLogin:  true,
+			Handler:   GetPolicyForUser,
+			NeedLogin: true,
 		},
 
 		// 多租户
@@ -136,13 +137,13 @@ func init() {
 			NeedLogin: true,
 		},
 		"tenant/userDisableByUID": {
-			Handler: TenantUserDisableByUID,
-			NeedLogin: true,
+			Handler:    TenantUserDisableByUID,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 		"tenant/modifyUserPassword": {
-			Handler:   tenantModifyPWDByUID,
-			NeedLogin: true,
+			Handler:    tenantModifyPWDByUID,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 		"tenant/addRole": {
@@ -160,19 +161,24 @@ func init() {
 			NeedAccess: true,
 		},
 		"tenant/loadConfiguration": {
-			Handler:    LoadConfiguration,
-			NeedLogin:  true,
+			Handler:   LoadConfiguration,
+			NeedLogin: true,
 		},
 
 		// 管理接口
+		"admin/tenantList": {
+			Handler:    TenantList,
+			NeedLogin:  true,
+			NeedAccess: true,
+		},
 		"admin/updateTenantConfiguration": {
 			Handler:    UpdateTenantConfiguration,
 			NeedLogin:  true,
 			NeedAccess: true,
 		},
 		"admin/modifyUserPassword": {
-			Handler:   modifyPWDByUID,
-			NeedLogin: true,
+			Handler:    modifyPWDByUID,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 	}
@@ -182,6 +188,10 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 	if options != nil {
 		if err := common.InitWithOption(options); err != nil {
 			panic(err)
+		}
+
+		if e := accessctl.InitAccessControl("rbac_with_domains_model.conf", options.MysqlURN); e != nil {
+			panic(e)
 		}
 	}
 
@@ -358,7 +368,7 @@ func UserAuth(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			apiConf, ok = common.ServConfig.ApiConf["*"]
 		}
-		if ! ok {
+		if !ok {
 			logger.Error("UserAuth conf ERR")
 			gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrService)
 			return

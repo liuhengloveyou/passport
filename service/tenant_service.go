@@ -57,6 +57,32 @@ func TenantAdd(m *protos.Tenant) (tenantID int64, e error) {
 	return
 }
 
+func TenantList(page, pageSize uint64, hasTotal bool) (rst protos.PageResponse, e error) {
+	var rr []protos.Tenant
+	rr, e = dao.TenantList(page, pageSize)
+	if e != nil {
+		logger.Error("TenantList db ERR: ", e)
+		e = common.ErrService
+		return
+	}
+	if len(rr) == 0 {
+		e = common.ErrNull
+		return
+	}
+	rst.List = rr
+
+	if hasTotal {
+		rst.Total, e = dao.TenantCount()
+		if e != nil {
+			logger.Error("TenantList db ERR: ", e)
+			e = common.ErrService
+			return
+		}
+	}
+
+	return
+}
+
 func TenantUserAdd(uid, currTenantID uint64, roles []string, disable int8) (e error) {
 	row, e := dao.UserUpdateTenantID(uid, currTenantID, 0)
 	if e != nil {
