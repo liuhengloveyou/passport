@@ -90,6 +90,8 @@ func InitWithOption(option *protos.OptionStruct) (e error) {
 	}
 
 	ServConfig.SessionStoreType = option.SessionStoreType
+	ServConfig.ApiConf = option.ApiConf
+	ServConfig.AdminTenantID = option.AdminTenantID
 
 	return nil
 }

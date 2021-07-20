@@ -192,21 +192,50 @@ func TenantAddRole(tenantId uint64, role protos.RoleStruct) error {
 		common.Logger.Sugar().Errorf("TenantAddRole db ERR: %v\n", err)
 		return common.ErrService
 	}
+	common.Logger.Sugar().Debugf("tenant: %v\n", tenant)
 	if nil == tenant {
 		return common.ErrTenantNotFound
 	}
 
-	common.Logger.Sugar().Debugf("tenant: %v\n", tenant)
 	if len(tenant.Configuration.Roles) > 100 {
+		common.Logger.Sugar().Errorf("TenantAddRole Configuration.Roles to long: %v\n", len(tenant.Configuration.Roles))
 		return common.ErrService
 	}
 	for i := 0; i < len(tenant.Configuration.Roles); i++ {
 		if tenant.Configuration.Roles[i].RoleTitle == role.RoleTitle || tenant.Configuration.Roles[i].RoleValue == role.RoleValue {
+			common.Logger.Sugar().Errorf("TenantAddRole dup: %v %v\n", role, tenant.Configuration.Roles[i])
 			return common.ErrMysql1062
 		}
 	}
 
 	tenant.Configuration.Roles = append(tenant.Configuration.Roles, role)
+
+	return dao.TenantUpdateConfiguration(tenant)
+}
+
+func TenantDelRole(tenantId uint64, role protos.RoleStruct) error {
+	common.Logger.Sugar().Debugf("TenantDelRole: %v\n", role)
+	if role.RoleValue == "root" {
+		common.Logger.Sugar().Errorf("TenantDelRole root\n")
+		return common.ErrService
+	}
+	tenant, err := dao.TenantGetByID(tenantId)
+	if err != nil {
+		common.Logger.Sugar().Errorf("TenantDelRole db ERR: %v\n", err)
+		return common.ErrService
+	}
+	common.Logger.Sugar().Debugf("tenant: %v\n", tenant)
+	if nil == tenant {
+		return common.ErrTenantNotFound
+	}
+
+	i := 0
+	for ; i < len(tenant.Configuration.Roles); i++ {
+		if tenant.Configuration.Roles[i].RoleValue == role.RoleValue {
+			break
+		}
+	}
+	tenant.Configuration.Roles = append(tenant.Configuration.Roles[:i], tenant.Configuration.Roles[i+1:]...)
 
 	return dao.TenantUpdateConfiguration(tenant)
 }

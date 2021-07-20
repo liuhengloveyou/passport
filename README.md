@@ -410,7 +410,7 @@ curl -v -X POST -H "X-API: access/addPolicyToRole" --cookie "go-session-id=MTYxO
 }' "http://127.0.0.1:8080/usercenter"
 ```
 
-### 从主体删除权限
+### 从角色删除权限
 
 ```shell
 curl -v -X POST -H "X-API: access/removePolicyFromRole" -d \
@@ -449,6 +449,33 @@ curl -v -X GET -H "X-API: access/getPolicyForUser" --cookie "go-session-id=MTY" 
 	]
 }
 ```
+
+### 添加权限字典条目
+
+```bash
+curl -X POST -H "X-API: access/addPermission" --cookie "go-session-id=MTY" -d \
+'{
+	"domain": "demo.passport.com",
+  "title": "api-a",
+  "value": "/a/b/c"
+}' "http://127.0.0.1:8080/usercenter"
+```
+
+### 删除权限字典条目
+
+```bash
+curl -X GET -H "X-API: access/delPermission" --cookie "go-session-id=MTY" \
+"http://127.0.0.1:8080/usercenter?id=xxx"
+```
+
+
+### 查询权限字典列表
+
+```bash
+curl -X GET -H "X-API: access/listPermission" --cookie "go-session-id=MTY" \
+"http://127.0.0.1:8080/usercenter?domain=xxx"
+```
+
 
 
 ## 多租户相关接口
@@ -561,6 +588,17 @@ curl -v -X GET -H "X-API: tenant/getUsers" --cookie "go-session-id=MTYfgFKSlOYwQ
 curl -v -X POST -H "X-API: tenant/addRole" --cookie "go-session-id=VbtYfgFKSlOYwQ==" -d \
 '{
   "title": "角色1",
+  "value": "role1"
+}' "http://127.0.0.1:8080/usercenter"
+```
+
+### 删除角色字典
+
+管理员删除当前租户角色字典
+
+```shell
+curl -v -X POST -H "X-API: tenant/delRole" --cookie "go-session-id=VbtYfgFKSlOYwQ==" -d \
+'{
   "value": "role1"
 }' "http://127.0.0.1:8080/usercenter"
 ```
@@ -726,5 +764,19 @@ CREATE TABLE `tenant` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `tenant_name_unique` (`tenant_name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+CREATE TABLE `permission` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `tenant_id` int(11) NOT NULL COMMENT '租户ID',
+  `domain` varchar(128) COLLATE utf8mb4_bin NOT NULL COMMENT '服务域',
+  `title` varchar(128) COLLATE utf8mb4_bin NOT NULL,
+  `value` varchar(256) COLLATE utf8mb4_bin NOT NULL,
+  `add_time` datetime NOT NULL,
+  `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `index-unique-title` (`tenant_id`,`domain`,`title`),
+  UNIQUE KEY `index-unique-value` (`value`,`domain`,`tenant_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
 ```
 

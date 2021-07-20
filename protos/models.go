@@ -8,6 +8,11 @@ import (
 	null "gopkg.in/guregu/null.v3/zero"
 )
 
+type PageResponse struct {
+	Total uint64      `json:"total,omitempty"`
+	List  interface{} `json:"list"`
+}
+
 type User struct {
 	UID        uint64       `json:"uid,omitempty" validate:"-" db:"uid"`
 	TenantID   uint64       `json:"tenant_id,omitempty" validate:"-" db:"tenant_id"`
@@ -23,7 +28,7 @@ type User struct {
 	DeleteTime *time.Time   `json:"deleteTime,omitempty" validate:"-" db:"delete_time"`
 	LoginTime  *time.Time   `json:"loginTime,omitempty" validate:"-" db:"login_time"`
 
-	Tenant *Tenant  `json:"tenant,omitempty" validate:"-" db:"tenant"`
+	Tenant *Tenant      `json:"tenant,omitempty" validate:"-" db:"tenant"`
 	Roles  []RoleStruct `json:"roles,omitempty" validate:"-"`
 	/*
 		{
@@ -68,16 +73,30 @@ func (t TenantConfiguration) Value() (driver.Value, error) {
 	return json.Marshal(t)
 }
 
+// 角色
 type RoleStruct struct {
 	RoleTitle string `json:"title" validate:"max=64"`
-	RoleValue string `json:"value" validate:"max=64"`
+	RoleValue string `json:"value" validate:"required,max=64"`
 
 	UID uint64 `json:"uid,omitempty" validate:"-"`
 }
 
-type PageResponse struct {
-	Total uint64      `json:"total,omitempty"`
-	List  interface{} `json:"list"`
+// 权限条目
+type PermissionStruct struct {
+	ID         uint64     `json:"id,omitempty" validate:"-" db:"id"`
+	TenantID   uint64     `json:"tenant_id,omitempty" validate:"-" db:"tenant_id"`
+	Domain     string     `json:"domain,omitempty" validate:"required,min=2,max=128" db:"domain"`
+	Title      string     `json:"title" validate:"required,min=2,max=128" db:"title"`
+	Value      string     `json:"value" validate:"required,min=2,max=256" db:"value"`
+	AddTime    *time.Time `json:"addTime,omitempty" validate:"-" db:"add_time"`
+	UpdateTime *time.Time `json:"updateTime,omitempty" validate:"-" db:"update_time"`
+}
+
+// 权限策略
+type Policy struct {
+	Role string `json:"role"`
+	Obj  string `json:"obj"`
+	Act  string `json:"act"`
 }
 
 type MapStruct map[string]interface{}

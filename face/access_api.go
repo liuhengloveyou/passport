@@ -257,9 +257,21 @@ func GetPolicy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	policys := accessctl.GetFilteredPolicy(sessionUser.TenantID, req)
-	gocommon.HttpErr(w, http.StatusOK, 0, policys)
-	logger.Infof("GetPolicy OK: %#v\n", policys)
+	polices := accessctl.GetFilteredPolicy(sessionUser.TenantID, req)
+	var policesNoDomain []protos.Policy
+	if len(polices) > 0 {
+		policesNoDomain = make([]protos.Policy, len(polices))
+		for i := 0; i < len(polices); i++ {
+			policesNoDomain[i] = protos.Policy{
+				Role: polices[i][0],
+				Obj: polices[i][2],
+				Act: polices[i][3],
+			}
+		}
+	}
+
+	gocommon.HttpErr(w, http.StatusOK, 0, policesNoDomain)
+	logger.Infof("GetPolicy OK: %#v\n", polices)
 
 	return
 }

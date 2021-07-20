@@ -194,7 +194,7 @@ func TenantUserGet(w http.ResponseWriter, r *http.Request) {
 		for i, ouids := range uidss {
 			if uids[i], err = strconv.ParseUint(ouids, 10, 64); err != nil {
 				gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-				logger.Error("TenantUserGet uids ERR: ", uidStr)
+				logger.Error("TenantUserGet uids ERR: ", uidStr, uidStr, uidss)
 				return
 			}
 		}
@@ -224,7 +224,7 @@ func TenantUserGet(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func GetRole(w http.ResponseWriter, r *http.Request) {
+func TenantGetRole(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
@@ -238,7 +238,7 @@ func GetRole(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func RoleAdd(w http.ResponseWriter, r *http.Request) {
+func TenantRoleAdd(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
@@ -251,15 +251,35 @@ func RoleAdd(w http.ResponseWriter, r *http.Request) {
 		logger.Error("RoleAdd param ERR: ", err)
 		return
 	}
-	if "" == req.RoleTitle || "" == req.RoleValue {
-		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("RoleAdd param ERR: ", req)
-		return
-	}
 	logger.Infof("RoleAdd body: %#v\n", req)
 
 	if err := service.TenantAddRole(sessionUser.TenantID, req); err != nil {
 		logger.Error("TenantAddRole service ERR: ", err)
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+
+	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
+	return
+}
+
+func TenantRoleDel(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
+		return
+	}
+
+	req := protos.RoleStruct{}
+	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("TenantRoleDel param ERR: ", err)
+		return
+	}
+	logger.Infof("TenantRoleDel body: %#v\n", req)
+
+	if err := service.TenantDelRole(sessionUser.TenantID, req); err != nil {
+		logger.Error("TenantRoleDel service ERR: ", err)
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}

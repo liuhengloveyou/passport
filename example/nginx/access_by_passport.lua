@@ -1,5 +1,6 @@
+-- 这里是配置
 local conf = {
-    passportUri = "http://193.112.206.31:80/",
+    passportUri = "http://127.0.0.1:10000/",
     passportHost = "passport.ibingli.cn"
 }
 
@@ -17,6 +18,13 @@ if not token then
 end
 ngx.log(ngx.ERR, "cookie: ", token)
 if not token then
+
+    -- 为什么取不到token呢？打印所有HTTP头
+    local h, err = ngx.req.get_headers()
+    for k, v in pairs(h) do
+         ngx.log(ngx.ERR, "header: ", k, ": ", v)
+    end
+
     ngx.exit(ngx.HTTP_UNAUTHORIZED)
 end
 
@@ -41,7 +49,7 @@ if not res then
     ngx.log(ngx.ERR, "usercenter ERR: ", err)
     ngx.exit(ngx.HTTP_UNAUTHORIZED)
 end
-ngx.log(ngx.ERR, "passport resp: ", res.status, res.body)
+ngx.log(ngx.ERR, "passport resp: ", res.status, " body: ", res.body)
 if res and tonumber(res.status) ~= tonumber(200) then
     ngx.exit(res.status)
 end
@@ -60,5 +68,6 @@ if tonumber(onlyTenant) ~= nil and tonumber(onlyTenant) > 0 then
     end
 end
 
+ngx.log(ngx.ERR, "passport auth OK: ", res.status, " body: ", res.body)
 ngx.req.set_header("session", res.body)
 ngx.req.clear_header("X-Requested-By")

@@ -116,6 +116,21 @@ func init() {
 			Handler:   GetPolicyForUser,
 			NeedLogin: true,
 		},
+		"access/createPermission": {
+			Handler: PermissionCreate,
+			NeedLogin: true,
+			NeedAccess: true,
+		},
+		"access/deletePermission": {
+			Handler: PermissionDelete,
+			NeedLogin: true,
+			NeedAccess: true,
+		},
+		"access/listPermission": {
+			Handler: PermissionList,
+			NeedLogin: true,
+			NeedAccess: true,
+		},
 
 		// 多租户
 		"tenant/add": {
@@ -135,6 +150,7 @@ func init() {
 		"tenant/getUsers": {
 			Handler:   TenantUserGet,
 			NeedLogin: true,
+			NeedAccess: true,
 		},
 		"tenant/userDisableByUID": {
 			Handler:    TenantUserDisableByUID,
@@ -147,13 +163,19 @@ func init() {
 			NeedAccess: true,
 		},
 		"tenant/addRole": {
-			Handler:    RoleAdd,
+			Handler:    TenantRoleAdd,
+			NeedLogin:  true,
+			NeedAccess: true,
+		},
+		"tenant/delRole": {
+			Handler:    TenantRoleDel,
 			NeedLogin:  true,
 			NeedAccess: true,
 		},
 		"tenant/getRoles": {
-			Handler:   GetRole,
+			Handler:   TenantGetRole,
 			NeedLogin: true,
+			NeedAccess: true,
 		},
 		"tenant/updateConfiguration": {
 			Handler:    UpdateConfiguration,
@@ -239,6 +261,7 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	apiHandler, ok := apis[apiName]
 	if !ok {
+		logger.Warnf("no found api: %v\n", apiName)
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
@@ -321,7 +344,7 @@ func AccessFilter(r *http.Request) bool {
 	// 管理接口只有指定的租户可用
 	if strings.HasPrefix(obj, "admin") {
 		if sessUser.TenantID != common.ServConfig.AdminTenantID {
-			logger.Warnf("obj: %v; user: %v; %v", obj, sessUser, common.ServConfig.AdminTenantID)
+			logger.Warnf("obj: %v; %v; sess: %v", obj, common.ServConfig.AdminTenantID, sessUser)
 			return false
 		}
 	}
