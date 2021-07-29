@@ -25,7 +25,7 @@ const (
 	SYS_PWD         = "When you forgive, You love. And when you love, God's light shines on you. Now, 2021"
 	SessionKey      = "go-session-id"
 	SessUserInfoKey = "sessionUserInfo"
-	MAX_UPLOAD_LEN  = (5 * 1024 * 1024) // 最大上传文件大小
+	MAX_UPLOAD_LEN  = (8 * 1024 * 1024) // 最大上传文件大小
 )
 
 var (
@@ -64,15 +64,17 @@ func init() {
 }
 
 func InitWithOption(option *protos.OptionStruct) (e error) {
-	log.Println("InitWithOption: ", option)
+	log.Printf("passport.InitWithOption: %#v\n", option)
 
 	if option.MysqlURN != "" && DB == nil {
+		ServConfig.MysqlURN = option.MysqlURN
 		if e = InitMysql(option.MysqlURN); e != nil {
 			return e
 		}
 	}
 
 	if option.RedisAddr != "" && RedisClient == nil {
+		ServConfig.RedisAddr = option.RedisAddr
 		if e = InitRedis(option.RedisAddr); e != nil {
 			return e
 		}

@@ -61,7 +61,7 @@ func TenantList(page, pageSize uint64, hasTotal bool) (rst protos.PageResponse, 
 	var rr []protos.Tenant
 	rr, e = dao.TenantList(page, pageSize)
 	if e != nil {
-		logger.Error("TenantList db ERR: ", e)
+		common.Logger.Sugar().Error("TenantList db ERR: ", e)
 		e = common.ErrService
 		return
 	}
@@ -74,7 +74,7 @@ func TenantList(page, pageSize uint64, hasTotal bool) (rst protos.PageResponse, 
 	if hasTotal {
 		rst.Total, e = dao.TenantCount()
 		if e != nil {
-			logger.Error("TenantList db ERR: ", e)
+			common.Logger.Sugar().Error("TenantList db ERR: ", e)
 			e = common.ErrService
 			return
 		}
@@ -86,11 +86,11 @@ func TenantList(page, pageSize uint64, hasTotal bool) (rst protos.PageResponse, 
 func TenantUserAdd(uid, currTenantID uint64, roles []string, disable int8) (e error) {
 	row, e := dao.UserUpdateTenantID(uid, currTenantID, 0)
 	if e != nil {
-		logger.Error("TenantUserAdd db ERR: ", e)
+		common.Logger.Sugar().Error("TenantUserAdd db ERR: ", e)
 		return common.ErrService
 	}
 	if row != 1 {
-		logger.Error("TenantUserAdd UserUpdateTenantID ERR: ", row, e)
+		common.Logger.Sugar().Error("TenantUserAdd UserUpdateTenantID ERR: ", row, e)
 		return common.ErrService
 	}
 
@@ -102,7 +102,7 @@ func TenantUserAdd(uid, currTenantID uint64, roles []string, disable int8) (e er
 	}
 
 	if e = TenantUserDisabledService(uid, currTenantID, disable); e != nil {
-		logger.Warnf("TenantUserAdd TenantUserDisabledService ERR: %v\n", e)
+		common.Logger.Sugar().Warnf("TenantUserAdd TenantUserDisabledService ERR: %v\n", e)
 		e = nil
 	}
 
@@ -131,12 +131,12 @@ func TenantUserDisabledService(uid, currTenantID uint64, disabled int8) (e error
 
 	userInfo, e := dao.UserSelectByID(uid)
 	if e != nil {
-		logger.Errorf("TenantUserDisabledService db ERR: %v\n", e)
+		common.Logger.Sugar().Errorf("TenantUserDisabledService db ERR: %v\n", e)
 		return common.ErrService
 	}
 
 	if userInfo.TenantID != currTenantID {
-		logger.Errorf("TenantUserDisabledService tenant ERR: %v %v\n", userInfo.TenantID, currTenantID)
+		common.Logger.Sugar().Errorf("TenantUserDisabledService tenant ERR: %v %v\n", userInfo.TenantID, currTenantID)
 		return common.ErrNoAuth
 	}
 
@@ -144,11 +144,11 @@ func TenantUserDisabledService(uid, currTenantID uint64, disabled int8) (e error
 
 	rows, e := dao.UserUpdateExt(uid, userInfo.UpdateTime, &userInfo.Ext)
 	if e != nil {
-		logger.Errorf("UserDisabledService ERR: %v\n", e)
+		common.Logger.Sugar().Errorf("UserDisabledService ERR: %v\n", e)
 		return common.ErrService
 	}
 	if rows < 1 {
-		logger.Warnf("UpdateUserExtService RowsAffected 0")
+		common.Logger.Sugar().Warnf("UpdateUserExtService RowsAffected 0")
 	}
 
 	return
@@ -158,7 +158,7 @@ func TenantUserGet(tenantID, page, pageSize uint64, nickname string, uids []uint
 	var rr []protos.User
 	rr, e = dao.UserSelectByTenant(tenantID, page, pageSize, nickname, uids)
 	if e != nil {
-		logger.Error("TenantUserGet db ERR: ", e)
+		common.Logger.Sugar().Error("TenantUserGet db ERR: ", e)
 		e = common.ErrService
 		return
 	}
@@ -170,14 +170,14 @@ func TenantUserGet(tenantID, page, pageSize uint64, nickname string, uids []uint
 
 	for i := 0; i < len(rr); i++ {
 		if rr[i].Roles, e = getTenantUserRoles(rr[i].UID, rr[i].TenantID); e != nil {
-			logger.Warnf("TenantUserGet getTenantUserRole ERR: %v\n", e)
+			common.Logger.Sugar().Warnf("TenantUserGet getTenantUserRole ERR: %v\n", e)
 		}
 	}
 
 	if hasTotal {
 		rst.Total, e = dao.UserCountByTenant(tenantID, nickname, uids)
 		if e != nil {
-			logger.Error("TenantUserGet db ERR: ", e)
+			common.Logger.Sugar().Error("TenantUserGet db ERR: ", e)
 			e = common.ErrService
 			return
 		}
@@ -275,12 +275,12 @@ func TenantLoadConfiguration(tenantId uint64, key string) (interface{}, error) {
 
 func TenantUpdateConfiguration(tenantId uint64, data map[string]interface{}) error {
 	if len(data) <= 0 || len(data) > 100 {
-		logger.Error("UpdateTenantConfiguration param len ERR: ", len(data))
+		common.Logger.Sugar().Error("UpdateTenantConfiguration param len ERR: ", len(data))
 		return common.ErrParam
 	}
 	for k, _ := range data {
 		if len(k) > 64 {
-			logger.Error("UpdateTenantConfiguration param k len")
+			common.Logger.Sugar().Error("UpdateTenantConfiguration param k len")
 			return common.ErrParam
 		}
 	}
@@ -300,7 +300,7 @@ func TenantUpdateConfiguration(tenantId uint64, data map[string]interface{}) err
 	for k, v := range data {
 		if v != nil {
 			if len(tenant.Configuration.More) > 100 {
-				logger.Errorf("tenant.Configuration.More too len: %d\n", len(tenant.Configuration.More))
+				common.Logger.Sugar().Errorf("tenant.Configuration.More too len: %d\n", len(tenant.Configuration.More))
 				return common.ErrService
 			}
 			tenant.Configuration.More[k] = v

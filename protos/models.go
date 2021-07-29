@@ -14,7 +14,7 @@ type PageResponse struct {
 }
 
 type User struct {
-	UID        uint64       `json:"uid,omitempty" validate:"-" db:"uid"`
+	UID        uint64       `json:"uid,omitempty" validate:"-" db:"uid"` // 正常要从10000开始往上自增，100以下保留内部使用
 	TenantID   uint64       `json:"tenant_id,omitempty" validate:"-" db:"tenant_id"`
 	Password   string       `json:"password,omitempty" validate:"required,min=6,max=256" db:"password"`
 	Cellphone  *null.String `json:"cellphone,omitempty" validate:"omitempty,phone" db:"cellphone"`
@@ -33,11 +33,17 @@ type User struct {
 	/*
 		{
 			"disabled": [1 | 0]
-
 			"TOKEN": "xxx"
 		}
 	*/
-	Ext MapStruct `json:"ext,omitempty" validate:"-" db:"ext"`
+	Ext MapStruct `json:"ext,omitempty" validate:"-" db:"ext"` // 记录用户的扩展信息
+}
+func (u *User) SetExt(k string, v interface{}) {
+	if u.Ext == nil {
+		u.Ext = make(map[string]interface{})
+	}
+
+	u.Ext[k] = v
 }
 
 // 租户

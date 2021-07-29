@@ -77,8 +77,6 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 	}
 
 	one.Password = ""
-	one.AddTime = nil
-	one.UpdateTime = nil
 
 	// tenant
 	if one.TenantID > 0 {

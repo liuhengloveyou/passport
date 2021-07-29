@@ -28,4 +28,6 @@ var (
 	ErrTenantTypeNull = errors.NewError(-2002, "租户类型为空")
 	ErrTenantLimit    = errors.NewError(-2003, "账号只能属于一个租户")
 	ErrTenantAddERR   = errors.NewError(-2004, "添加租户失败")
+
+	ErrWxService = errors.NewError(-3000, "微信接口返回错误")
 )

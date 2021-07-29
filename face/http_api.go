@@ -117,18 +117,18 @@ func init() {
 			NeedLogin: true,
 		},
 		"access/createPermission": {
-			Handler: PermissionCreate,
-			NeedLogin: true,
+			Handler:    PermissionCreate,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 		"access/deletePermission": {
-			Handler: PermissionDelete,
-			NeedLogin: true,
+			Handler:    PermissionDelete,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 		"access/listPermission": {
-			Handler: PermissionList,
-			NeedLogin: true,
+			Handler:    PermissionList,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 
@@ -148,8 +148,8 @@ func init() {
 			NeedAccess: true,
 		},
 		"tenant/getUsers": {
-			Handler:   TenantUserGet,
-			NeedLogin: true,
+			Handler:    TenantUserGet,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 		"tenant/userDisableByUID": {
@@ -173,8 +173,8 @@ func init() {
 			NeedAccess: true,
 		},
 		"tenant/getRoles": {
-			Handler:   TenantGetRole,
-			NeedLogin: true,
+			Handler:    TenantGetRole,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 		"tenant/updateConfiguration": {
@@ -204,6 +204,8 @@ func init() {
 			NeedAccess: true,
 		},
 	}
+
+	initWXAPI()
 }
 
 func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
@@ -211,12 +213,12 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 		if err := common.InitWithOption(options); err != nil {
 			panic(err)
 		}
-
-		if e := accessctl.InitAccessControl("rbac_with_domains_model.conf", options.MysqlURN); e != nil {
-			panic(e)
-		}
 	}
 
+	// common.InitWithOption 后面
+	if e := accessctl.InitAccessControl("rbac_with_domains_model.conf", common.ServConfig.MysqlURN); e != nil {
+		panic(e)
+	}
 	logger = common.Logger.Sugar()
 
 	sessPWD := md5.Sum([]byte(common.SYS_PWD))
@@ -230,16 +232,16 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 
 	handler = &PassportHttpServer{}
 
-	if "" != options.Addr {
+	if common.ServConfig.Addr != "" {
 		http.Handle("/usercenter", handler)
 		s := &http.Server{
-			Addr:           options.Addr,
+			Addr:           common.ServConfig.Addr,
 			ReadTimeout:    10 * time.Minute,
 			WriteTimeout:   10 * time.Minute,
 			MaxHeaderBytes: 1 << 20,
 		}
 
-		fmt.Println("passport GO..." + options.Addr)
+		fmt.Println("passport GO..." + common.ServConfig.Addr)
 		if err := s.ListenAndServe(); err != nil {
 			panic("ListenAndServe: " + err.Error())
 		}
@@ -291,6 +293,24 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	apiHandler.Handler(w, r)
 }
 
+func GetSessionUser(r *http.Request) (sessionUser protos.User) {
+	sess, auth := AuthFilter(r)
+	logger.Debug("passport session:", sess, auth)
+	if sess == nil {
+		return
+	}
+
+	if sess.Values[common.SessUserInfoKey] == nil {
+		return
+	}
+
+	if _, ok := sess.Values[common.SessUserInfoKey].(protos.User); !ok {
+		return
+	}
+
+	return sess.Values[common.SessUserInfoKey].(protos.User)
+}
+
 func AuthFilter(r *http.Request) (sess *sessions.Session, auth bool) {
 	var err error
 
@@ -308,8 +328,7 @@ func AuthFilter(r *http.Request) (sess *sessions.Session, auth bool) {
 		return nil, false
 	}
 
-	uid := sess.Values[common.SessUserInfoKey].(protos.User).UID
-	if uid <= 0 {
+	if sess.Values[common.SessUserInfoKey].(protos.User).UID <= 0 {
 		return nil, false
 	}
 
@@ -317,7 +336,14 @@ func AuthFilter(r *http.Request) (sess *sessions.Session, auth bool) {
 }
 
 func AccessFilter(r *http.Request) bool {
-	var err error
+	sess, err := sessionStore.Get(r, common.SessionKey)
+	if err != nil {
+		return false
+	}
+	sessUser := sess.Values[common.SessUserInfoKey].(protos.User)
+	if sessUser.UID <= 0 || sessUser.TenantID <= 0 {
+		return false
+	}
 
 	obj := r.Header.Get("X-Requested-By")
 	if obj == "" {
@@ -329,87 +355,37 @@ func AccessFilter(r *http.Request) bool {
 	if obj == "" {
 		return false // 不知道需要访问什么资源
 	}
+	logger.Debugf("AccessFilter obj: %v\n", obj)
 
-	sess, err := sessionStore.Get(r, common.SessionKey)
-	if err != nil {
-		return false
-	}
-
-	sessUser := sess.Values[common.SessUserInfoKey].(protos.User)
-	if sessUser.UID <= 0 || sessUser.TenantID <= 0 {
-		return false
-	}
-
-	logger.Debugf("obj: %v\n", obj)
 	// 管理接口只有指定的租户可用
-	if strings.HasPrefix(obj, "admin") {
+	if strings.HasPrefix(obj, "admin/") {
 		if sessUser.TenantID != common.ServConfig.AdminTenantID {
-			logger.Warnf("obj: %v; %v; sess: %v", obj, common.ServConfig.AdminTenantID, sessUser)
+			logger.Warnf("only admin; obj: %v; %v; sess: %v", obj, common.ServConfig.AdminTenantID, sessUser)
 			return false
 		}
 	}
 
-	access, err := accessctl.Enforce(sessUser.UID, sessUser.TenantID, obj, r.Method)
-	logger.Debugf("AccessFilter: %v %v %v %v %v\n", sessUser.UID, sessUser.TenantID, obj, r.Method, access)
-	if err != nil {
-		panic(err)
+	apiConf, ok := common.ServConfig.ApiConf[obj]
+	if !ok {
+		apiConf, ok = common.ServConfig.ApiConf["*"]
+	}
+	if !ok {
+		logger.Error("AccessFilter conf ERR")
+		return false
 	}
 
-	return access
-}
-
-// passport内部接口用来验证cookie、会话是不是合法
-// 业务服务用来验证用户是否有接口权限
-func UserAuth(w http.ResponseWriter, r *http.Request) {
-	sess, auth := AuthFilter(r)
-	if auth == false || sess == nil {
-		logger.Error("UserAuth auth false")
-		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoLogin)
-		return
-	}
-
-	if sess.Values[common.SessUserInfoKey] == nil {
-		logger.Error("UserAuth sess ERR")
-		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoLogin)
-		return
-	}
-	if _, ok := sess.Values[common.SessUserInfoKey].(protos.User); !ok {
-		logger.Error("UserAuth sess ERR")
-		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoLogin)
-		return
-	}
-	uid := sess.Values[common.SessUserInfoKey].(protos.User).UID
-	if uid <= 0 {
-		logger.Error("UserAuth sess ERR")
-		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoLogin)
-		return
-	}
-
-	serviceApi := r.Header.Get("X-Requested-By")
-	if serviceApi != "" {
-		apiConf, ok := common.ServConfig.ApiConf[serviceApi]
-		if !ok {
-			apiConf, ok = common.ServConfig.ApiConf["*"]
-		}
-		if !ok {
-			logger.Error("UserAuth conf ERR")
-			gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrService)
-			return
+	if apiConf.NeedAccess {
+		access, err := accessctl.Enforce(sessUser.UID, sessUser.TenantID, obj, r.Method)
+		logger.Debugf("AccessFilter: %v %v %v %v %v\n", sessUser.UID, sessUser.TenantID, obj, r.Method, access)
+		if err != nil {
+			logger.Errorf("AccessFilter Enforce ERR: %v\n", err)
+			return false
 		}
 
-		if apiConf.NeedAccess {
-			if false == AccessFilter(r) {
-				logger.Error("UserAuth AccessFilter false")
-				gocommon.HttpJsonErr(w, http.StatusForbidden, common.ErrNoAuth)
-				return
-			}
-		}
+		return access
 	}
 
-	gocommon.HttpErr(w, http.StatusOK, 0, sess.Values[common.SessUserInfoKey].(protos.User))
-	logger.Infof("auth OK: %#v", sess.Values[common.SessUserInfoKey].(protos.User))
-
-	return
+	return true
 }
 
 func readJsonBodyFromRequest(r *http.Request, dst interface{}, bodyMaxLen int) error {

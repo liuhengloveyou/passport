@@ -9,6 +9,10 @@ mysql: "root:lhisroot@tcp(127.0.0.1:3306)/passport?charset=utf8mb4&parseTime=Tru
 session_store_type: "mem" # cookie
 session_expire: 0 # -1: 删除；0: 本会话; >0...
 
+wx_mini_app:
+  appid: "wxf0bc577b0c0d9d50"
+  secret: "a3be1c94d4bf8d5e8fdcddd85097e2e4"
+
 admin_tenant_id: 10 # 管理接口只有指定的租户可用
 
 api_conf:

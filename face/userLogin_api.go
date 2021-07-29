@@ -55,7 +55,7 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !useCookie {
-		one.Ext["TOKEN"] = strings.Split(w.Header().Get("Set-Cookie"), "=")[1]
+		one.SetExt("TOKEN", strings.Split(w.Header().Get("Set-Cookie"), ";")[0][len(common.SessionKey)+1:])
 		w.Header().Del("Set-Cookie")
 	}
 

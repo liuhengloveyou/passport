@@ -13,16 +13,16 @@ func PermissionCreate(model *protos.PermissionStruct) (int64, error) {
 
 func PermissionDelete(id, tenantID uint64) error {
 	if id <= 0 {
-		logger.Errorf("PermissionDelete id ERR: %v\n", id)
+		common.Logger.Sugar().Errorf("PermissionDelete id ERR: %v\n", id)
 		return common.ErrParam
 	}
 	row, err := dao.PermissionDelete(common.DB, id, tenantID)
 	if err != nil {
-		logger.Errorf("dao.PermissionDelete ERR: %v\n", err)
+		common.Logger.Sugar().Errorf("dao.PermissionDelete ERR: %v\n", err)
 		return common.ErrService
 	}
 	if row != 1 {
-		logger.Warnf("PermissionDelete row: %v\n", row)
+		common.Logger.Sugar().Warnf("PermissionDelete row: %v\n", row)
 	}
 
 	return nil
@@ -30,7 +30,7 @@ func PermissionDelete(id, tenantID uint64) error {
 
 func PermissionList(tenantID uint64, domain string) (rr []protos.PermissionStruct, err error) {
 	if rr, err = dao.PermissionList(common.DB, tenantID, domain); err != nil {
-		logger.Errorf("dao.PermissionList ERR: %v\n", err)
+		common.Logger.Sugar().Errorf("dao.PermissionList ERR: %v\n", err)
 		return nil, common.ErrService
 	}
 

@@ -22,7 +22,7 @@ func AddUserService(p *protos.UserReq) (id uint64, e error) {
 	}
 
 	if e = userPreTreat(p); e != nil {
-		logger.Errorf("AddUserService userPreTreat ERR: %v\n", e)
+		common.Logger.Sugar().Errorf("AddUserService userPreTreat ERR: %v\n", e)
 		return 0, common.ErrParam
 	}
 
@@ -54,7 +54,7 @@ func AddUserService(p *protos.UserReq) (id uint64, e error) {
 
 	uid, err := dao.UserInsert(p)
 	if err != nil {
-		logger.Errorf("dao.UserInsert ERR: %v\n", err)
+		common.Logger.Sugar().Errorf("dao.UserInsert ERR: %v\n", err)
 		merr, ok := err.(*mysql.MySQLError)
 		if ok && merr.Number == 1062 {
 			return 0, common.ErrMysql1062
@@ -152,7 +152,7 @@ func SetUserPWD(uid, tenantId uint64, PWD string) (rows int64, e error) {
 
 	rows, e = dao.SetUserPWD(uid, tenantId, PWD)
 	if rows < 1 {
-		logger.Errorf("SetUserPWD ERR: %d %d %v\n", uid, rows, e)
+		common.Logger.Sugar().Errorf("SetUserPWD ERR: %d %d %v\n", uid, rows, e)
 		return 0, common.ErrModify
 	}
 
