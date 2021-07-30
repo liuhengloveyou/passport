@@ -64,8 +64,6 @@ func init() {
 }
 
 func InitWithOption(option *protos.OptionStruct) (e error) {
-	log.Printf("passport.InitWithOption: %#v\n", option)
-
 	if option.MysqlURN != "" && DB == nil {
 		ServConfig.MysqlURN = option.MysqlURN
 		if e = InitMysql(option.MysqlURN); e != nil {

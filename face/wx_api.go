@@ -47,7 +47,7 @@ func WxMiniAppLogin(w http.ResponseWriter, r *http.Request) {
 
 	sessionUser := &protos.User{UID: 1}
 	sessionUser.SetExt("MiniAppSessionInfo", *info)
-	session.Values[common.SessUserInfoKey] = sessionUser
+	session.Values[common.SessUserInfoKey] = *sessionUser
 
 	if err := session.Save(r, w); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
@@ -58,6 +58,6 @@ func WxMiniAppLogin(w http.ResponseWriter, r *http.Request) {
 	token := strings.Split(w.Header().Get("Set-Cookie"), ";")[0][len(common.SessionKey)+1:]
 	w.Header().Del("Set-Cookie")
 
-	logger.Infof("WxMiniAppLogin ok: %#v %v\n", info, token)
+	logger.Infof("WxMiniAppLogin ok: %#v\n", info)
 	gocommon.HttpErr(w, http.StatusOK, 0, token)
 }

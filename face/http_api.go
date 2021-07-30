@@ -255,9 +255,10 @@ type PassportHttpServer struct {
 
 func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	apiName := r.Header.Get("X-API")
-	logger.Debugf("passport api: %v\n", apiName)
+	logger.Debugf("passport api: %v", apiName)
 	if apiName == "" {
-		gocommon.HttpErr(w, http.StatusBadRequest, -1, "?API")
+		//gocommon.HttpErr(w, http.StatusBadRequest, -1, "?API")
+		logger.Warnf("?API: %v", r.RemoteAddr)
 		return
 	}
 
@@ -338,10 +339,12 @@ func AuthFilter(r *http.Request) (sess *sessions.Session, auth bool) {
 func AccessFilter(r *http.Request) bool {
 	sess, err := sessionStore.Get(r, common.SessionKey)
 	if err != nil {
+		logger.Errorf("AccessFilter sessionStore.Get ERR: %v", err)
 		return false
 	}
 	sessUser := sess.Values[common.SessUserInfoKey].(protos.User)
-	if sessUser.UID <= 0 || sessUser.TenantID <= 0 {
+	if sessUser.UID <= 0 {
+		logger.Errorf("AccessFilter sessUser ERR: %#v", sessUser)
 		return false
 	}
 
@@ -353,6 +356,7 @@ func AccessFilter(r *http.Request) bool {
 		obj = r.RequestURI
 	}
 	if obj == "" {
+		logger.Errorf("AccessFilter obj ERR")
 		return false // 不知道需要访问什么资源
 	}
 	logger.Debugf("AccessFilter obj: %v\n", obj)
@@ -365,16 +369,23 @@ func AccessFilter(r *http.Request) bool {
 		}
 	}
 
-	apiConf, ok := common.ServConfig.ApiConf[obj]
-	if !ok {
-		apiConf, ok = common.ServConfig.ApiConf["*"]
-	}
-	if !ok {
-		logger.Error("AccessFilter conf ERR")
-		return false
-	}
+	needAccess := false
+	if apiHandler, ok := apis[obj]; ok {
+		needAccess = apiHandler.NeedAccess
+	} else {
+		apiConf, ok := common.ServConfig.ApiConf[obj]
+		if !ok {
+			if apiConf, ok = common.ServConfig.ApiConf["*"]; !ok {
+				logger.Error("AccessFilter conf ERR")
+				return false
+			}
+		}
 
-	if apiConf.NeedAccess {
+		needAccess = apiConf.NeedAccess
+	}
+	logger.Debugf("AccessFilter needAccess: %v %v", obj, needAccess)
+
+	if needAccess {
 		access, err := accessctl.Enforce(sessUser.UID, sessUser.TenantID, obj, r.Method)
 		logger.Debugf("AccessFilter: %v %v %v %v %v\n", sessUser.UID, sessUser.TenantID, obj, r.Method, access)
 		if err != nil {

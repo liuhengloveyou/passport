@@ -1,5 +1,7 @@
 package protos
 
+const MiniAppSessionInfoKey = "MiniAppSessionInfo"
+
 type MiniAppErr struct {
 	ErrCode int    `json:"errcode,omitempty"`
 	ErrMsg  string `json:"errmsg,omitempty"`
