@@ -566,6 +566,23 @@ curl -v -X POST -H "X-API: tenant/userDisableByUID" --cookie "go-session-id=MTOY
 }' "http://127.0.0.1:8080/usercenter"
 ```
 
+### 租户管理员更新成员账号扩展信息
+
+| 参数字段 | 解释           | 必填 |
+| -------- | -------------- | ---- |
+| uid      | 账号ID         | 是   |
+| k        | 最长10个字的串 | 是   |
+| v        | 任意类型       | 否   |
+
+```shell
+curl -v -X POST -H "X-API: tenant/userModifyExtInfo" --cookie "go-session-id=MTOYwQ==" -d \
+'{
+  "uid": 123,
+  "k": "key",
+  "v": "xxx"
+}' "http://127.0.0.1:8080/usercenter"
+```
+
 ### 查询当前租户账号列表
 
 可选参数nickname和uids互斥:

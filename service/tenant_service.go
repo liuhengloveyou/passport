@@ -126,6 +126,20 @@ func TenantUserDel(uid, currTenantID uint64) (r int64, e error) {
 
 func TenantUserDisabledService(uid, currTenantID uint64, disabled int8) (e error) {
 	if uid <= 0 {
+		common.Logger.Sugar().Errorf("TenantUserDisabledService ERR: %d %v %v\n", uid, currTenantID, disabled)
+		return common.ErrParam
+	}
+
+	return TenantUpdateUserExt(uid, currTenantID, "disabled", disabled)
+}
+
+func TenantUpdateUserExt(uid, currTenantID uint64, k string, v interface{}) error {
+	if uid <= 0 {
+		common.Logger.Sugar().Errorf("TenantUpdateUserExt ERR: %d %v %v\n", uid, k, v)
+		return common.ErrParam
+	}
+	if k == "" {
+		common.Logger.Sugar().Errorf("TenantUpdateUserExt ERR: %d %v %v\n", uid, k, v)
 		return common.ErrParam
 	}
 
@@ -136,22 +150,26 @@ func TenantUserDisabledService(uid, currTenantID uint64, disabled int8) (e error
 	}
 
 	if userInfo.TenantID != currTenantID {
-		common.Logger.Sugar().Errorf("TenantUserDisabledService tenant ERR: %v %v\n", userInfo.TenantID, currTenantID)
+		common.Logger.Sugar().Errorf("TenantUpdateUserExt tenant ERR: %v %v %v\n", uid, currTenantID, userInfo)
 		return common.ErrNoAuth
 	}
 
-	userInfo.Ext["disabled"] = disabled
+	userInfo.Ext[k] = v
+	if v == nil {
+		common.Logger.Sugar().Warnf("TenantUpdateUserExt delete: %v", k)
+		delete(userInfo.Ext, k)
+	}
 
 	rows, e := dao.UserUpdateExt(uid, userInfo.UpdateTime, &userInfo.Ext)
 	if e != nil {
-		common.Logger.Sugar().Errorf("UserDisabledService ERR: %v\n", e)
+		common.Logger.Sugar().Errorf("TenantUpdateUserExt ERR: %v\n", e)
 		return common.ErrService
 	}
 	if rows < 1 {
-		common.Logger.Sugar().Warnf("UpdateUserExtService RowsAffected 0")
+		common.Logger.Sugar().Warnf("TenantUpdateUserExt RowsAffected 0")
 	}
 
-	return
+	return nil
 }
 
 func TenantUserGet(tenantID, page, pageSize uint64, nickname string, uids []uint64, hasTotal bool) (rst protos.PageResponse, e error) {

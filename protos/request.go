@@ -37,3 +37,9 @@ type DisableUserReq struct {
 	UID     uint64 `json:"uid" validate:"required,min=1"`
 	Disable int8   `json:"disable" validate:"min=0,max=1"`
 }
+
+type UserExtReq struct {
+	UID uint64      `json:"uid" validate:"required,min=1"`
+	K   string      `json:"k" validate:"required,max=10"`
+	V   interface{} `json:"v" validate:"-"`
+}

@@ -157,6 +157,11 @@ func init() {
 			NeedLogin:  true,
 			NeedAccess: true,
 		},
+		"tenant/userModifyExtInfo": {
+			Handler:    TenantUserModifyExtInfo,
+			NeedLogin:  true,
+			NeedAccess: true,
+		},
 		"tenant/modifyUserPassword": {
 			Handler:    tenantModifyPWDByUID,
 			NeedLogin:  true,

@@ -166,6 +166,32 @@ func TenantUserDisableByUID(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func TenantUserModifyExtInfo(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
+		logger.Error("TenantID ERR")
+		return
+	}
+
+	var req protos.UserExtReq
+	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("TenantUserModifyExtInfo param ERR: ", err)
+		return
+	}
+	logger.Infof("TenantUserModifyExtInfo %v\n", req)
+
+	if err := service.TenantUpdateUserExt(req.UID, sessionUser.TenantID, req.K, req.V); err != nil {
+		logger.Errorf("TenantUserModifyExtInfo %v %s\n", req, err.Error())
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+
+	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
+	return
+}
+
 func TenantUserGet(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
 	if sessionUser.TenantID <= 0 {
