@@ -159,6 +159,48 @@ func SetUserPWD(uid, tenantId uint64, PWD string) (rows int64, e error) {
 	return
 }
 
+
+func GetUserInfoService(uid uint64) (r protos.User, e error) {
+	if uid <= 0 {
+		e = fmt.Errorf("uid nil")
+		return
+	}
+
+	model := &protos.UserReq{
+		UID: uid,
+	}
+
+	var rr []protos.User
+	if rr, e = dao.UserSelect(model, 1, 1); e != nil {
+		common.Logger.Sugar().Errorf("GetUserInfoService DB ERR: %v\n", e)
+		return
+	}
+
+	if rr != nil && len(rr) == 1 {
+		rr[0].Password = ""
+		rr[0].UpdateTime = nil
+		return rr[0], nil
+	}
+
+	return
+}
+
+func GetBusinessUserInfoService(uid uint64, models interface{}) (e error) {
+	if uid <= 0 {
+		e = fmt.Errorf("uid nil")
+		return
+	}
+
+	model := &protos.UserReq{
+		UID: uid,
+	}
+
+	e = dao.BusinessSelect(model, models, 1, 1)
+
+	return
+}
+
+
 func duplicatePhone(phone string) (has bool) {
 	rr, err := dao.UserSelect(&protos.UserReq{Cellphone: phone}, 1, 1)
 	if err != nil {

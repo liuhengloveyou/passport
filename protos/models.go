@@ -28,16 +28,19 @@ type User struct {
 	DeleteTime *time.Time   `json:"deleteTime,omitempty" validate:"-" db:"delete_time"`
 	LoginTime  *time.Time   `json:"loginTime,omitempty" validate:"-" db:"login_time"`
 
-	Tenant *Tenant      `json:"tenant,omitempty" validate:"-" db:"tenant"`
-	Roles  []RoleStruct `json:"roles,omitempty" validate:"-"`
+	Tenant      *Tenant      `json:"tenant,omitempty" validate:"-" db:"tenant"`
+	Roles       []RoleStruct `json:"roles,omitempty" validate:"-"`
+	Departments []Department `json:"departments,omitempty" validate:"-"`
 	/*
 		{
 			"disabled": [1 | 0]
+			"deps": [1,2,3]
 			"TOKEN": "xxx"
 		}
 	*/
 	Ext MapStruct `json:"ext,omitempty" validate:"-" db:"ext"` // 记录用户的扩展信息
 }
+
 func (u *User) SetExt(k string, v interface{}) {
 	if u.Ext == nil {
 		u.Ext = make(map[string]interface{})
@@ -50,8 +53,8 @@ func (u *User) SetExt(k string, v interface{}) {
 type Tenant struct {
 	ID            uint64               `json:"id" validate:"-" db:"id"`
 	UID           uint64               `json:"uid,omitempty" validate:"-" db:"uid"`
-	TenantName    string               `json:"tenant_name" db:"tenant_name" validate:"omitempty,min=2,max=64"`
-	TenantType    string               `json:"tenant_type" db:"tenant_type" validate:"omitempty,min=2,max=10"`
+	TenantName    string               `json:"tenantName" db:"tenant_name" validate:"omitempty,min=2,max=64"`
+	TenantType    string               `json:"tenantType" db:"tenant_type" validate:"omitempty,min=2,max=10"`
 	AddTime       *time.Time           `json:"addTime,omitempty" validate:"-" db:"add_time"`
 	UpdateTime    *time.Time           `json:"updateTime,omitempty" validate:"-" db:"update_time"`
 	Info          MapStruct            `json:"info,omitempty" db:"info"`
@@ -90,7 +93,7 @@ type RoleStruct struct {
 // 权限条目
 type PermissionStruct struct {
 	ID         uint64     `json:"id,omitempty" validate:"-" db:"id"`
-	TenantID   uint64     `json:"tenant_id,omitempty" validate:"-" db:"tenant_id"`
+	TenantID   uint64     `json:"tenantId,omitempty" validate:"-" db:"tenant_id"`
 	Domain     string     `json:"domain,omitempty" validate:"required,min=2,max=128" db:"domain"`
 	Title      string     `json:"title" validate:"required,min=2,max=128" db:"title"`
 	Value      string     `json:"value" validate:"required,min=2,max=256" db:"value"`
@@ -103,6 +106,17 @@ type Policy struct {
 	Role string `json:"role"`
 	Obj  string `json:"obj"`
 	Act  string `json:"act"`
+}
+
+// 部门
+type Department struct {
+	Id         uint64     `json:"id" validate:"omitempty,min=1" db:"id" gorm:"column:id;type:INT;primaryKey;autoIncrement"`
+	UserId     uint64     `json:"uid" validate:"omitempty,min=1" db:"uid" gorm:"column:uid;type:INT;not null;"`
+	TenantID   uint64     `json:"tenantId,omitempty" validate:"-" db:"tenant_id"`
+	AddTime    *time.Time `json:"addTime,omitempty" validate:"-" db:"add_time"` // 创建时间
+	UpdateTime *time.Time `json:"updateTime" validate:"-" db:"update_time"` // 最后更新时间
+	ParentID   uint64     `json:"parentId" validate:"-" db:"parent_id"`
+	Name       string     `json:"name" validate:"required,max=10" db:"name"`
 }
 
 type MapStruct map[string]interface{}

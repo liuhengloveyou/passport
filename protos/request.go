@@ -38,6 +38,11 @@ type DisableUserReq struct {
 	Disable int8   `json:"disable" validate:"min=0,max=1"`
 }
 
+type SetDepartmentReq struct {
+	UID    uint64   `json:"uid" validate:"required,min=1"`
+	DepIds []uint64 `json:"depIds" validate:"-"`
+}
+
 type UserExtReq struct {
 	UID uint64      `json:"uid" validate:"required,min=1"`
 	K   string      `json:"k" validate:"required,max=10"`

@@ -7,16 +7,25 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	/*
+	go tool pprof -http=:8080 http://127.0.0.1:10000/debug/pprof/profile
+	/debug/pprof/profile：访问这个链接会自动进行 CPU profiling，持续 30s，并生成一个文件供下载
+	/debug/pprof/block：Goroutine阻塞事件的记录。默认每发生一次阻塞事件时取样一次。
+	/debug/pprof/goroutines：活跃Goroutine的信息的记录。仅在获取时取样一次。
+	/debug/pprof/heap： 堆内存分配情况的记录。默认每分配512K字节时取样一次。
+	/debug/pprof/mutex: 查看争用互斥锁的持有者。
+	/debug/pprof/threadcreate: 系统线程创建情况的记录。 仅在获取时取样一次。
+	*/
+	_ "net/http/pprof"
 	"strings"
 	"time"
-
-	"github.com/go-playground/validator/v10"
 
 	"github.com/liuhengloveyou/passport/accessctl"
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/sessions"
 
+	"github.com/go-playground/validator/v10"
 	gocommon "github.com/liuhengloveyou/go-common"
 	"go.uber.org/zap"
 )
@@ -163,7 +172,12 @@ func init() {
 			NeedAccess: true,
 		},
 		"tenant/modifyUserPassword": {
-			Handler:    tenantModifyPWDByUID,
+			Handler:    TenantModifyPWDByUID,
+			NeedLogin:  true,
+			NeedAccess: true,
+		},
+		"tenant/user/setDepartment":{
+			Handler: TenantUserSetDepartment,
 			NeedLogin:  true,
 			NeedAccess: true,
 		},
@@ -189,6 +203,27 @@ func init() {
 		},
 		"tenant/loadConfiguration": {
 			Handler:   LoadConfiguration,
+			NeedLogin: true,
+		},
+
+		// 部门
+		"tenant/department/add": {
+			Handler:    addDepartment,
+			NeedLogin:  true,
+			NeedAccess: true,
+		},
+		"tenant/department/delete": {
+			Handler:    deleteDepartment,
+			NeedLogin:  true,
+			NeedAccess: true,
+		},
+		"tenant/department/update": {
+			Handler:    updateDepartment,
+			NeedLogin:  true,
+			NeedAccess: true,
+		},
+		"tenant/department/list": {
+			Handler:   listDepartment,
 			NeedLogin: true,
 		},
 

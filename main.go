@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
-	_ "net/http/pprof"
 	"os"
 	"runtime"
 	"runtime/pprof"
@@ -54,7 +53,7 @@ func main() {
 	if *memprofile != "" {
 		f, err := os.Create(*memprofile)
 		if err != nil {
-
+			panic(err)
 		}
 		runtime.GC() // get up-to-date statistics
 		if err := pprof.WriteHeapProfile(f); err != nil {

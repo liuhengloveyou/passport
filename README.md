@@ -508,7 +508,31 @@ curl -v -X POST -H "X-API: tenant/add" --cookie "go-session-id=V6VbtYfgFKSlOYwQ=
 }' "http://127.0.0.1:8080/usercenter"
 ```
 
-### 租户管理员添加账号
+### 更新租户配置信息
+
+配置的value，可以是任何结构。passport不作限制，由业务系统判断格式。
+
+key最长64个字符，请求体最长1024个字符，每次最多100个key。
+
+```shell
+curl -v -X POST -H "X-API: tenant/updateConfiguration" --cookie "go-session-id=VbtYfgFKSlOYwQ==" -d \
+'{
+  "conf-key": {
+       "aaa": "aaaaaaaaaaaaaaa"
+  },
+  "conf-bbb": null,
+}' "http://127.0.0.1:8080/usercenter"
+```
+
+### 查询当前租户配置信息
+
+```shell
+curl -v -X GET -H "X-API: tenant/loadConfiguration" --cookie "go-session-id=gFKSlOYwQ==" "http://127.0.0.1:8080/usercenter?k=key"
+```
+
+### 成员(账号)
+
+#### 租户管理员添加账号
 
 | 参数字段 | 解释                                          | 取值                |
 | -------- | --------------------------------------------- | ------------------- |
@@ -533,7 +557,7 @@ curl -v -X POST -H "X-API: tenant/addUser" --cookie "go-session-id=MTYfgFKSlOYwQ
 ```
 
 
-### 租户管理员删除账号
+#### 租户管理员删除账号
 ```shell
 curl -v -X POST -H "X-API: tenant/delUser" --cookie "go-session-id=MTYfgFKSlOYwQ==" -d \
 '{
@@ -542,7 +566,22 @@ curl -v -X POST -H "X-API: tenant/delUser" --cookie "go-session-id=MTYfgFKSlOYwQ
 ```
 
 
-### 租户管理员修改账号密码
+#### 查询当前租户账号列表
+
+可选参数nickname和uids互斥:
+
+| 参数字段 | 解释                 |
+| -------- | -------------------- |
+| nickname | 用账号昵称模糊查询   |
+| uids     | 账号id列表，逗号分隔 |
+
+```shell
+curl -v -X GET -H "X-API: tenant/getUsers" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
+"http://127.0.0.1:8080/usercenter?nickname=xxx&uids=1,2,3&page=1&pageSize=1"
+```
+
+
+#### 租户管理员修改账号密码
 ```shell
 curl -v -X POST -H "X-API: tenant/modifyUserPassword" --cookie "go-session-id=VbtYfgFKSlOYwQ==" -d \
 '{
@@ -551,7 +590,7 @@ curl -v -X POST -H "X-API: tenant/modifyUserPassword" --cookie "go-session-id=Vb
 }' "http://127.0.0.1:8080/usercenter"
 ```
 
-### 租户管理员停用/启用账号
+#### 租户管理员停用/启用账号
 
 | 参数字段 | 解释           | 必填 |
 | -------- | -------------- | ---- |
@@ -566,7 +605,7 @@ curl -v -X POST -H "X-API: tenant/userDisableByUID" --cookie "go-session-id=MTOY
 }' "http://127.0.0.1:8080/usercenter"
 ```
 
-### 租户管理员更新成员账号扩展信息
+#### 租户管理员更新成员账号扩展信息
 
 | 参数字段 | 解释           | 必填 |
 | -------- | -------------- | ---- |
@@ -583,21 +622,19 @@ curl -v -X POST -H "X-API: tenant/userModifyExtInfo" --cookie "go-session-id=MTO
 }' "http://127.0.0.1:8080/usercenter"
 ```
 
-### 查询当前租户账号列表
-
-可选参数nickname和uids互斥:
-
-| 参数字段 | 解释                 |
-| -------- | -------------------- |
-| nickname | 用账号昵称模糊查询   |
-| uids     | 账号id列表，逗号分隔 |
+#### 设置成员的部门信息
 
 ```shell
-curl -v -X GET -H "X-API: tenant/getUsers" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
-"http://127.0.0.1:8080/usercenter?nickname=xxx&page=1&pageSize=1"
+curl -i -X POST -H "X-API: tenant/user/setDepartment" --cookie "go-session-id=xxx" \
+-d '{
+	"uid": 123,
+	"depIds": [1,2]
+}' "http://127.0.0.1:8080/usercenter"
 ```
 
-### 添加角色字典
+### 角色
+
+#### 添加角色字典
 
 管理员向当前租户添加角色字典
 
@@ -609,7 +646,7 @@ curl -v -X POST -H "X-API: tenant/addRole" --cookie "go-session-id=VbtYfgFKSlOYw
 }' "http://127.0.0.1:8080/usercenter"
 ```
 
-### 删除角色字典
+#### 删除角色字典
 
 管理员删除当前租户角色字典
 
@@ -620,33 +657,47 @@ curl -v -X POST -H "X-API: tenant/delRole" --cookie "go-session-id=VbtYfgFKSlOYw
 }' "http://127.0.0.1:8080/usercenter"
 ```
 
-### 查询当前租户的角色字典
+#### 查询当前租户的角色字典
 ```shell
 curl -v -X GET -H "X-API: tenant/getRoles" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
 "http://127.0.0.1:8080/usercenter"
 ```
 
-### 更新租户配置信息
 
-配置的value，可以是任何结构。passport不作限制，由业务系统判断格式。
+### 部门
 
-key最长64个字符，请求体最长1024个字符，每次最多100个key。
+#### 添加部门记录
 
 ```shell
-curl -v -X POST -H "X-API: tenant/updateConfiguration" --cookie "go-session-id=VbtYfgFKSlOYwQ==" -d \
+curl -v -X GET -H "X-API: tenant/department/add" --cookie "go-session-id=gFKSlOYwQ==" -d \
 '{
-  "conf-key": {
-       "aaa": "aaaaaaaaaaaaaaa"
-  },
-  "conf-bbb": null,
+  "parentId": 0,
+  "name": "dep1"
 }' "http://127.0.0.1:8080/usercenter"
 ```
 
-### 查询当前租户配置信息
+#### 删除部门记录
 
 ```shell
-curl -v -X GET -H "X-API: tenant/loadConfiguration" --cookie "go-session-id=gFKSlOYwQ==" "http://127.0.0.1:8080/usercenter?k=key"
+curl -v -X GET -H "X-API: tenant/department/delete" --cookie "go-session-id=gFKSlOYwQ==" "http://127.0.0.1:8080/usercenter?id=123"
 ```
+
+#### 更新部门名
+
+```shell
+curl -v -X GET -H "X-API: tenant/department/add" --cookie "go-session-id=gFKSlOYwQ==" -d \
+'{
+  "id": 123,
+  "name": "dep1"
+}' "http://127.0.0.1:8080/usercenter"
+```
+
+#### 查询部门记录列表
+
+```shell
+curl -v -X GET -H "X-API: tenant/department/list" --cookie "go-session-id=gFKSlOYwQ==" "http://127.0.0.1:8080/usercenter?id=123"
+```
+
 
 
 
@@ -793,7 +844,18 @@ CREATE TABLE `permission` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `index-unique-title` (`tenant_id`,`domain`,`title`),
   UNIQUE KEY `index-unique-value` (`value`,`domain`,`tenant_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
+CREATE TABLE `departments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `uid` int(11) NOT NULL,
+  `tenant_id` int(11) NOT NULL,
+  `add_time` datetime NOT NULL,
+  `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `name` varchar(16) COLLATE utf8mb4_bin NOT NULL,
+  `parent_id` bigint(20) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `index_tenant_name` (`tenant_id`,`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 ```
 

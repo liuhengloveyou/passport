@@ -6,7 +6,7 @@ import (
 
 var (
 	ErrOK        = errors.Error{Code: 0, Message: "OK"}
-	ErrNull      = errors.Error{Code: 1, Message: "结果为空"}
+	ErrNull      = errors.Error{Code: 1, Message: "空数据"}
 	ErrParam     = errors.NewError(-1000, "请求参数错误")
 	ErrService   = errors.NewError(-1001, "服务错误")
 	ErrSession   = errors.NewError(-1002, "会话错误")
