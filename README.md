@@ -266,13 +266,13 @@ curl -i -X GET -H "X-API: user/auth" -H "X-Requested-By: api1" --cookie "go-sess
 
 ### 更新自己账号信息
 
-| 参数      |  是否必须 |
-| --------- |  -------- |
-| cellphone | 否       |
-| email     | 否       |
-| nickname  | 否       |
-| addr      |  否       |
-| gender    |  否       |
+| 参数      |  是否必须 | 取值 |
+| --------- |  -------- | --------- |
+| cellphone | 否       | 中国的11位手机号 |
+| email     | 否       | 电子邮箱地址 |
+| nickname  | 否       |  |
+| addr      |  否       |  |
+| gender    |  否       | 1 = 男，2 = 女 |
 
 ```bash
 curl -v -X POST -H "X-API: user/modify" --cookie "go-session-id=MTYxNDE0N" -d \
@@ -323,7 +323,7 @@ Body: {
 
 ### 查询自己的账号详情
 
-```
+```bash
 curl -v -X GET -H "X-API: user/info" --cookie "go-session-id=MTYxNDE0N" "http://127.0.0.1:8080/usercenter"
 
 {
@@ -495,8 +495,8 @@ curl -X GET -H "X-API: access/listPermission" --cookie "go-session-id=MTY" \
 ```shell
 curl -v -X POST -H "X-API: tenant/add" --cookie "go-session-id=V6VbtYfgFKSlOYwQ==" -d \
 '{
-  "tenant_name": "tenant1",
-  "tenant_type": "t1",
+  "tenantName": "tenant1",
+  "tenantType": "t1",
   "configuration": {
   	"more": {
   		"k": "conf-aaa",
@@ -539,14 +539,16 @@ curl -v -X GET -H "X-API: tenant/loadConfiguration" --cookie "go-session-id=gFKS
 | disable  | 是否停用；默认为0，不停用。                   | [1 \|0]             |
 | role     | 角色字典里的value数组，最长10。               | 字符串数组          |
 | uid      | 用户id；如果=0，新建账号见`user/register`接口 | 系统已有账号id 或 0 |
+| depIds   | 部门ID                                        | int数组             |
 
 ```shell
-curl -v -X POST -H "X-API: tenant/addUser" --cookie "go-session-id=MTYfgFKSlOYwQ==" -d \
+curl -v -X POST -H "X-API: tenant/user/add" --cookie "go-session-id=MTYfgFKSlOYwQ==" -d \
 '{
   "uid": 123,
   "nickname": "xxx",
   "password": "123456",
-  "role": ["r1", "r2", ...],
+  "role": ["r1", "r2"],
+  "depIds": [1, 2],
   "disable": 1
 }' "http://127.0.0.1:8080/usercenter"
 
@@ -692,7 +694,7 @@ curl -v -X GET -H "X-API: tenant/department/add" --cookie "go-session-id=gFKSlOY
 }' "http://127.0.0.1:8080/usercenter"
 ```
 
-#### 查询部门记录列表
+#### 查询部门列表
 
 ```shell
 curl -v -X GET -H "X-API: tenant/department/list" --cookie "go-session-id=gFKSlOYwQ==" "http://127.0.0.1:8080/usercenter?id=123"

@@ -7,7 +7,7 @@ import (
 	"github.com/liuhengloveyou/passport/protos"
 )
 
-func TenantUserAdd(uid, currTenantID uint64, roles []string, disable int8) (e error) {
+func TenantUserAdd(uid, currTenantID uint64, depIds []uint64, roles []string, disable int8) (e error) {
 	row, e := dao.UserUpdateTenantID(uid, currTenantID, 0)
 	if e != nil {
 		common.Logger.Sugar().Error("TenantUserAdd db ERR: ", e)
@@ -23,6 +23,11 @@ func TenantUserAdd(uid, currTenantID uint64, roles []string, disable int8) (e er
 			common.Logger.Sugar().Errorf("TenantUserAdd AddRoleForUserInDomain ERR: %v", e)
 			return common.ErrService
 		}
+	}
+
+	if e = TenantUserSetDepartment(uid, currTenantID, depIds); e != nil {
+		common.Logger.Sugar().Warnf("TenantUserAdd TenantUserSetDepartment ERR: %v", e)
+		e = nil
 	}
 
 	if e = TenantUserDisabledService(uid, currTenantID, disable); e != nil {
@@ -62,7 +67,7 @@ func TenantUserGet(tenantID, page, pageSize uint64, nickname string, uids []uint
 	}
 	rst.List = rr
 
-	// 部门
+	// 部门字典
 	departments, err := DepartmentFind(0, tenantID)
 	if err != nil {
 		common.Logger.Sugar().Error("TenantUserGet DepartmentFind ERR: %v", e)
@@ -151,7 +156,7 @@ func TenantUpdateUserExt(uid, currTenantID uint64, k string, v interface{}) erro
 		delete(userInfo.Ext, k)
 	}
 
-	rows, e := dao.UserUpdateExt(uid, userInfo.UpdateTime, &userInfo.Ext)
+	rows, e := dao.UserUpdateExt(uid, &userInfo.Ext)
 	if e != nil {
 		common.Logger.Sugar().Errorf("TenantUpdateUserExt ERR: %v", e)
 		return common.ErrService

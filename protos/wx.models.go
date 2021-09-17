@@ -30,3 +30,12 @@ type MiniAppSessionInfo struct {
 type WxMiniAppLoginReq struct {
 	Code string `json:"code" validate:"required"`
 }
+
+type WxMiniAppUserInfoUpdateReq struct {
+	AvatarUrl string `json:"avatarUrl" validate:"required"`
+	City      string `json:"city"`
+	Country   string `json:"country"`
+	Gender    int `json:"gender"`
+	NickName  string `json:"nickName"`
+	Province  string `json:"province"`
+}

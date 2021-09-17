@@ -26,6 +26,9 @@ func UserInsert(p *protos.UserReq) (id int64, e error) {
 	if p.Nickname != "" {
 		data["nickname"] = p.Nickname
 	}
+	if len(p.Ext) > 0 {
+		data["ext"] = p.Ext
+	}
 
 	sql, vals, err := builder.Insert(data).Into(table).ToSQL()
 	common.Logger.Sugar().Debugf("%v %v %v\n", sql, vals, err)
@@ -67,8 +70,14 @@ func UserUpdate(p *protos.UserReq) (rows int64, e error) {
 	if p.Gender == 1 || p.Gender == 2 {
 		update["gender"] = p.Gender
 	}
+	if p.AvatarURL != "" {
+		update["avatar_url"] = p.AvatarURL
+	}
 
 	sql, vals, err := builder.Update(update).From(table).Where(where).ToSQL()
+	if sql == "" {
+		return
+	}
 	rst, e = common.DB.Exec(sql, vals...)
 	if e != nil {
 		return
@@ -83,10 +92,10 @@ func UserUpdate(p *protos.UserReq) (rows int64, e error) {
 }
 
 
-func UserUpdateExt(uid uint64, updateTime *time.Time, ext *protos.MapStruct) (rows int64, e error) {
+func UserUpdateExt(uid uint64, ext *protos.MapStruct) (rows int64, e error) {
 	var rst sql.Result
 
-	rst, e = common.DB.Exec("UPDATE users SET ext=? WHERE (uid=? AND update_time=?)", ext, uid, updateTime)
+	rst, e = common.DB.Exec("UPDATE users SET ext=? WHERE (uid=?)", ext, uid)
 	if e != nil {
 		return
 	}

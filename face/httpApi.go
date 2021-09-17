@@ -146,7 +146,7 @@ func init() {
 			Handler:   TenantAdd,
 			NeedLogin: true,
 		},
-		"tenant/addUser": {
+		"tenant/user/add": {
 			Handler:    TenantUserAdd,
 			NeedLogin:  true,
 			NeedAccess: true,

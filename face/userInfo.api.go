@@ -23,6 +23,7 @@ func getMyInfo(w http.ResponseWriter, r *http.Request) {
 		logger.Error("GetMyInfo ERR uid nil.")
 		return
 	}
+	logger.Infof("getMyInfo: %v", uid)
 
 	rst, err := service.GetUserInfoService(uid)
 	if err != nil {

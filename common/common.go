@@ -84,7 +84,9 @@ func InitWithOption(option *protos.OptionStruct) (e error) {
 		}
 	}
 
-	ServConfig.AvatarDir = "./avatar/"
+	if ServConfig.AvatarDir == "" {
+		ServConfig.AvatarDir = "./avatar/"
+	}
 	if option.AvatarDir != "" {
 		ServConfig.AvatarDir = option.AvatarDir // 头像上传目录
 	}

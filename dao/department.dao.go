@@ -12,7 +12,7 @@ import (
 )
 
 func DepartmentCreate(db *sqlx.DB, model *protos.Department) (lastInsertId int64, err error) {
-	rst, err := db.Exec("INSERT INTO departments (uid, tenant_id, parent_id, name, create_time) VALUES (?, ?, ?, ?, ?)",
+	rst, err := db.Exec("INSERT INTO departments (uid, tenant_id, parent_id, name, add_time) VALUES (?, ?, ?, ?, ?)",
 		model.UserId, model.TenantID, model.ParentID, model.Name, time.Now())
 
 	if err != nil {

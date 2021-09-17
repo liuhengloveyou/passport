@@ -2,16 +2,14 @@ package face
 
 import (
 	"fmt"
+	. "github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/service"
+	"github.com/liuhengloveyou/passport/sessions"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
-	"time"
-
-	. "github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/service"
-	"github.com/liuhengloveyou/passport/sessions"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 )
@@ -64,14 +62,14 @@ func modifyAvatarByForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dir = fmt.Sprintf("%s/%d/%d", ServConfig.AvatarDir, time.Now().Year(), time.Now().Month())
+	dir = fmt.Sprintf("%s/", ServConfig.AvatarDir)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		gocommon.HttpErr(w, http.StatusOK, -1, "文件系统错误")
 		logger.Error("FileUpload mkdir ERR: ", dir, err)
 		return
 	}
 
-	fp = fmt.Sprintf("%s/%d.%s", dir, uid, fileType)
+	fp = fmt.Sprintf("%s/%d%s", dir, uid, fileType)
 	logger.Info("FileUpload fn: ", fp)
 
 	if err := ioutil.WriteFile(fp, fileBuff, 0755); err != nil {
@@ -83,13 +81,13 @@ func modifyAvatarByForm(w http.ResponseWriter, r *http.Request) {
 	logger.Info("FileUpload ok: ", fp)
 
 	// 更新用户信息到数据库
-	if _, err = service.UpdateUserService(&protos.UserReq{UID: uid, AvatarURL: fmt.Sprintf("%d/%d/%d.%s", time.Now().Year(), time.Now().Month(), uid, fileType)}); err != nil {
-		logger.Errorf("modifyAvatarByForm service ERR:", err)
+	if _, err = service.UpdateUserService(&protos.UserReq{UID: uid, AvatarURL: fmt.Sprintf("avatar/%d%s", uid, fileType)}); err != nil {
+		logger.Errorf("modifyAvatarByForm service ERR: %v", err)
 		gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
 		return
 	}
 
-	gocommon.HttpErr(w, http.StatusOK, 0, fmt.Sprintf("%d/%d/%d.%s", time.Now().Year(), time.Now().Month(), uid, fileType))
+	gocommon.HttpErr(w, http.StatusOK, 0, fmt.Sprintf("%d%s", uid, fileType))
 
 	return
 }

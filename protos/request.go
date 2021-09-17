@@ -7,12 +7,14 @@ type UserReq struct {
 	Email     string `json:"email" validate:"omitempty,email,max=64"`
 	Nickname  string `json:"nickname" validate:"omitempty,min=2,max=32"`
 	Password  string `json:"password" validate:"omitempty,min=6,max=64"`
-	AvatarURL string `json:"avatarUrl" validate:"omitempty,url,max=100"`
+	AvatarURL string `json:"avatarUrl" validate:"omitempty,max=100"`
 	Addr      string `json:"addr" validate:"omitempty,min=1,max=100"`
 	Gender    int32  `json:"gender" validate:"omitempty,min=1,max=2"`
 
-	Roles   []string `json:"roles" validate:"omitempty"`
-	Disable int8     `json:"disable" validate:"-"`
+	Roles   []string  `json:"roles" validate:"-"`
+	DepIds  []uint64  `json:"depIds" validate:"-"`
+	Ext     MapStruct `json:"ext" validate:"-"` // 记录用户的扩展信息
+	Disable int8      `json:"disable" validate:"-"`
 }
 
 type ModifyPwdReq struct {

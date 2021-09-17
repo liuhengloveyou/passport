@@ -5,6 +5,7 @@ import (
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/service"
+	"github.com/liuhengloveyou/passport/sessions"
 	"net/http"
 	"strings"
 )
@@ -13,6 +14,10 @@ func initWXAPI() {
 	// 微信小程序登录
 	apis["wx/miniapp/login"] = Api{
 		Handler: WxMiniAppLogin,
+	}
+	apis["wx/miniapp/updateInfo"] = Api{
+		Handler: WxMiniAppUserInfoUpdate,
+		NeedLogin:  true,
 	}
 }
 
@@ -60,4 +65,30 @@ func WxMiniAppLogin(w http.ResponseWriter, r *http.Request) {
 
 	logger.Infof("WxMiniAppLogin ok: %#v\n", info)
 	gocommon.HttpErr(w, http.StatusOK, 0, token)
+}
+
+func WxMiniAppUserInfoUpdate(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	//if sessionUser.TenantID <= 0 {
+	//	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
+	//	logger.Error("AddRoleForUser TenantID ERR")
+	//	return
+	//}
+
+	var req protos.WxMiniAppUserInfoUpdateReq
+	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
+		logger.Error("WxMiniAppUserInfoUpdate param ERR: ", err)
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+
+	logger.Infof("WxMiniAppUserInfoUpdate: %#v %#v", sessionUser, req)
+	//
+	//if _, err := service.MiniAppService.WxMiniAppUserInfoUpdate(req); err != nil {
+	//	logger.Error(*user, err)
+	//	gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
+	//	return
+	//}return
+
+	gocommon.HttpErr(w, http.StatusOK, 0, "OK")
 }

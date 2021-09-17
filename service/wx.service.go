@@ -43,3 +43,20 @@ func (p *miniAppService) Login(code string) (*protos.MiniAppSessionInfo, error) 
 	common.Logger.Sugar().Errorf("jscode2session OK: %v\n", sessionInfo)
 	return sessionInfo, nil
 }
+
+
+func (p *miniAppService) WxMiniAppUserInfoUpdate(req protos.WxMiniAppUserInfoUpdateReq) {
+	//
+	//rows, e := dao.UserUpdateExt(uid, &userInfo.Ext)
+	//if e != nil {
+	//	common.Logger.Sugar().Errorf("TenantUpdateUserExt ERR: %v", e)
+	//	return common.ErrService
+	//}
+	//if rows < 1 {
+	//	common.Logger.Sugar().Warnf("TenantUpdateUserExt RowsAffected 0")
+	//}
+	//
+	//return nil
+
+}
+

@@ -46,7 +46,7 @@ func TenantUserAdd(w http.ResponseWriter, r *http.Request) {
 
 		req.UID = nuid
 	}
-	if err := service.TenantUserAdd(req.UID, sessionUser.TenantID, req.Roles, req.Disable); err != nil {
+	if err := service.TenantUserAdd(req.UID, sessionUser.TenantID, req.DepIds, req.Roles, req.Disable); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		logger.Error("TenantUserAdd service ERR: ", err)
 		return
