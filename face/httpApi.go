@@ -97,9 +97,14 @@ func init() {
 			NeedLogin:  true,
 			NeedAccess: true,
 		},
+		"access/getRolesForMe": {
+			Handler:   GetRolesForMe,
+			NeedLogin: true,
+		},
 		"access/getRolesForUser": {
 			Handler:   GetRolesForUser,
 			NeedLogin: true,
+			NeedAccess: true,
 		},
 		"access/getUsersForRole": {
 			Handler:    GetUsersForRole,

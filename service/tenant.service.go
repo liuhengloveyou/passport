@@ -209,9 +209,8 @@ func TenantUpdateConfiguration(tenantId uint64, data map[string]interface{}) err
 	return dao.TenantUpdateConfiguration(tenant)
 }
 
-
 func getTenantUserRoles(uid, tenantId uint64) (roles []protos.RoleStruct, err error) {
-	tenant, err := dao.TenantGetByID(tenantId)
+	tenant, err := dao.TenantGetByID(tenantId) // 取tenant里的角色字典
 	if err != nil {
 		common.Logger.Sugar().Errorf("getTenantUserRole db ERR: %v\n", err)
 		return nil, common.ErrService
@@ -229,15 +228,50 @@ func getTenantUserRoles(uid, tenantId uint64) (roles []protos.RoleStruct, err er
 		return nil, nil
 	}
 
-	roles = make([]protos.RoleStruct, len(roleVals))
+	roles = make([]protos.RoleStruct, 0)
 	for i := 0; i < len(roleVals); i++ {
-		roles[i].RoleValue = roleVals[i]
-		for j := 0; j < len(tenant.Configuration.Roles); j ++ {
+		var roleOne *protos.RoleStruct = nil
+		for j := 0; j < len(tenant.Configuration.Roles); j++ {
 			if tenant.Configuration.Roles[j].RoleValue == roleVals[i] {
-				roles[i].RoleTitle = tenant.Configuration.Roles[j].RoleTitle
+				roleOne = &protos.RoleStruct{
+					RoleTitle: tenant.Configuration.Roles[j].RoleTitle,
+					RoleValue: roleVals[i],
+				}
 			}
+		}
+
+		if roleOne != nil {
+			roles = append(roles, *roleOne)
+		} else {
+			// 如果角色字典已经删除
+			common.Logger.Sugar().Warnf("getTenantUserRoles DeleteRoleForUserInDomain: %v %v %v\n", uid, tenantId, roleVals[i])
+			accessctl.DeleteRoleForUserInDomain(uid, tenantId, roleVals[i])
 		}
 	}
 
 	return roles, nil
+}
+
+func getTenantUserDepartment(uid, tenantId uint64, depIds []uint64) (deps []protos.Department, e error) {
+	departments, err := DepartmentFind(0, tenantId)
+	if err != nil {
+		common.Logger.Sugar().Error("getTenantUserDepartment DepartmentFind ERR: %v", e)
+		e = common.ErrService
+		return
+	}
+	if nil == departments {
+		common.Logger.Sugar().Errorf("DepartmentFind db nil\n")
+		return nil, common.ErrNull
+	}
+
+	for _, dep := range depIds {
+		for j := 0; j < len(departments); j++ {
+			if dep == departments[j].Id {
+				deps = append(deps, departments[j])
+				break
+			}
+		}
+	}
+
+	return
 }

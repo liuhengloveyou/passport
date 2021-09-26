@@ -14,18 +14,22 @@ import (
 )
 
 func getMyInfo(w http.ResponseWriter, r *http.Request) {
-	var uid uint64
-	if r.Context().Value("session") != nil {
-		uid = r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User).UID
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
+		logger.Error("getMyInfo session ERR")
+		return
 	}
-	if uid <= 0 {
+	logger.Infof("getMyInfo: %d\n", sessionUser.UID)
+
+	if sessionUser.UID <= 0 {
 		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
 		logger.Error("GetMyInfo ERR uid nil.")
 		return
 	}
-	logger.Infof("getMyInfo: %v", uid)
 
-	rst, err := service.GetUserInfoService(uid)
+
+	rst, err := service.GetUserInfoService(sessionUser.UID, sessionUser.TenantID)
 	if err != nil {
 		gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
 		logger.Error("GetMyInfo ERR: " + err.Error())
@@ -33,7 +37,7 @@ func getMyInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gocommon.HttpErr(w, http.StatusOK, 0, rst)
-	logger.Infof("GetMyInfo OK: %#v %#v\n", uid, rst)
+	logger.Infof("GetMyInfo OK: %#v %#v\n", sessionUser.UID, rst)
 
 	return
 }
@@ -55,7 +59,7 @@ func getInfoByUID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	iuid, _ := strconv.ParseUint(uid, 10, 64)
-	userInfo, err := service.GetUserInfoService(iuid)
+	userInfo, err := service.GetUserInfoService(iuid, 0)
 	if err != nil {
 		gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
 		logger.Error("getInfoByUID ERR: " + err.Error())

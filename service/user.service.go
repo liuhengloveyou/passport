@@ -61,7 +61,7 @@ func AddUserService(p *protos.UserReq) (id uint64, e error) {
 		}
 		return 0, common.ErrService
 	}
-	
+
 	return uint64(uid), err
 }
 
@@ -159,8 +159,7 @@ func SetUserPWD(uid, tenantId uint64, PWD string) (rows int64, e error) {
 	return
 }
 
-
-func GetUserInfoService(uid uint64) (r protos.User, e error) {
+func GetUserInfoService(uid, tenantId uint64) (r protos.User, e error) {
 	if uid <= 0 {
 		e = fmt.Errorf("uid nil")
 		return
@@ -175,11 +174,30 @@ func GetUserInfoService(uid uint64) (r protos.User, e error) {
 		common.Logger.Sugar().Errorf("GetUserInfoService DB ERR: %v\n", e)
 		return
 	}
+	if len(rr) != 1 {
+		common.Logger.Sugar().Errorf("GetUserInfoService len ERR: %v %v\n", rr, e)
+		return
+	}
 
-	if rr != nil && len(rr) == 1 {
-		rr[0].Password = ""
-		rr[0].UpdateTime = nil
-		return rr[0], nil
+	rr[0].Password = ""
+	rr[0].UpdateTime = nil
+	r = rr[0]
+
+	if tenantId > 0 {
+		if r.Roles, e = getTenantUserRoles(uid, tenantId); e != nil {
+			common.Logger.Sugar().Warnf("GetUserInfoService getTenantUserRole ERR: %v", e)
+		}
+
+		// 部门字典
+		var depIds []uint64
+		if deps, ok := r.Ext["deps"].([]interface{}); ok {
+			for _, dep := range deps {
+				depIds = append(depIds, uint64(dep.(float64)))
+			}
+		}
+		if r.Departments, e = getTenantUserDepartment(uid, tenantId, depIds); e != nil {
+			common.Logger.Sugar().Warnf("GetUserInfoService getTenantUserDepartment ERR: %v", e)
+		}
 	}
 
 	return
@@ -199,7 +217,6 @@ func GetBusinessUserInfoService(uid uint64, models interface{}) (e error) {
 
 	return
 }
-
 
 func duplicatePhone(phone string) (has bool) {
 	rr, err := dao.UserSelect(&protos.UserReq{Cellphone: phone}, 1, 1)

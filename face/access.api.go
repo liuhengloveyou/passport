@@ -127,6 +127,42 @@ func updateRoleForUser(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+
+func GetRolesForMe(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
+		logger.Error("GetUsersForRole session ERR")
+		return
+	}
+
+	logger.Infof("GetRolesForMe: %d\n", sessionUser.UID)
+
+	roles := accessctl.GetRoleForUserInDomain(sessionUser.UID, sessionUser.TenantID)
+	if len(roles) <= 0 {
+		gocommon.HttpErr(w, http.StatusOK, 0, roles)
+		logger.Info("GetRolesForMe nil\n")
+		return
+	}
+	logger.Infof("GetRolesForMe roles: %d %v\n", sessionUser.UID, roles)
+
+	rst := make([]protos.RoleStruct, len(roles))
+	rolesConfs := service.TenantGetRole(sessionUser.TenantID)
+	for i, role := range roles {
+		rst[i].RoleValue = role
+		for _, roleConf := range rolesConfs {
+			if role == roleConf.RoleValue {
+				rst[i].RoleTitle = roleConf.RoleTitle
+			}
+		}
+	}
+
+	gocommon.HttpErr(w, http.StatusOK, 0, rst)
+	logger.Infof("GetUsersForRole OK: %#v\n", rst)
+
+	return
+}
+
 func GetRolesForUser(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
 	if sessionUser.TenantID <= 0 {
