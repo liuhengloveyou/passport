@@ -1,13 +1,14 @@
 package face
 
 import (
+	"net/http"
+	"strings"
+
 	gocommon "github.com/liuhengloveyou/go-common"
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/service"
 	"github.com/liuhengloveyou/passport/sessions"
-	"net/http"
-	"strings"
 )
 
 func initWXAPI() {
@@ -16,8 +17,8 @@ func initWXAPI() {
 		Handler: WxMiniAppLogin,
 	}
 	apis["wx/miniapp/updateInfo"] = Api{
-		Handler: WxMiniAppUserInfoUpdate,
-		NeedLogin:  true,
+		Handler:   WxMiniAppUserInfoUpdate,
+		NeedLogin: true,
 	}
 }
 
@@ -91,4 +92,26 @@ func WxMiniAppUserInfoUpdate(w http.ResponseWriter, r *http.Request) {
 	//}return
 
 	gocommon.HttpErr(w, http.StatusOK, 0, "OK")
+}
+
+func SetWxUserToSession(w http.ResponseWriter, r *http.Request, userInfo *protos.User) {
+	if userInfo == nil {
+		return
+	}
+
+	r.Header.Del("Cookie") // 删除老的会话信息
+	session, err := sessionStore.New(r, common.SessionKey)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
+		logger.Error("SetWxUserToSession session ERR: ", err)
+		return
+	}
+
+	session.Values[common.SessUserInfoKey] = userInfo
+
+	if err := session.Save(r, w); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
+		logger.Error("SetWxUserToSession session ERR: ", err)
+		return
+	}
 }
