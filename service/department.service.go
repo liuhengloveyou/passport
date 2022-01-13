@@ -48,7 +48,7 @@ func DepartmentFind(id, tenantId uint64) (rr []protos.Department, e error) {
 }
 
 func DepartmentUpdate(model *protos.Department) (e error) {
-	if model.Id <= 0 {
+	if model.Id <= 0 || model.TenantID <= 0 || model.UserId <= 0 {
 		common.Logger.Sugar().Errorf("DepartmentUpdate id nil: %#v", model)
 		return common.ErrParam
 	}
@@ -63,7 +63,7 @@ func DepartmentUpdate(model *protos.Department) (e error) {
 	}
 
 	if row != 1 {
-		common.Logger.Sugar().Warnf("DepartmentUpdate row: %d\n", row)
+		common.Logger.Sugar().Warn("DepartmentUpdate row: ", row, model.Id, model.TenantID, model)
 	}
 
 	return

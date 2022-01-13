@@ -36,7 +36,8 @@ func DepartmentDelete(db *sqlx.DB, id, tenantID uint64) (rowsAffected int64, err
 func DepartmentUpdate(db *sqlx.DB, model *protos.Department) (rowsAffected int64, err error) {
 	var rst sql.Result
 
-	rst, err = db.Exec("UPDATE departments SET name=? WHERE (uid=? AND tenant_id = ? and update_time=?)", model.Name, model.UserId, model.TenantID, model.UpdateTime)
+	common.Logger.Sugar().Debugf("UPDATE departments SET name=? WHERE (id=? AND uid=? AND tenant_id=?)", model.Name, model.Id, model.UserId, model.TenantID)
+	rst, err = db.Exec("UPDATE departments SET name=? WHERE (id=? AND tenant_id=?)", model.Name, model.Id, model.TenantID)
 	if err != nil {
 		return
 	}
