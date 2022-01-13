@@ -1,6 +1,6 @@
 module github.com/liuhengloveyou/passport
 
-go 1.16
+go 1.17
 
 require (
 	github.com/Blank-Xu/sql-adapter v0.0.0-20201228072413-5276c89fa383
