@@ -687,7 +687,7 @@ curl -v -X GET -H "X-API: tenant/department/delete" --cookie "go-session-id=gFKS
 #### 更新部门名
 
 ```shell
-curl -v -X GET -H "X-API: tenant/department/add" --cookie "go-session-id=gFKSlOYwQ==" -d \
+curl -v -X GET -H "X-API: tenant/department/update" --cookie "go-session-id=gFKSlOYwQ==" -d \
 '{
   "id": 123,
   "name": "dep1"
