@@ -17,7 +17,7 @@ type User struct {
 	UID        uint64       `json:"uid,omitempty" validate:"-" db:"uid"` // 正常要从10000开始往上自增，100以下保留内部使用
 	TenantID   uint64       `json:"tenant_id,omitempty" validate:"-" db:"tenant_id"`
 	Password   string       `json:"password,omitempty" validate:"required,min=6,max=256" db:"password"`
-	Cellphone  *null.String `json:"cellphone,omitempty" validate:"omitempty,phone" db:"cellphone"`
+	Cellphone  *null.String `json:"cellphone,omitempty" validate:"omitempty,len=11" db:"cellphone"`
 	Email      *null.String `json:"email,omitempty" validate:"omitempty,email" db:"email"`
 	Nickname   *null.String `json:"nickname,omitempty" validate:"omitempty,min=2,max=64" db:"nickname"`
 	AvatarURL  *null.String `json:"avatarUrl" db:"avatar_url"`
@@ -114,7 +114,7 @@ type Department struct {
 	UserId     uint64     `json:"uid" validate:"omitempty,min=1" db:"uid" gorm:"column:uid;type:INT;not null;"`
 	TenantID   uint64     `json:"tenantId,omitempty" validate:"-" db:"tenant_id"`
 	AddTime    *time.Time `json:"addTime,omitempty" validate:"-" db:"add_time"` // 创建时间
-	UpdateTime *time.Time `json:"updateTime" validate:"-" db:"update_time"` // 最后更新时间
+	UpdateTime *time.Time `json:"updateTime" validate:"-" db:"update_time"`     // 最后更新时间
 	ParentID   uint64     `json:"parentId" validate:"-" db:"parent_id"`
 	Name       string     `json:"name" validate:"required,max=10" db:"name"`
 }

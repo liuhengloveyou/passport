@@ -7,14 +7,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
 	/*
-	go tool pprof -http=:8080 http://127.0.0.1:10000/debug/pprof/profile
-	/debug/pprof/profile：访问这个链接会自动进行 CPU profiling，持续 30s，并生成一个文件供下载
-	/debug/pprof/block：Goroutine阻塞事件的记录。默认每发生一次阻塞事件时取样一次。
-	/debug/pprof/goroutines：活跃Goroutine的信息的记录。仅在获取时取样一次。
-	/debug/pprof/heap： 堆内存分配情况的记录。默认每分配512K字节时取样一次。
-	/debug/pprof/mutex: 查看争用互斥锁的持有者。
-	/debug/pprof/threadcreate: 系统线程创建情况的记录。 仅在获取时取样一次。
+		go tool pprof -http=:8080 http://127.0.0.1:10000/debug/pprof/profile
+		/debug/pprof/profile：访问这个链接会自动进行 CPU profiling，持续 30s，并生成一个文件供下载
+		/debug/pprof/block：Goroutine阻塞事件的记录。默认每发生一次阻塞事件时取样一次。
+		/debug/pprof/goroutines：活跃Goroutine的信息的记录。仅在获取时取样一次。
+		/debug/pprof/heap： 堆内存分配情况的记录。默认每分配512K字节时取样一次。
+		/debug/pprof/mutex: 查看争用互斥锁的持有者。
+		/debug/pprof/threadcreate: 系统线程创建情况的记录。 仅在获取时取样一次。
 	*/
 	_ "net/http/pprof"
 	"strings"
@@ -80,6 +81,10 @@ func init() {
 			Handler:   modifyAvatarByForm,
 			NeedLogin: true,
 		},
+		"user/s/1": {
+			Handler:   searchLite,
+			NeedLogin: false,
+		},
 
 		//访问控制
 		"access/addRoleForUser": {
@@ -102,8 +107,8 @@ func init() {
 			NeedLogin: true,
 		},
 		"access/getRolesForUser": {
-			Handler:   GetRolesForUser,
-			NeedLogin: true,
+			Handler:    GetRolesForUser,
+			NeedLogin:  true,
 			NeedAccess: true,
 		},
 		"access/getUsersForRole": {
@@ -181,8 +186,8 @@ func init() {
 			NeedLogin:  true,
 			NeedAccess: true,
 		},
-		"tenant/user/setDepartment":{
-			Handler: TenantUserSetDepartment,
+		"tenant/user/setDepartment": {
+			Handler:    TenantUserSetDepartment,
 			NeedLogin:  true,
 			NeedAccess: true,
 		},

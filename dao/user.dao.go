@@ -7,6 +7,7 @@ import (
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
 
+	sq "github.com/Masterminds/squirrel"
 	builder "xorm.io/builder"
 )
 
@@ -91,7 +92,6 @@ func UserUpdate(p *protos.UserReq) (rows int64, e error) {
 	return rows, nil
 }
 
-
 func UserUpdateExt(uid uint64, ext *protos.MapStruct) (rows int64, e error) {
 	var rst sql.Result
 
@@ -102,7 +102,6 @@ func UserUpdateExt(uid uint64, ext *protos.MapStruct) (rows int64, e error) {
 
 	return rst.RowsAffected()
 }
-
 
 func UserUpdatePWD(UID uint64, oldPWD, newPWD string) (rows int64, e error) {
 	var rst sql.Result
@@ -118,7 +117,7 @@ func UserUpdatePWD(UID uint64, oldPWD, newPWD string) (rows int64, e error) {
 func SetUserPWD(UID, tenantId uint64, PWD string) (rows int64, e error) {
 	var rst sql.Result
 
-	if tenantId  <= 0 {
+	if tenantId <= 0 {
 		rst, e = common.DB.Exec("UPDATE users SET password=? WHERE (uid=?)", PWD, UID)
 	} else {
 		rst, e = common.DB.Exec("UPDATE users SET password=? WHERE (uid=?) AND (tenant_id = ?)", PWD, UID, tenantId)
@@ -163,25 +162,62 @@ func UserSelectByID(uid uint64) (r *protos.User, e error) {
 	return
 }
 
-func UserSelect(p *protos.UserReq, pageNo, pageSize int) (rr []protos.User, e error) {
-	table := "users"
-	where := builder.Eq{}
+func UserSelectOne(p *protos.UserReq) (r *protos.User, e error) {
+	eq := sq.Eq{}
+
 	if p.UID > 0 {
-		where["uid"] = p.UID
+		eq["uid"] = p.UID
 	}
 	if p.Cellphone != "" {
-		where["cellphone"] = p.Cellphone
+		eq["cellphone"] = p.Cellphone
 	}
 	if p.Email != "" {
-		where["email"] = p.Email
+		eq["email"] = p.Email
 	}
 	if p.Nickname != "" {
-		where["nickname"] = p.Nickname
+		eq["nickname"] = p.Nickname
 	}
 
-	cond, values, err := builder.MySQL().Select("uid, tenant_id, cellphone, email, nickname, password, avatar_url, gender, addr, add_time, update_time, ext").Where(where).From(table).ToSQL()
-	common.Logger.Sugar().Debugf("%v %v %v", cond, values, err)
-	if e = common.DB.Select(&rr, cond, values...); e != nil {
+	sql, args, err := sq.Select("*").Limit(1).Where(eq).From("users").ToSql()
+	common.Logger.Sugar().Debugf("%v %v %v", sql, args, err)
+
+	var rr []protos.User
+	if e = common.DB.Select(&rr, sql, args...); e != nil {
+		return
+	}
+	if len(rr) == 0 {
+		common.Logger.Sugar().Warnf("%v %v %v", sql, args, len(rr))
+		return nil, nil
+	}
+
+	return &rr[0], nil
+}
+
+func UserSelect(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.User, e error) {
+	if pageNo < 1 {
+		pageNo = 1
+	}
+
+	eq := sq.Eq{}
+	like := sq.Like{}
+
+	if p.UID > 0 {
+		eq["uid"] = p.UID
+	}
+	if p.Cellphone != "" {
+		eq["cellphone"] = "%" + p.Cellphone + "%"
+	}
+	if p.Email != "" {
+		like["email"] = "%" + p.Email + "%"
+	}
+	if p.Nickname != "" {
+		like["nickname"] = "%" + p.Nickname + "%"
+	}
+
+	sql, args, err := sq.Select("*").Offset((pageNo-1)*pageSize).Limit(pageSize).Where(like, eq).From("users").ToSql()
+	// cond, values, err := builder.MySQL().Select("uid, tenant_id, cellphone, email, nickname, password, avatar_url, gender, addr, add_time, update_time, ext").Where(where).From(table).ToSQL()
+	common.Logger.Sugar().Debugf("%v %v %v", sql, args, err)
+	if e = common.DB.Select(&rr, sql, args...); e != nil {
 		return
 	}
 

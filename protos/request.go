@@ -15,6 +15,9 @@ type UserReq struct {
 	DepIds  []uint64  `json:"depIds" validate:"-"`
 	Ext     MapStruct `json:"ext" validate:"-"` // 记录用户的扩展信息
 	Disable int8      `json:"disable" validate:"-"`
+
+	PageNo   uint64
+	PageSize uint64
 }
 
 type ModifyPwdReq struct {

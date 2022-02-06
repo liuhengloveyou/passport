@@ -96,31 +96,19 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 }
 
 func loginByCellphone(p *protos.UserReq) (one *protos.User, e error) {
-	rr, e := dao.UserSelect(p, 1, 1)
-	if e != nil {
-		return
-	}
+	one, e = dao.UserSelectOne(p)
 
-	if len(rr) == 0 {
-		return // 不存在用户
-	}
-
-	return &rr[0], nil
+	return
 }
 
 func loginByEmail(p *protos.UserReq) (one *protos.User, e error) {
-	return nil, nil
+	one, e = dao.UserSelectOne(p)
+
+	return
 }
 
 func loginByNickname(p *protos.UserReq) (one *protos.User, e error) {
-	rr, e := dao.UserSelect(p, 1, 1)
-	if e != nil {
-		return
-	}
+	one, e = dao.UserSelectOne(p)
 
-	if len(rr) == 0 {
-		return // 不存在用户
-	}
-
-	return &rr[0], nil
+	return
 }

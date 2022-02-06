@@ -3,9 +3,10 @@ package service
 import (
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/go-sql-driver/mysql"
 	"github.com/liuhengloveyou/passport/protos"
-	"strings"
 
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/dao"
@@ -65,21 +66,37 @@ func AddUserService(p *protos.UserReq) (id uint64, e error) {
 	return uint64(uid), err
 }
 
-func GetUser(m *protos.UserReq) (r *protos.User, e error) {
-	if m.UID > 0 {
-		r, e = dao.UserSelectByID(m.UID)
+// func GetUser(m *protos.UserReq) (r *protos.User, e error) {
+// 	if m.UID > 0 {
+// 		r, e = dao.UserSelectByID(m.UID)
+// 	}
+
+// 	return
+// }
+
+func SelectUsersLite(m *protos.UserReq) (rr []protos.User, e error) {
+	if m.TenantID <= 0 {
+		return nil, common.ErrParam
+	}
+
+	rr, e = dao.UserSelect(m, m.PageNo, m.PageSize)
+
+	for i := 0; i < len(rr); i++ {
+		rr[i].Password = ""
+		rr[i].Cellphone = nil
+		rr[i].Email = nil
+		rr[i].Addr = nil
+		rr[i].AddTime = nil
+		rr[i].DeleteTime = nil
+		rr[i].LoginTime = nil
+		rr[i].Tenant = nil
+		rr[i].Roles = nil
+		rr[i].Departments = nil
+		rr[i].Ext = nil
 	}
 
 	return
 }
-
-//func SelectUsers(m *protos.UserReq) (rr []protos.User, e error) {
-//	if m.TenantID > 0 {
-//		rr, e = dao.UserSelectByTenantID(m.TenantID, "")
-//	}
-//
-//	return
-//}
 
 func UpdateUserService(p *protos.UserReq) (rows int64, e error) {
 	if p.UID <= 0 {
