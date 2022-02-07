@@ -158,7 +158,8 @@ func UserDelete(tx *sql.Tx) (int64, error) {
 
 func UserSelectByID(uid uint64) (r *protos.User, e error) {
 	r = &protos.User{}
-	e = common.DB.Get(r, "SELECT uid, tenant_id, cellphone, email, nickname, avatar_url, gender, addr, add_time, update_time, ext FROM users WHERE uid = ?", uid)
+	e = common.DB.Get(r, "SELECT * FROM users WHERE uid = ?", uid)
+
 	return
 }
 
@@ -199,13 +200,37 @@ func UserSelect(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.User, e
 	}
 
 	eq := sq.Eq{}
-	like := sq.Like{}
-
 	if p.UID > 0 {
 		eq["uid"] = p.UID
 	}
 	if p.Cellphone != "" {
-		eq["cellphone"] = "%" + p.Cellphone + "%"
+		eq["cellphone"] = p.Cellphone
+	}
+	if p.Email != "" {
+		eq["email"] = p.Email
+	}
+	if p.Nickname != "" {
+		eq["nickname"] = p.Nickname
+	}
+
+	sql, args, err := sq.Select("*").Offset((pageNo - 1) * pageSize).Limit(pageSize).Where(eq).From("users").ToSql()
+	// cond, values, err := builder.MySQL().Select("uid, tenant_id, cellphone, email, nickname, password, avatar_url, gender, addr, add_time, update_time, ext").Where(where).From(table).ToSQL()
+	common.Logger.Sugar().Debugf("%v %v %v", sql, args, err)
+	if e = common.DB.Select(&rr, sql, args...); e != nil {
+		return
+	}
+
+	return rr, nil
+}
+
+func UserSearch(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.User, e error) {
+	if pageNo < 1 {
+		pageNo = 1
+	}
+
+	like := sq.Like{}
+	if p.Cellphone != "" {
+		like["cellphone"] = "%" + p.Cellphone + "%"
 	}
 	if p.Email != "" {
 		like["email"] = "%" + p.Email + "%"
@@ -214,7 +239,7 @@ func UserSelect(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.User, e
 		like["nickname"] = "%" + p.Nickname + "%"
 	}
 
-	sql, args, err := sq.Select("*").Offset((pageNo-1)*pageSize).Limit(pageSize).Where(like, eq).From("users").ToSql()
+	sql, args, err := sq.Select("*").Offset((pageNo - 1) * pageSize).Limit(pageSize).Where(like).From("users").ToSql()
 	// cond, values, err := builder.MySQL().Select("uid, tenant_id, cellphone, email, nickname, password, avatar_url, gender, addr, add_time, update_time, ext").Where(where).From(table).ToSQL()
 	common.Logger.Sugar().Debugf("%v %v %v", sql, args, err)
 	if e = common.DB.Select(&rr, sql, args...); e != nil {

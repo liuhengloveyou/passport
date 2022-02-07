@@ -66,20 +66,23 @@ func AddUserService(p *protos.UserReq) (id uint64, e error) {
 	return uint64(uid), err
 }
 
-// func GetUser(m *protos.UserReq) (r *protos.User, e error) {
-// 	if m.UID > 0 {
-// 		r, e = dao.UserSelectByID(m.UID)
-// 	}
+func GetUserInfo(uid uint64) (r *protos.User, e error) {
+	if uid <= 0 {
+		return nil, common.ErrParam
+	}
 
-// 	return
-// }
+	r, e = dao.UserSelectByID(uid)
+	r.Password = ""
+
+	return
+}
 
 func SelectUsersLite(m *protos.UserReq) (rr []protos.User, e error) {
 	if m.TenantID <= 0 {
 		return nil, common.ErrParam
 	}
 
-	rr, e = dao.UserSelect(m, m.PageNo, m.PageSize)
+	rr, e = dao.UserSearch(m, m.PageNo, m.PageSize)
 
 	for i := 0; i < len(rr); i++ {
 		rr[i].Password = ""
@@ -176,29 +179,25 @@ func SetUserPWD(uid, tenantId uint64, PWD string) (rows int64, e error) {
 	return
 }
 
-func GetUserInfoService(uid, tenantId uint64) (r protos.User, e error) {
+func GetUserInfoService(uid, tenantId uint64) (r *protos.User, e error) {
 	if uid <= 0 {
 		e = fmt.Errorf("uid nil")
 		return
 	}
-
 	model := &protos.UserReq{
 		UID: uid,
 	}
 
-	var rr []protos.User
-	if rr, e = dao.UserSelect(model, 1, 1); e != nil {
+	if r, e = dao.UserSelectOne(model); e != nil {
 		common.Logger.Sugar().Errorf("GetUserInfoService DB ERR: %v\n", e)
 		return
 	}
-	if len(rr) != 1 {
-		common.Logger.Sugar().Errorf("GetUserInfoService len ERR: %v %v\n", rr, e)
+	if r == nil {
+		common.Logger.Sugar().Errorf("GetUserInfoService len ERR: %v %v\n", r, e)
 		return
 	}
 
-	rr[0].Password = ""
-	rr[0].UpdateTime = nil
-	r = rr[0]
+	r.Password = ""
 
 	if tenantId > 0 {
 		if r.Roles, e = getTenantUserRoles(uid, tenantId); e != nil {
