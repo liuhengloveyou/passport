@@ -46,7 +46,7 @@ func CellPhoneValidate(fl validator.FieldLevel) bool {
 		return false
 	}
 
-	re, _ := regexp.Compile(`^1([35678][0-9]|14[57]|5[^4])\d{8}$`)
+	re, _ := regexp.Compile(`^1([356789][0-9]|14[57]|5[^4])\d{8}$`)
 
 	return re.MatchString(fl.Field().String())
 }
