@@ -82,21 +82,7 @@ func SelectUsersLite(m *protos.UserReq) (rr []protos.User, e error) {
 		return nil, common.ErrParam
 	}
 
-	rr, e = dao.UserSearch(m, m.PageNo, m.PageSize)
-
-	for i := 0; i < len(rr); i++ {
-		rr[i].Password = ""
-		rr[i].Cellphone = nil
-		rr[i].Email = nil
-		rr[i].Addr = nil
-		rr[i].AddTime = nil
-		rr[i].DeleteTime = nil
-		rr[i].LoginTime = nil
-		rr[i].Tenant = nil
-		rr[i].Roles = nil
-		rr[i].Departments = nil
-		rr[i].Ext = nil
-	}
+	rr, e = dao.UserSearchLite(m, m.PageNo, m.PageSize)
 
 	return
 }

@@ -223,24 +223,24 @@ func UserSelect(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.User, e
 	return rr, nil
 }
 
-func UserSearch(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.User, e error) {
+func UserSearchLite(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.User, e error) {
 	if pageNo < 1 {
 		pageNo = 1
 	}
 
-	like := sq.Like{}
+	or := sq.Or{}
 	if p.Cellphone != "" {
-		like["cellphone"] = "%" + p.Cellphone + "%"
+		or = append(or, sq.Like{"cellphone": "%" + p.Cellphone + "%"})
 	}
 	if p.Email != "" {
-		like["email"] = "%" + p.Email + "%"
+		or = append(or, sq.Like{"email": "%" + p.Email + "%"})
 	}
 	if p.Nickname != "" {
-		like["nickname"] = "%" + p.Nickname + "%"
+		or = append(or, sq.Like{"nickname": "%" + p.Nickname + "%"})
 	}
+	and := sq.And{sq.Eq{"tenant_id": p.TenantID}, or}
 
-	sql, args, err := sq.Select("*").Offset((pageNo - 1) * pageSize).Limit(pageSize).Where(like).From("users").ToSql()
-	// cond, values, err := builder.MySQL().Select("uid, tenant_id, cellphone, email, nickname, password, avatar_url, gender, addr, add_time, update_time, ext").Where(where).From(table).ToSQL()
+	sql, args, err := sq.Select("uid,tenant_id,nickname,avatar_url").Offset((pageNo - 1) * pageSize).Limit(pageSize).Where(and).From("users").ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v", sql, args, err)
 	if e = common.DB.Select(&rr, sql, args...); e != nil {
 		return

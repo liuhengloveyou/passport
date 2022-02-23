@@ -20,8 +20,8 @@ func searchLite(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
-	nick := strings.TrimSpace(r.FormValue("nick"))
-	if nick == "" {
+	k := strings.TrimSpace(r.FormValue("k"))
+	if k == "" {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
@@ -38,10 +38,11 @@ func searchLite(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userInfos, err := service.SelectUsersLite(&protos.UserReq{
-		TenantID: uint64(tenant),
-		Nickname: nick,
-		PageNo:   page,
-		PageSize: pageSize,
+		TenantID:  uint64(tenant),
+		Nickname:  k,
+		Cellphone: k,
+		PageNo:    page,
+		PageSize:  pageSize,
 	})
 	if err != nil {
 		gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
@@ -50,5 +51,5 @@ func searchLite(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gocommon.HttpErr(w, http.StatusOK, 0, userInfos)
-	logger.Infof("searchLite OK: %#v %#v\n", nick, userInfos)
+	logger.Infof("searchLite OK: %#v %#v\n", k, userInfos)
 }
