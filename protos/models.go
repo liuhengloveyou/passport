@@ -57,6 +57,23 @@ type UserLite struct {
 	Ext       MapStruct    `json:"ext,omitempty" validate:"-" db:"ext"` // 记录用户的扩展信息
 }
 
+type UserLiteArr []UserLite
+
+func (t *UserLiteArr) Scan(src interface{}) error {
+	if src == nil {
+		return nil
+	}
+	if len(src.([]byte)) <= 2 {
+		return nil
+	}
+
+	b, _ := src.([]byte)
+	return json.Unmarshal(b, t)
+}
+func (t UserLiteArr) Value() (driver.Value, error) {
+	return json.Marshal(t)
+}
+
 // 租户
 type Tenant struct {
 	ID            uint64               `json:"id" validate:"-" db:"id"`
