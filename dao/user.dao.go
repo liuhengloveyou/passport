@@ -223,7 +223,7 @@ func UserSelect(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.User, e
 	return rr, nil
 }
 
-func UserSearchLite(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.User, e error) {
+func UserSearchLite(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.UserLite, e error) {
 	if pageNo < 1 {
 		pageNo = 1
 	}
@@ -238,11 +238,15 @@ func UserSearchLite(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.Use
 	if p.Nickname != "" {
 		or = append(or, sq.Like{"nickname": "%" + p.Nickname + "%"})
 	}
-	and := sq.And{sq.Eq{"tenant_id": p.TenantID}, or}
+	and := sq.And{sq.Eq{"tenant_id": p.TenantID}}
+	if len(or) > 0 {
+		and = append(and, or)
+	}
 
-	sql, args, err := sq.Select("uid,tenant_id,nickname,avatar_url").Offset((pageNo - 1) * pageSize).Limit(pageSize).Where(and).From("users").ToSql()
-	common.Logger.Sugar().Debugf("%v %v %v", sql, args, err)
-	if e = common.DB.Select(&rr, sql, args...); e != nil {
+	sql, args, _ := sq.Select("uid,tenant_id,nickname,avatar_url,ext").Offset((pageNo - 1) * pageSize).Limit(pageSize).Where(and).From("users").ToSql()
+	e = common.DB.Select(&rr, sql, args...)
+	common.Logger.Sugar().Debugf("%v %v %v %v\n", sql, args, e, rr)
+	if e != nil {
 		return
 	}
 

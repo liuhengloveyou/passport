@@ -49,6 +49,14 @@ func (u *User) SetExt(k string, v interface{}) {
 	u.Ext[k] = v
 }
 
+type UserLite struct {
+	UID       uint64       `json:"uid,omitempty" validate:"-" db:"uid"` // 正常要从10000开始往上自增，100以下保留内部使用
+	TenantID  uint64       `json:"tenant_id,omitempty" validate:"-" db:"tenant_id"`
+	Nickname  *null.String `json:"nickname,omitempty" validate:"omitempty,min=2,max=64" db:"nickname"`
+	AvatarURL *null.String `json:"avatarUrl" db:"avatar_url"`
+	Ext       MapStruct    `json:"ext,omitempty" validate:"-" db:"ext"` // 记录用户的扩展信息
+}
+
 // 租户
 type Tenant struct {
 	ID            uint64               `json:"id" validate:"-" db:"id"`
@@ -117,6 +125,7 @@ type Department struct {
 	UpdateTime *time.Time `json:"updateTime" validate:"-" db:"update_time"`     // 最后更新时间
 	ParentID   uint64     `json:"parentId" validate:"-" db:"parent_id"`
 	Name       string     `json:"name" validate:"required,max=10" db:"name"`
+	Ext        MapStruct  `json:"ext,omitempty" validate:"-" db:"ext"` // 记录用户的扩展信息
 }
 
 type MapStruct map[string]interface{}
