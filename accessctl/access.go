@@ -47,8 +47,8 @@ func InitAccessControl(rbacModel, mysqlURN string) (err error) {
 	enforcer.StartAutoLoadPolicy(time.Minute)
 
 	enforcer.AddFunction("MyMatch", func(args ...interface{}) (interface{}, error) {
-		rsub, rdom, robj, ract := args[0].(string), args[1].(string), args[2].(string), args[3].(string)
-		fmt.Println("MyMatch: ", rsub, rdom, robj, ract)
+		rsub, rdom, _, _ := args[0].(string), args[1].(string), args[2].(string), args[3].(string)
+		// fmt.Println("MyMatch: ", rsub, rdom, robj, ract)
 
 		// root账号放行
 		roles, err := enforcer.GetRolesForUser(rsub, rdom)

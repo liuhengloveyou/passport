@@ -19,6 +19,8 @@ func TestAccess(t *testing.T) {
 	r, e = Enforce(143, 10030, "data-1", "read")
 	fmt.Println(">>>>>>>>>>>>>", r, e)
 
+	fmt.Println("HasPolicy>>>>>>>>>>>>>", HasPolicy("role1", "tenant-10050", "/present", "menu"))
+
 	p, _ := enforcer.GetImplicitPermissionsForUser("uid-123", "tenant-10030")
 	fmt.Println("enforcer.GetPermissionsForUserInDomain: ", p)
 	roles := enforcer.GetRolesForUserInDomain("uid-10000", "tenant-10030")
