@@ -238,7 +238,10 @@ func UserSearchLite(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.Use
 	if p.Nickname != "" {
 		or = append(or, sq.Like{"nickname": "%" + p.Nickname + "%"})
 	}
-	and := sq.And{sq.Eq{"tenant_id": p.TenantID}, or}
+	and := sq.And{sq.Eq{"tenant_id": p.TenantID}}
+	if len(or) > 0 {
+		and = append(and, or)
+	}
 
 	sql, args, err := sq.Select("uid,tenant_id,nickname,avatar_url,ext").Offset((pageNo - 1) * pageSize).Limit(pageSize).Where(and).From("users").ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v", sql, args, err)

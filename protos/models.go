@@ -142,6 +142,7 @@ type Department struct {
 	UpdateTime *time.Time `json:"updateTime" validate:"-" db:"update_time"`     // 最后更新时间
 	ParentID   uint64     `json:"parentId" validate:"-" db:"parent_id"`
 	Name       string     `json:"name" validate:"required,max=10" db:"name"`
+	Ext        MapStruct  `json:"ext,omitempty" validate:"-" db:"ext"` // 记录用户的扩展信息
 }
 
 type MapStruct map[string]interface{}
