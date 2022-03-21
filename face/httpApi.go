@@ -345,8 +345,8 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetSessionUser(r *http.Request) (sessionUser protos.User) {
-	sess, auth := AuthFilter(r)
-	logger.Debug("passport session:", sess, auth)
+	sess, _ := AuthFilter(r)
+	// logger.Debug("passport session:", sess, auth)
 	if sess == nil {
 		return
 	}
