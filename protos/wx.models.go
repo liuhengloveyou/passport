@@ -33,6 +33,16 @@ type MiniAppSessionInfo struct {
 	Gender             string `json:"gender"`
 }
 
+func (p *MiniAppSessionInfo) UserKey() string {
+	if p.UserId != "" {
+		return p.UserId // 支付宝
+	} else if p.Openid != "" {
+		return p.Openid // 微信
+	}
+
+	return ""
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // 请求参数
 ///////////////////////////////////////////////////////////////////////////////
