@@ -52,7 +52,7 @@ func WxMiniAppLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionUser := &protos.User{UID: 1}
-	sessionUser.SetExt("MiniAppSessionInfo", *info)
+	sessionUser.SetExt(protos.MiniAppSessionInfoKey, *info)
 	session.Values[common.SessUserInfoKey] = *sessionUser
 
 	if err := session.Save(r, w); err != nil {

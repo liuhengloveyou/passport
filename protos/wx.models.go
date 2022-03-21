@@ -15,13 +15,22 @@ type LoginRst struct {
 type MiniAppSessionInfo struct {
 	MiniAppErr
 
-	Code string `json:"code,omitempty"`
-
-	UserId     string `json:"uid,omitempty"`
+	Code       string `json:"code,omitempty"`
 	Openid     string `json:"openid,omitempty"`
 	SessionKey string `json:"session_key,omitempty"`
 	ExpiresIn  int    `json:"expires_in,omitempty"`
 	LoginAt    int64  `json:"login_at,omitempty"`
+
+	UserId             string `json:"uid,omitempty"`
+	Avatar             string `json:"avatar"`
+	Province           string `json:"province"`
+	City               string `json:"city"`
+	NickName           string `json:"nick_name"`
+	IsStudentCertified string `json:"is_student_certified"`
+	UserType           string `json:"user_type"`
+	UserStatus         string `json:"user_status"`
+	IsCertified        string `json:"is_certified"`
+	Gender             string `json:"gender"`
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -35,7 +44,7 @@ type WxMiniAppUserInfoUpdateReq struct {
 	AvatarUrl string `json:"avatarUrl" validate:"required"`
 	City      string `json:"city"`
 	Country   string `json:"country"`
-	Gender    int `json:"gender"`
+	Gender    int    `json:"gender"`
 	NickName  string `json:"nickName"`
 	Province  string `json:"province"`
 }

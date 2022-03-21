@@ -77,7 +77,7 @@ func GetUserInfo(uid uint64) (r *protos.User, e error) {
 	return
 }
 
-func SelectUsersLite(m *protos.UserReq) (rr []protos.User, e error) {
+func SelectUsersLite(m *protos.UserReq) (rr []protos.UserLite, e error) {
 	if m.TenantID <= 0 {
 		return nil, common.ErrParam
 	}
