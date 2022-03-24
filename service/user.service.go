@@ -199,6 +199,7 @@ func GetUserInfoService(uid, tenantId uint64) (r *protos.User, e error) {
 		}
 		if r.Departments, e = getTenantUserDepartment(uid, tenantId, depIds); e != nil {
 			common.Logger.Sugar().Warnf("GetUserInfoService getTenantUserDepartment ERR: %v", e)
+			e = nil
 		}
 	}
 
