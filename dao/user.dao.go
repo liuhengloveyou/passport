@@ -228,6 +228,11 @@ func UserSearchLite(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.Use
 		pageNo = 1
 	}
 
+	and := sq.And{sq.Eq{"tenant_id": p.TenantID}}
+	if p.UID != 0 {
+		and = append(and, sq.Eq{"uid": p.UID})
+	}
+
 	or := sq.Or{}
 	if p.Cellphone != "" {
 		or = append(or, sq.Like{"cellphone": "%" + p.Cellphone + "%"})
@@ -238,7 +243,7 @@ func UserSearchLite(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.Use
 	if p.Nickname != "" {
 		or = append(or, sq.Like{"nickname": "%" + p.Nickname + "%"})
 	}
-	and := sq.And{sq.Eq{"tenant_id": p.TenantID}}
+
 	if len(or) > 0 {
 		and = append(and, or)
 	}
