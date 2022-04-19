@@ -91,6 +91,7 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 			one.Tenant.UpdateTime = nil
 		}
 	}
+	common.Logger.Sugar().Errorf("UserLogin: %#v\n", one)
 
 	return
 }

@@ -45,6 +45,7 @@ func init() {
 	var e error
 
 	gob.Register(protos.MapStruct{})
+	gob.Register(map[string]interface{}{})
 
 	// 默认配置参数
 	ServConfig.PidFile = "/tmp/passport.pid"
