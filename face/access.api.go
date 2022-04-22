@@ -1,15 +1,16 @@
 package face
 
 import (
+	"net/http"
+	"strconv"
+	"strings"
+
 	gocommon "github.com/liuhengloveyou/go-common"
 	"github.com/liuhengloveyou/passport/accessctl"
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/service"
 	"github.com/liuhengloveyou/passport/sessions"
-	"net/http"
-	"strconv"
-	"strings"
 )
 
 func AddRoleForUser(w http.ResponseWriter, r *http.Request) {
@@ -127,7 +128,6 @@ func updateRoleForUser(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-
 func GetRolesForMe(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
 	if sessionUser.TenantID <= 0 {
@@ -171,7 +171,7 @@ func GetRolesForUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	iuid,_ := strconv.ParseUint(r.FormValue("uid"), 10, 64)
+	iuid, _ := strconv.ParseUint(r.FormValue("uid"), 10, 64)
 	if iuid <= 0 {
 		logger.Error("GetRolesForUser param ERR: ", r.FormValue("uid"))
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
@@ -300,18 +300,15 @@ func GetPolicy(w http.ResponseWriter, r *http.Request) {
 		for i := 0; i < len(polices); i++ {
 			policesNoDomain[i] = protos.Policy{
 				Role: polices[i][0],
-				Obj: polices[i][2],
-				Act: polices[i][3],
+				Obj:  polices[i][2],
+				Act:  polices[i][3],
 			}
 		}
 	}
 
 	gocommon.HttpErr(w, http.StatusOK, 0, policesNoDomain)
 	logger.Infof("GetPolicy OK: %#v\n", polices)
-
-	return
 }
-
 
 func GetPolicyForUser(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
@@ -322,10 +319,15 @@ func GetPolicyForUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	roles := accessctl.GetRoleForUserInDomain(sessionUser.UID, sessionUser.TenantID)
+	if len(roles) == 0 {
+		gocommon.HttpErr(w, http.StatusOK, 0, nil)
+		logger.Error("GetPolicyForUser TenantID ERR")
+		return
+
+	}
 
 	policys := accessctl.GetFilteredPolicy(sessionUser.TenantID, roles)
+
 	gocommon.HttpErr(w, http.StatusOK, 0, policys)
 	logger.Infof("GetPolicyForUser OK: %#v\n", policys)
-
-	return
 }
