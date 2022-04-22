@@ -77,7 +77,6 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 	}
 
 	one.Password = ""
-	one.AvatarURL = nil
 	one.Ext = nil
 	one.Roles = nil
 	one.Departments = nil
