@@ -131,13 +131,15 @@ func RemovePolicyFromRole(tenantID uint64, role, obj, act string) (err error) {
 }
 
 func GetFilteredPolicy(tenantID uint64, roles []string) (lists [][]string) {
-	if roles == nil || len(roles) <= 0 {
-		return
-	}
-
 	policys := getFilteredPolicy(genDomainByTenantID(tenantID))
 	common.Logger.Sugar().Debugf("getFilteredPolicy: %v %v\n", policys, roles)
 	if len(policys) == 0 {
+		return
+	}
+
+	if roles == nil || len(roles) <= 0 {
+		lists = policys
+
 		return
 	}
 
