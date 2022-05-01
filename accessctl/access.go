@@ -138,8 +138,7 @@ func GetFilteredPolicy(tenantID uint64, roles []string) (lists [][]string) {
 	}
 
 	if roles == nil || len(roles) <= 0 {
-		lists = policys
-
+		lists = policys // 不用过滤
 		return
 	}
 
