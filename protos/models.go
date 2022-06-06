@@ -39,6 +39,8 @@ type User struct {
 		}
 	*/
 	Ext MapStruct `json:"ext,omitempty" validate:"-" db:"ext"` // 记录用户的扩展信息
+
+	CacheTime int64 `json:"-" validate:"-" db:"-"` // 缓存到内存的时间
 }
 
 func (u *User) SetExt(k string, v interface{}) {

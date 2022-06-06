@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sync"
 
 	/*
 		go tool pprof -http=:8080 http://127.0.0.1:10000/debug/pprof/profile
@@ -24,6 +25,7 @@ import (
 	"github.com/liuhengloveyou/passport/accessctl"
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/service"
 	"github.com/liuhengloveyou/passport/sessions"
 
 	"github.com/go-playground/validator/v10"
@@ -35,6 +37,11 @@ var (
 	apis         map[string]Api
 	sessionStore sessions.Store
 	logger       *zap.SugaredLogger
+
+	// 登录用户信息缓存
+	loginUserCache sync.Map
+	//  map[uint64]*protos.User
+
 )
 
 type Api struct {
@@ -45,6 +52,7 @@ type Api struct {
 
 func init() {
 	sessionStore = sessions.NewCookieStore([]byte(common.SessionKey))
+	loginUserCache = sync.Map{}
 
 	apis = map[string]Api{
 		"user/register": {
@@ -381,6 +389,23 @@ func AuthFilter(r *http.Request) (sess *sessions.Session, auth bool) {
 
 	if sess.Values[common.SessUserInfoKey].(protos.User).UID <= 0 {
 		return nil, false
+	}
+
+	// 是否已经禁用
+	uid := sess.Values[common.SessUserInfoKey].(protos.User).UID
+	userInfo, ok := loginUserCache.Load(uid)
+	if userInfo == nil || !ok || time.Now().Unix()-userInfo.(*protos.User).CacheTime > 600 {
+		userInfo, _ = service.GetUserInfo(uid)
+	}
+	if userInfo == nil {
+		return nil, false // 用户已经不存在
+	}
+	userInfo.(*protos.User).CacheTime = time.Now().Unix()
+	loginUserCache.Store(uid, userInfo) // 缓存账号信息
+
+	disabled, ok := userInfo.(*protos.User).Ext["disabled"].(float64)
+	if ok && int8(disabled) == 1 {
+		return nil, false // 账号已经禁用
 	}
 
 	return sess, true
