@@ -140,7 +140,7 @@ func TenantUpdateUserExt(uid, currTenantID uint64, k string, v interface{}) erro
 
 	userInfo, e := dao.UserSelectByID(uid)
 	if e != nil {
-		common.Logger.Sugar().Errorf("TenantUserDisabledService db ERR: %v", e)
+		common.Logger.Sugar().Errorf("TenantUpdateUserExt db ERR: %v", e)
 		return common.ErrNull
 	}
 

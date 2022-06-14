@@ -240,6 +240,11 @@ func init() {
 			NeedLogin:  true,
 			NeedAccess: true,
 		},
+		"tenant/department/updatecfg": {
+			Handler:    updateDepartmentConfig,
+			NeedLogin:  true,
+			NeedAccess: true,
+		},
 		"tenant/department/list": {
 			Handler:   listDepartment,
 			NeedLogin: true,
@@ -395,6 +400,7 @@ func AuthFilter(r *http.Request) (sess *sessions.Session, auth bool) {
 	uid := sess.Values[common.SessUserInfoKey].(protos.User).UID
 	userInfo, ok := loginUserCache.Load(uid)
 	if userInfo == nil || !ok || time.Now().Unix()-userInfo.(*protos.User).CacheTime > 600 {
+		logger.Warnf("AuthFilter: user %v not found", uid)
 		userInfo, _ = service.GetUserInfo(uid)
 	}
 	if userInfo == nil {

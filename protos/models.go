@@ -138,13 +138,13 @@ type Policy struct {
 // 部门
 type Department struct {
 	Id         uint64     `json:"id" validate:"omitempty,min=1" db:"id" gorm:"column:id;type:INT;primaryKey;autoIncrement"`
+	ParentID   uint64     `json:"parentId" validate:"-" db:"parent_id"`
 	UserId     uint64     `json:"uid" validate:"omitempty,min=1" db:"uid" gorm:"column:uid;type:INT;not null;"`
 	TenantID   uint64     `json:"tenantId,omitempty" validate:"-" db:"tenant_id"`
 	AddTime    *time.Time `json:"addTime,omitempty" validate:"-" db:"add_time"` // 创建时间
 	UpdateTime *time.Time `json:"updateTime" validate:"-" db:"update_time"`     // 最后更新时间
-	ParentID   uint64     `json:"parentId" validate:"-" db:"parent_id"`
 	Name       string     `json:"name" validate:"required,max=10" db:"name"`
-	Ext        MapStruct  `json:"ext,omitempty" validate:"-" db:"ext"` // 记录用户的扩展信息
+	Config     MapStruct  `json:"config,omitempty" validate:"-" db:"config"` // 记录用户的扩展信息
 }
 
 type MapStruct map[string]interface{}

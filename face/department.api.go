@@ -111,3 +111,29 @@ func updateDepartment(w http.ResponseWriter, r *http.Request) {
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
 	logger.Info("updateDepartment OK: ", req)
 }
+
+func updateDepartmentConfig(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
+		return
+	}
+
+	var req protos.KvReq
+	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("updateDepartmentConfig param ERR: ", err)
+		return
+	}
+	logger.Infof("updateDepartmentConfig %d %d %v\n", sessionUser.UID, sessionUser.TenantID, req)
+
+	err := service.DepartmentUpdateConfig(req.ID, sessionUser.UID, sessionUser.TenantID, req.K, req.V)
+	if err != nil {
+		logger.Errorf("updateDepartmentConfig service ERR: %v\n", err)
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+
+	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
+	logger.Info("updateDepartmentConfig OK: ", req)
+}

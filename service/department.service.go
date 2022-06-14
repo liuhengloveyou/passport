@@ -68,3 +68,48 @@ func DepartmentUpdate(model *protos.Department) (e error) {
 
 	return
 }
+
+func DepartmentUpdateConfig(id, currUid, currTenantID uint64, k string, v interface{}) error {
+	if currUid <= 0 || id <= 0 || currTenantID <= 0 {
+		common.Logger.Sugar().Errorf("DepartmentUpdateConfig ERR: %d %d %d %v %v", id, currUid, currTenantID, k, v)
+		return common.ErrParam
+	}
+	if k == "" {
+		common.Logger.Sugar().Errorf("DepartmentUpdateConfig ERR: %d %d %d %v %v", id, currUid, currTenantID, k, v)
+		return common.ErrParam
+	}
+
+	rr, e := dao.DepartmentFind(common.DB, id, currTenantID)
+	if e != nil {
+		common.Logger.Sugar().Errorf("DepartmentUpdateConfig db ERR: %v", e)
+		return common.ErrService
+	}
+	if len(rr) != 1 {
+		common.Logger.Sugar().Errorf("DepartmentUpdateConfig db ERR: %v", e)
+		return common.ErrNull
+	}
+
+	if rr[0].TenantID != currTenantID || rr[0].Id != id {
+		common.Logger.Sugar().Errorf("DepartmentUpdateConfig tenant ERR: %d %d %d %v", id, currUid, currTenantID, rr[0])
+		return common.ErrNoAuth
+	}
+
+	common.Logger.Sugar().Infof("DepartmentUpdateConfig: %d %d %d %v %v %v", id, currUid, currTenantID, k, v, rr[0])
+	if v == nil {
+		common.Logger.Sugar().Warnf("DepartmentUpdateConfig delete: %v", k)
+		delete(rr[0].Config, k)
+	} else {
+		rr[0].Config[k] = v
+	}
+
+	rows, e := dao.DepartmentUpdateConfig(common.DB, &rr[0])
+	if e != nil {
+		common.Logger.Sugar().Errorf("DepartmentUpdateConfig ERR: %v", e)
+		return common.ErrService
+	}
+	if rows < 1 {
+		common.Logger.Sugar().Warnf("DepartmentUpdateConfig RowsAffected 0")
+	}
+
+	return nil
+}

@@ -48,8 +48,9 @@ type SetDepartmentReq struct {
 	DepIds []uint64 `json:"depIds" validate:"-"`
 }
 
-type UserExtReq struct {
-	UID uint64      `json:"uid" validate:"required,min=1"`
-	K   string      `json:"k" validate:"required,max=10"`
-	V   interface{} `json:"v" validate:"-"`
+type KvReq struct {
+	ID       uint64      `json:"id" validate:"required,min=1"`
+	TenantID uint64      `json:"tenant_id" validate:"-"`
+	K        string      `json:"k" validate:"required,max=10"`
+	V        interface{} `json:"v" validate:"-"`
 }

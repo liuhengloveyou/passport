@@ -45,6 +45,18 @@ func DepartmentUpdate(db *sqlx.DB, model *protos.Department) (rowsAffected int64
 	return rst.RowsAffected()
 }
 
+func DepartmentUpdateConfig(db *sqlx.DB, model *protos.Department) (rowsAffected int64, err error) {
+	var rst sql.Result
+
+	common.Logger.Sugar().Debugf("UPDATE departments SET config=? WHERE (id=?)", model.Config, model.Id)
+	rst, err = db.Exec("UPDATE departments SET config=? WHERE (id=?)", model.Config, model.Id)
+	if err != nil {
+		return
+	}
+
+	return rst.RowsAffected()
+}
+
 func DepartmentFind(db *sqlx.DB, id, tenantId uint64) (rr []protos.Department, err error) {
 	tx := sq.Select("*").From("departments").Where("tenant_id = ?", tenantId).OrderBy("update_time desc")
 	if id > 0 {

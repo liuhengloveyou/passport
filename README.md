@@ -849,15 +849,17 @@ CREATE TABLE `permission` (
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 CREATE TABLE `departments` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `uid` int(11) NOT NULL,
-  `tenant_id` int(11) NOT NULL,
-  `add_time` datetime NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `parent_id` bigint NOT NULL DEFAULT '0',
+  `uid` int NOT NULL,
+  `tenant_id` int NOT NULL,
+  `add_time` datetime(3) NOT NULL,
   `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `name` varchar(16) COLLATE utf8mb4_bin NOT NULL,
-  `parent_id` bigint(20) NOT NULL DEFAULT '0',
+  `name` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `config` json DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `index_tenant_name` (`tenant_id`,`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
 ```
 

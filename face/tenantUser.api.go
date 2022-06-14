@@ -13,7 +13,6 @@ import (
 	gocommon "github.com/liuhengloveyou/go-common"
 )
 
-
 func TenantUserAdd(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
 	if sessionUser.TenantID <= 0 {
@@ -53,8 +52,6 @@ func TenantUserAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gocommon.HttpErr(w, http.StatusOK, 0, req.UID)
-
-	return
 }
 
 func TenantUserDel(w http.ResponseWriter, r *http.Request) {
@@ -80,10 +77,7 @@ func TenantUserDel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
-
-	return
 }
-
 
 func TenantUserGet(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
@@ -139,8 +133,6 @@ func TenantUserGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gocommon.HttpErr(w, http.StatusOK, 0, rr)
-
-	return
 }
 
 func TenantUserSetDepartment(w http.ResponseWriter, r *http.Request) {
@@ -171,7 +163,6 @@ func TenantUserSetDepartment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
-	return
 }
 
 func TenantUserDisableByUID(w http.ResponseWriter, r *http.Request) {
@@ -210,7 +201,6 @@ func TenantUserDisableByUID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
-	return
 }
 
 func TenantUserModifyExtInfo(w http.ResponseWriter, r *http.Request) {
@@ -221,7 +211,7 @@ func TenantUserModifyExtInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req protos.UserExtReq
+	var req protos.KvReq
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		logger.Error("TenantUserModifyExtInfo param ERR: ", err)
@@ -229,14 +219,13 @@ func TenantUserModifyExtInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Infof("TenantUserModifyExtInfo %v\n", req)
 
-	if err := service.TenantUpdateUserExt(req.UID, sessionUser.TenantID, req.K, req.V); err != nil {
+	if err := service.TenantUpdateUserExt(req.ID, sessionUser.TenantID, req.K, req.V); err != nil {
 		logger.Errorf("TenantUserModifyExtInfo %v %s\n", req, err.Error())
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
 
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
-	return
 }
 
 func TenantUserModifyPWDByUID(w http.ResponseWriter, r *http.Request) {
