@@ -8,6 +8,10 @@ import (
 	null "gopkg.in/guregu/null.v3/zero"
 )
 
+const (
+	DepartmentExtKey = "deps"
+)
+
 type PageResponse struct {
 	Total uint64      `json:"total,omitempty"`
 	List  interface{} `json:"list"`
