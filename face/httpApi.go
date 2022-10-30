@@ -280,8 +280,9 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 
 	// common.InitWithOption 后面
 	if e := accessctl.InitAccessControl("rbac_with_domains_model.conf", common.ServConfig.MysqlURN); e != nil {
-		panic(e)
+		fmt.Println("InitAccessControl ERR: ", e)
 	}
+
 	logger = common.Logger.Sugar()
 
 	sessPWD := md5.Sum([]byte(common.SYS_PWD))
