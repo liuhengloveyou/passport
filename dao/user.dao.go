@@ -152,8 +152,15 @@ func UserUpdateLoginTime(UID uint64, t *time.Time) (rows int64, e error) {
 	return rst.RowsAffected()
 }
 
-func UserDelete(tx *sql.Tx) (int64, error) {
-	return -1, nil
+func UserDelete(uid uint64, tid uint64) (r int64, e error) {
+	var rst sql.Result
+
+	rst, e = common.DB.Exec("DELETE FROM users WHERE (uid = ?) AND (tenant_id = ?)", uid, tid)
+	if e != nil {
+		return
+	}
+
+	return rst.RowsAffected()
 }
 
 func UserSelectByID(uid uint64) (r *protos.User, e error) {

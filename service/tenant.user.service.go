@@ -5,6 +5,7 @@ import (
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/dao"
 	"github.com/liuhengloveyou/passport/protos"
+	"go.uber.org/zap"
 )
 
 func TenantUserAdd(uid, currTenantID uint64, depIds []uint64, roles []string, disable int8) (e error) {
@@ -45,10 +46,13 @@ func TenantUserDel(uid, currTenantID uint64) (r int64, e error) {
 		return 0, common.ErrService
 	}
 
-	if r, e = dao.UserUpdateTenantID(uid, 0, currTenantID); e != nil {
+	// 真正删除数据!!!
+	if r, e = dao.UserDelete(uid, currTenantID); e != nil {
 		common.Logger.Sugar().Errorf("TenantUserDel ERR: %v", e)
 		return 0, common.ErrService
 	}
+
+	common.Logger.Warn("TenantUserDel: ", zap.Uint64("uid", uid), zap.Uint64("tid", currTenantID), zap.Int64("r", r), zap.Any("e", e))
 
 	return
 }
