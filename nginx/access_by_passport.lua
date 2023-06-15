@@ -1,7 +1,7 @@
 -- 这里是配置
 local conf = {
     passportUri = "http://127.0.0.1:10000/",
-    passportHost = "passport.ibingli.cn"
+    passportHost = "demo.passport.com"
 }
 
 local ngx = ngx
