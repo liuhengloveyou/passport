@@ -9,6 +9,8 @@ import (
 	"runtime/pprof"
 	"time"
 
+	gocommon "github.com/liuhengloveyou/go-common"
+
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/face"
 )
@@ -34,7 +36,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	// gocommon.SingleInstane(common.ServConfig.PidFile)
+	gocommon.SingleInstane(common.ServConfig.PidFile)
 	rand.Seed(time.Now().UnixNano())
 
 	if *cpuprofile != "" {

@@ -298,8 +298,8 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 		sessionStore = sessions.NewMemStore([]byte(common.SYS_PWD), sessPWD[:])
 	default:
 		sessionStore = sessions.NewCookieStore([]byte(common.SYS_PWD), sessPWD[:])
+		sessionStore.(*sessions.CookieStore).MaxAge(common.ServConfig.SessionExpire)
 	}
-	sessionStore.(*sessions.CookieStore).MaxAge(common.ServConfig.SessionExpire)
 
 	handler = &PassportHttpServer{}
 

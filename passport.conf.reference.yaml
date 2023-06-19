@@ -3,7 +3,8 @@ face: "http"
 addr: ":8080"
 log_dir: "./logs"
 log_level: "debug"
-redis: "127.0.0.1:19738"
+
+redis: ""
 mysql: "root:lhisroot@tcp(127.0.0.1:3306)/passport?charset=utf8mb4&parseTime=True&loc=Local"
 
 session_store_type: "mem" # cookie
@@ -14,15 +15,13 @@ admin_tenant_id: 1 # 管理接口只有指定的租户可用
 # sms配置
 sms: "" # sms供应商名，为空不启用sms相关功能。tencentcloud / ...
 sms_conf:
-  secretId: "xxx"
-	secretKey: "xxx"
-	userAddTemplateId: "xxx"
+  secret_id: "xxx"
+  secret_key: "xxx"
+  user_add_template_id: "xxx"
 
 wx_mini_app:
   appid: "wxf0bc577b0c0d9d50"
   secret: "a3be1c94d4bf8d5e8fdcddd85097e2e4"
-
-
 
 api_conf:
   "api1":

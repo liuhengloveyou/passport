@@ -1,6 +1,7 @@
 package sms
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -11,8 +12,9 @@ import (
 
 var (
 	ErrSmsDriver   = errors.NewError(-4000, "不存在的短信驱动")
-	ErrSmsExist    = errors.NewError(-4001, "短信已发送")
-	ErrSmsCheckErr = errors.NewError(-4002, "短信验证码错误")
+	ErrSmsNotInit  = errors.NewError(-4001, "末启用短信功能")
+	ErrSmsExist    = errors.NewError(-4002, "短信已发送")
+	ErrSmsCheckErr = errors.NewError(-4003, "短信验证码错误")
 )
 
 type factoryFun func(config map[string]interface{}) Sms
@@ -51,12 +53,12 @@ func Init(name string, config map[string]interface{}) error {
 }
 
 func CheckSmsCode(phoneNumber, code string) error {
+	fmt.Println(">>>>>>>>>>", defaultSms)
 	if defaultSms == nil {
-		return nil
+		return ErrSmsNotInit
 	}
 
 	found, value := codeCache.Get(phoneNumber)
-
 	if !found {
 		return ErrSmsCheckErr
 	}
@@ -70,7 +72,7 @@ func CheckSmsCode(phoneNumber, code string) error {
 
 func SendUserAddSms(phoneNumber string, aliveSecond int64) (code string, err error) {
 	if defaultSms == nil {
-		return "", nil
+		return "", ErrSmsNotInit
 	}
 
 	if codeCache.TTL(phoneNumber) >= 0 {
