@@ -671,7 +671,7 @@ curl -v -X GET -H "X-API: tenant/getRoles" --cookie "go-session-id=MTYfgFKSlOYwQ
 #### 添加部门记录
 
 ```shell
-curl -v -X GET -H "X-API: tenant/department/add" --cookie "go-session-id=gFKSlOYwQ==" -d \
+curl -v -X POST -H "X-API: tenant/department/add" --cookie "go-session-id=gFKSlOYwQ==" -d \
 '{
   "parentId": 0,
   "name": "dep1"
@@ -687,7 +687,7 @@ curl -v -X GET -H "X-API: tenant/department/delete" --cookie "go-session-id=gFKS
 #### 更新部门名
 
 ```shell
-curl -v -X GET -H "X-API: tenant/department/update" --cookie "go-session-id=gFKSlOYwQ==" -d \
+curl -v -X POST -H "X-API: tenant/department/update" --cookie "go-session-id=gFKSlOYwQ==" -d \
 '{
   "id": 123,
   "name": "dep1"
@@ -706,12 +706,12 @@ curl -v -X GET -H "X-API: tenant/department/list" --cookie "go-session-id=gFKSlO
 ### 发送用户注册验证码 
 
 ```shell
-curl -v -X GET -H "X-API: sms/sendUserAddSmsCode" -d \
+curl -v -X POST -H "X-API: sms/sendUserAddSmsCode" -d \
 '{
   "cellphone": "17612116527",
   "aliveSec": 15
 }' "http://127.0.0.1:8080/usercenter"
-
+```
 
 
 ## SAAS系统管理接口
