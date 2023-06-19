@@ -11,12 +11,15 @@ type OptionStruct struct {
 	MysqlURN  string `yaml:"mysql"`
 	AvatarDir string `yaml:"avatar_dir"`
 
+	AdminTenantID uint64 `yaml:"admin_tenant_id"` // admin接口只有一个租户有权限
+
 	SessionStoreType string `yaml:"session_store_type"` // 会话存储类型；"cookie/mem/reids"
 	SessionExpire    int    `yaml:"session_expire"`
 
-	WxMiniApp WxMiniAppStruct `yaml:"wx_mini_app"`
+	SmsDriveer string                 `yaml:"sms"`
+	SmsConf    map[string]interface{} `yaml:"sms_conf"`
 
-	AdminTenantID uint64 `yaml:"admin_tenant_id"` // admin接口只有一个租户有权限
+	WxMiniApp WxMiniAppStruct `yaml:"wx_mini_app"`
 
 	ApiConf map[string]ApiConfStruct `yaml:"api_conf"`
 }

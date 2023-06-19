@@ -10,6 +10,7 @@ type UserReq struct {
 	AvatarURL string `json:"avatarUrl" validate:"omitempty,max=100"`
 	Addr      string `json:"addr" validate:"omitempty,min=1,max=100"`
 	Gender    int32  `json:"gender" validate:"omitempty,min=1,max=2"`
+	SmsCode   string `json:"sms" validate:"omitempty,min=1,max=6"`
 
 	Roles   []string  `json:"roles" validate:"-"`
 	DepIds  []uint64  `json:"depIds" validate:"-"`
@@ -53,4 +54,9 @@ type KvReq struct {
 	TenantID uint64      `json:"tenant_id" validate:"-"`
 	K        string      `json:"k" validate:"required,max=10"`
 	V        interface{} `json:"v" validate:"-"`
+}
+
+type SmsReq struct {
+	Cellphone string `json:"cellphone" validate:"phone,len=11"`
+	AliveSec  int64  `json:"aliveSec" validate:"min=0,max=100"`
 }

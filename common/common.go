@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/sms"
 
 	redis "github.com/go-redis/redis/v8"
 	_ "github.com/go-sql-driver/mysql"
@@ -61,6 +62,12 @@ func init() {
 
 	if e = InitWithOption(&ServConfig); e != nil {
 		log.Panic("InitWithOption ", e)
+	}
+
+	if len(ServConfig.SmsDriveer) > 0 {
+		if e = sms.Init(ServConfig.SmsDriveer, ServConfig.SmsConf); e != nil {
+			log.Panic("sms.Init ", sms.ErrSmsDriver)
+		}
 	}
 }
 

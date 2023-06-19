@@ -1,9 +1,11 @@
 package face
 
 import (
+	"net/http"
+
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
-	"net/http"
+	"github.com/liuhengloveyou/passport/sms"
 
 	"github.com/liuhengloveyou/passport/service"
 
@@ -21,14 +23,22 @@ func userAdd(w http.ResponseWriter, r *http.Request) {
 	logger.Infof("userAdd body: %#v\n", user)
 
 	if user.Cellphone == "" && user.Email == "" && user.Nickname == "" {
-		logger.Error("ERR: 用户手机号和邮箱地址同时为空")
+		logger.Error("userAdd ERR: 用户手机号和邮箱地址同时为空")
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
 	if user.Password == "" {
-		logger.Error("ERR: 用户密码为空")
+		logger.Error("userAdd ERR: 用户密码为空")
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrPWD)
 		return
+	}
+
+	if len(user.Cellphone) > 0 {
+		if err := sms.CheckSmsCode(user.Cellphone, user.SmsCode); err != nil {
+			logger.Error("userAdd ERR: 短信验证码错误")
+			gocommon.HttpJsonErr(w, http.StatusOK, err)
+			return
+		}
 	}
 
 	uid, err := service.AddUserService(user)

@@ -701,6 +701,17 @@ curl -v -X GET -H "X-API: tenant/department/list" --cookie "go-session-id=gFKSlO
 ```
 
 
+## 短信接口
+
+### 发送用户注册验证码 
+
+```shell
+curl -v -X GET -H "X-API: sms/sendUserAddSmsCode" -d \
+'{
+  "cellphone": "17612116527",
+  "aliveSec": 15
+}' "http://127.0.0.1:8080/usercenter"
+
 
 
 ## SAAS系统管理接口

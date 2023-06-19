@@ -266,6 +266,13 @@ func init() {
 			NeedLogin:  true,
 			NeedAccess: true,
 		},
+
+		// 短信
+		"sms/sendUserAddSmsCode": {
+			Handler:    SendUserAddSmsCode,
+			NeedLogin:  false,
+			NeedAccess: false,
+		},
 	}
 
 	initWXAPI()

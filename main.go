@@ -11,8 +11,6 @@ import (
 
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/face"
-
-	gocommon "github.com/liuhengloveyou/go-common"
 )
 
 var (
@@ -36,7 +34,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	gocommon.SingleInstane(common.ServConfig.PidFile)
+	// gocommon.SingleInstane(common.ServConfig.PidFile)
 	rand.Seed(time.Now().UnixNano())
 
 	if *cpuprofile != "" {
