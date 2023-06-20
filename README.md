@@ -726,7 +726,7 @@ curl -v -X GET -H "X-API: tenant/department/list" --cookie "go-session-id=gFKSlO
 curl -v -X POST -H "X-API: sms/sendUserAddSmsCode" -d \
 '{
   "cellphone": "17612116527",
-  "aliveSec": 15
+  "aliveSec": 5
 }' "http://127.0.0.1:8080/usercenter"
 ```
 
