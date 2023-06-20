@@ -1,7 +1,6 @@
 package sms
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -53,9 +52,8 @@ func Init(name string, config map[string]interface{}) error {
 }
 
 func CheckSmsCode(phoneNumber, code string) error {
-	fmt.Println(">>>>>>>>>>", defaultSms)
 	if defaultSms == nil {
-		return ErrSmsNotInit
+		return nil
 	}
 
 	found, value := codeCache.Get(phoneNumber)

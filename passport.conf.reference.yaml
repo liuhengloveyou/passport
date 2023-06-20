@@ -13,10 +13,13 @@ session_expire: 0 # -1: 删除；0: 本会话; >0...
 admin_tenant_id: 1 # 管理接口只有指定的租户可用
 
 # sms配置
-sms: "" # sms供应商名，为空不启用sms相关功能。tencentcloud / ...
+# sms供应商名，为空不启用sms相关功能。可选：tencentcloud / ...
+sms: ""
 sms_conf:
   secret_id: "xxx"
   secret_key: "xxx"
+  sdk_app_id: "xxx"
+  sign_name: "xxx"
   user_add_template_id: "xxx"
 
 wx_mini_app:

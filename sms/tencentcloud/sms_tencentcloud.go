@@ -17,6 +17,8 @@ import (
 type SmsTencentcloud struct {
 	SecretID  string
 	SecretKey string
+	SdkAppId  string
+	SignName  string
 
 	UserAddTemplateId string // 注册用户验证码短信模板ID
 }
@@ -27,9 +29,11 @@ func init() {
 
 func NewSmsTencentcloud(config map[string]interface{}) sms.Sms {
 	tmp := &SmsTencentcloud{}
-	tmp.SecretID = config["secretId"].(string)
-	tmp.SecretKey = config["secretKey"].(string)
-	tmp.UserAddTemplateId = config["userAddTemplateId"].(string)
+	tmp.SecretID = config["secret_id"].(string)
+	tmp.SecretKey = config["secret_key"].(string)
+	tmp.SdkAppId = config["sdk_app_id"].(string)
+	tmp.SignName = config["sign_name"].(string)
+	tmp.UserAddTemplateId = config["user_add_template_id"].(string)
 	if len(tmp.SecretID) == 0 ||
 		len(tmp.SecretKey) == 0 ||
 		len(tmp.UserAddTemplateId) == 0 {
@@ -102,9 +106,9 @@ func (p *SmsTencentcloud) sendSms(phoneNumber []string, userSession string, Temp
 	/* 短信应用ID: 短信SdkAppId在 [短信控制台] 添加应用后生成的实际SdkAppId，示例如1400006666 */
 	// https://console.cloud.tencent.com/smsv2/app-manage
 	// 系统默认应用：1400591645
-	request.SmsSdkAppId = common.StringPtr("1400591645")
+	request.SmsSdkAppId = common.StringPtr(p.SdkAppId)
 	/* 短信签名内容: 使用 UTF-8 编码，必须填写已审核通过的签名，签名信息可登录 [短信控制台] 查看 */
-	request.SignName = common.StringPtr("")
+	request.SignName = common.StringPtr(p.SignName)
 	/* 国际/港澳台短信 SenderId: 国内短信填空，默认未开通，如需开通请联系 [sms helper] */
 	request.SenderId = common.StringPtr("")
 	/* 用户的 session 内容: 可以携带用户侧 ID 等上下文信息，server 会原样返回 */
@@ -130,9 +134,14 @@ func (p *SmsTencentcloud) sendSms(phoneNumber []string, userSession string, Temp
 		panic(err)
 	}
 
-	// 打印返回的json字符串
-	json.Marshal(response.Response)
-	// fmt.Printf("%v %v %v %v>>>>>>>>>%s\n", phoneNumber[0], userSession, TemplateId, TemplateVals, b)
+	if response.Response.SendStatusSet[0].Code != nil && len(*response.Response.SendStatusSet[0].Code) > 0 {
+		// 打印返回的json字符串
+		b, _ := json.Marshal(response.Response)
+		fmt.Printf("sms ERR: %v %v %v %v :: %s\n", phoneNumber[0], userSession, TemplateId, TemplateVals, b)
+
+		return fmt.Errorf("%s", *response.Response.SendStatusSet[0].Code)
+	}
+
 	if *response.Response.SendStatusSet[0].Fee < 1 {
 		return fmt.Errorf("%s", *response.Response.SendStatusSet[0].Code)
 	}
