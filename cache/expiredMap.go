@@ -41,13 +41,13 @@ func (e *ExpiredMap) run() {
 				break
 			}
 
-			if ele.Value.(data).expiredAt >= now {
+			if ele.Value.(*data).expiredAt >= now {
 				break
 			}
 
 			e.lck.Lock()
 			e.timeList.Remove(ele)
-			delete(e.m, ele.Value.(data).key)
+			delete(e.m, ele.Value.(*data).key)
 			e.lck.Unlock()
 		}
 	}
