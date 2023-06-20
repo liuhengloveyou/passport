@@ -18,19 +18,34 @@
 #### 配置
 
 ```yaml
+pid_file: "/tmp/passport.pid"
 face: "http"
-addr: "127.0.0.1:10001"
+addr: ":8080"
 log_dir: "./logs"
 log_level: "debug"
-mysql: "root:lhisroot@tcp(127.0.0.1:3306)/passport?charset=utf8mb4&parseTime=True&loc=Local"
 
-session_store_type: "cookie"
-session_expire: 0
+mysql: "root:xxx@tcp(127.0.0.1:3306)/passport?charset=utf8mb4&parseTime=True&loc=Local"
+redis: ""
 
-# 管理接口只有指定的租户可用
-admin_tenant_id: 10030
+session_store_type: "mem" # cookie
+session_expire: 0 # -1: 删除；0: 本会话; >0...
 
-# 业务服务API配置
+admin_tenant_id: 1 # 管理接口只有指定的租户可用
+
+# sms配置
+# sms供应商名，为空不启用sms相关功能。可选：tencentcloud / ...
+sms: ""
+sms_conf:
+  secret_id: "xxx"
+  secret_key: "xxx"
+  sdk_app_id: "xxx"
+  sign_name: "xxx"
+  user_add_template_id: "xxx"
+
+wx_mini_app:
+  appid: "xxx"
+  secret: "xxx"
+
 api_conf:
   "api1":
     need_access: false
