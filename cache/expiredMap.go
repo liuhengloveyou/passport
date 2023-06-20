@@ -37,6 +37,10 @@ func (e *ExpiredMap) run() {
 		now := time.Now().Unix()
 		for {
 			ele := e.timeList.Front()
+			if ele == nil || ele.Value == nil {
+				break
+			}
+
 			if ele.Value.(data).expiredAt >= now {
 				break
 			}
