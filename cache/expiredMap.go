@@ -37,10 +37,10 @@ func (e *ExpiredMap) run() {
 		now := time.Now().Unix()
 		for {
 			ele := e.timeList.Front()
+
 			if ele == nil || ele.Value == nil {
 				break
 			}
-
 			if ele.Value.(*data).expiredAt >= now {
 				break
 			}
@@ -61,11 +61,10 @@ func (e *ExpiredMap) Set(key, value interface{}, aliveSecond int64) {
 	e.lck.Lock()
 	defer e.lck.Unlock()
 
-	expiredAt := time.Now().Unix() + aliveSecond
 	tmpData := &data{
 		key:       key,
 		val:       value,
-		expiredAt: expiredAt,
+		expiredAt: aliveSecond,
 	}
 	e.timeList.PushBack(tmpData)
 	e.m[key] = tmpData

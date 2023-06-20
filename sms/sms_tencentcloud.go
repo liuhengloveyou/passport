@@ -132,7 +132,7 @@ func (p *SmsTencentcloud) sendSms(phoneNumber []string, userSession string, Temp
 		panic(err)
 	}
 
-	if response.Response.SendStatusSet[0].Code != nil && len(*response.Response.SendStatusSet[0].Code) > 0 {
+	if response.Response.SendStatusSet[0].Code != nil && *response.Response.SendStatusSet[0].Code != "Ok" {
 		// 打印返回的json字符串
 		b, _ := json.Marshal(response.Response)
 		fmt.Printf("sms ERR: %v %v %v %v :: %s\n", phoneNumber[0], userSession, TemplateId, TemplateVals, b)
