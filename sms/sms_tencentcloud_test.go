@@ -1,4 +1,4 @@
-package tencentcloud
+package sms
 
 import "testing"
 

@@ -1,4 +1,4 @@
-package tencentcloud
+package sms
 
 import (
 	"encoding/json"
@@ -10,8 +10,6 @@ import (
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/errors"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 	txsms "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms/v20210111" // 引入sms
-
-	sms "github.com/liuhengloveyou/passport/sms"
 )
 
 type SmsTencentcloud struct {
@@ -24,10 +22,10 @@ type SmsTencentcloud struct {
 }
 
 func init() {
-	sms.Register("tencentcloud", NewSmsTencentcloud)
+	Register("tencentcloud", NewSmsTencentcloud)
 }
 
-func NewSmsTencentcloud(config map[string]interface{}) sms.Sms {
+func NewSmsTencentcloud(config map[string]interface{}) Sms {
 	tmp := &SmsTencentcloud{}
 	tmp.SecretID = config["secret_id"].(string)
 	tmp.SecretKey = config["secret_key"].(string)
