@@ -193,6 +193,8 @@ cellphone、email、nickname三个字段必须有一个且只有一个
 | cellphone |  否       |
 | email     |  否       |
 | nickname  |  否       |
+| sms  |  启用验证码的话，必填。否者不用填        |
+
 
 示例：
 
