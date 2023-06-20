@@ -28,9 +28,8 @@ type Sms interface {
 var smsFactoryByName = make(map[string]factoryFun)
 
 var (
-	defaultSms Sms = nil
-
-	codeCache *cache.ExpiredMap = nil
+	defaultSms Sms               = nil
+	codeCache  *cache.ExpiredMap = nil
 )
 
 func Register(name string, f factoryFun) {
