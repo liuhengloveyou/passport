@@ -23,6 +23,10 @@ type Sms interface {
 	// 发送用户注册/添加验证码
 	// 返回验证码
 	SendUserAddSms(phoneNumber string, aliveSecond int64) (code string, err error)
+
+	// 发送用户登录验证码
+	// 返回验证码
+	SendUserLoginSms(phoneNumber string, aliveSecond int64) (code string, err error)
 }
 
 var smsFactoryByName = make(map[string]factoryFun)
@@ -52,7 +56,7 @@ func Init(name string, config map[string]interface{}) error {
 
 func CheckSmsCode(phoneNumber, code string) error {
 	if defaultSms == nil {
-		return nil
+		return ErrSmsNotInit
 	}
 
 	found, value := codeCache.Get(phoneNumber)
@@ -68,6 +72,21 @@ func CheckSmsCode(phoneNumber, code string) error {
 }
 
 func SendUserAddSms(phoneNumber string, aliveSecond int64) (code string, err error) {
+	if defaultSms == nil {
+		return "", ErrSmsNotInit
+	}
+
+	if codeCache.TTL(phoneNumber) >= 0 {
+		return "", ErrSmsExist
+	}
+
+	code, err = defaultSms.SendUserAddSms(phoneNumber, aliveSecond)
+	codeCache.Set(phoneNumber, code, time.Now().Unix()+aliveSecond)
+
+	return
+}
+
+func SendUserLoginSms(phoneNumber string, aliveSecond int64) (code string, err error) {
 	if defaultSms == nil {
 		return "", ErrSmsNotInit
 	}

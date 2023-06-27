@@ -286,6 +286,8 @@ func userPreTreat(p *protos.UserReq) error {
 		}
 	}
 
+	p.SmsCode = strings.TrimSpace(p.SmsCode)
+
 	if e := common.Validate.Struct(p); e != nil {
 		return errors.New(e.(validator.ValidationErrors)[0].Translate(common.Trans))
 	}

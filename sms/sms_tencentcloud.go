@@ -18,7 +18,8 @@ type SmsTencentcloud struct {
 	SdkAppId  string
 	SignName  string
 
-	UserAddTemplateId string // 注册用户验证码短信模板ID
+	UserAddTemplateId   string // 注册用户验证码短信模板ID
+	UserLoginTemplateId string // 用户登录验证码短信模板ID
 }
 
 func init() {
@@ -31,10 +32,14 @@ func NewSmsTencentcloud(config map[string]interface{}) Sms {
 	tmp.SecretKey = config["secret_key"].(string)
 	tmp.SdkAppId = config["sdk_app_id"].(string)
 	tmp.SignName = config["sign_name"].(string)
-	tmp.UserAddTemplateId = config["user_add_template_id"].(string)
+	if _, ok := config["user_add_template_id"].(string); ok {
+		tmp.UserAddTemplateId = config["user_add_template_id"].(string)
+	}
+	if _, ok := config["user_login_template_id"].(string); ok {
+		tmp.UserLoginTemplateId = config["user_login_template_id"].(string)
+	}
 	if len(tmp.SecretID) == 0 ||
-		len(tmp.SecretKey) == 0 ||
-		len(tmp.UserAddTemplateId) == 0 {
+		len(tmp.SecretKey) == 0 {
 		return nil
 	}
 
@@ -46,6 +51,17 @@ func (p *SmsTencentcloud) SendUserAddSms(phoneNumber string, aliveSecond int64) 
 	code = fmt.Sprintf("%06v", rand.New(rand.NewSource((time.Now().UnixNano()))).Int31n(1000000))
 
 	if err = p.sendSms([]string{phoneNumber}, "", p.UserAddTemplateId, []string{code}); err != nil {
+		return
+	}
+
+	return
+}
+
+// 用户登录验证码
+func (p *SmsTencentcloud) SendUserLoginSms(phoneNumber string, aliveSecond int64) (code string, err error) {
+	code = fmt.Sprintf("%06v", rand.New(rand.NewSource((time.Now().UnixNano()))).Int31n(1000000))
+
+	if err = p.sendSms([]string{phoneNumber}, "", p.UserLoginTemplateId, []string{code}); err != nil {
 		return
 	}
 

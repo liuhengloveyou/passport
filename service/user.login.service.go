@@ -5,22 +5,21 @@ import (
 	"time"
 
 	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/protos"
-
-	. "github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/dao"
+	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/sms"
 
 	validator "github.com/go-playground/validator/v10"
 )
 
 func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
-	if user == nil || user.Password == "" || (user.Cellphone == "" && user.Nickname == "") {
+	if user == nil || (len(user.Password) == 0 && len(user.SmsCode) == 0) || (len(user.Cellphone) == 0 && len(user.Nickname) == 0) {
 		return nil, common.ErrParam
 	}
 
 	userPreTreat(user)
 
-	if err := Validate.Struct(user); err != nil {
+	if err := common.Validate.Struct(user); err != nil {
 		if errs, ok := err.(validator.ValidationErrors); ok {
 			switch errs[0].Field() {
 			case "Cellphone":
@@ -37,7 +36,9 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 		return nil, err
 	}
 
-	if user.Cellphone != "" {
+	if len(user.Cellphone) > 0 && len(user.SmsCode) > 0 {
+		one, e = loginBySmsCode(user)
+	} else if user.Cellphone != "" {
 		one, e = loginByCellphone(user)
 	} else if user.Email != "" {
 		one, e = loginByEmail(user)
@@ -61,7 +62,7 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 		return nil, common.ErrDisable
 	}
 
-	if EncryPWD(user.Password) != one.Password {
+	if len(user.Password) > 0 && (common.EncryPWD(user.Password) != one.Password) {
 		common.Logger.Sugar().Errorf("login pwd ERR: [%v] [%v] \n", user.Password, one.Password)
 		return nil, common.ErrPWD
 	}
@@ -95,6 +96,17 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 		}
 	}
 	common.Logger.Sugar().Errorf("UserLogin: %#v\n", one)
+
+	return
+}
+
+func loginBySmsCode(p *protos.UserReq) (one *protos.User, e error) {
+	e = sms.CheckSmsCode(p.Cellphone, p.SmsCode)
+	if e != nil && e != sms.ErrSmsNotInit {
+		return nil, e
+	}
+
+	one, e = dao.UserSelectOne(p)
 
 	return
 }

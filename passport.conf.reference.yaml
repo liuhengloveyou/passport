@@ -21,7 +21,8 @@ sms_conf:
   sdk_app_id: "xxx"
   sign_name: "xxx"
   user_add_template_id: "xxx"
-
+  user_login_template_id: "xxx"
+  
 wx_mini_app:
   appid: "wxf0bc577b0c0d9d50"
   secret: "a3be1c94d4bf8d5e8fdcddd85097e2e4"

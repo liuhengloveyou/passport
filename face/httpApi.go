@@ -273,6 +273,11 @@ func init() {
 			NeedLogin:  false,
 			NeedAccess: false,
 		},
+		"sms/sendUserLoginSms": {
+			Handler:    SendUserLoginSms,
+			NeedLogin:  false,
+			NeedAccess: false,
+		},
 	}
 
 	initWXAPI()
@@ -325,6 +330,21 @@ type PassportHttpServer struct {
 }
 
 func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	origin := r.Header.Get("Origin") //请求头部
+	if origin != "" {
+		r.Header.Add("Access-Control-Allow-Origin", origin)
+		r.Header.Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
+		r.Header.Add("Access-Control-Allow-Headers", "Origin, X-Requested-With, X-Extra-Header, Content-Type, Accept, Authorization")
+		r.Header.Add("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Cache-Control, Content-Language, Content-Type")
+		r.Header.Add("Access-Control-Allow-Credentials", "true")
+		r.Header.Add("Access-Control-Max-Age", "86400")  // 可选
+		r.Header.Set("content-type", "application/json") // 可选
+	}
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	apiName := r.Header.Get("X-API")
 	logger.Debugf("passport api: %v", apiName)
 	if apiName == "" {

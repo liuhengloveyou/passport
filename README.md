@@ -201,9 +201,9 @@ cellphone、email、nickname三个字段必须有一个且只有一个
 ```shell
 curl -v -H "X-API: user/register" -d \
 '{
-	"nickname": "17688396380",
+	"nickname": "17612116527",
 	"password": "123456"
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 
 {
 	"code":0,
@@ -727,6 +727,16 @@ curl -v -X POST -H "X-API: sms/sendUserAddSmsCode" -d \
 '{
   "cellphone": "17612116527",
   "aliveSec": 5
+}' "http://127.0.0.1:8080/usercenter"
+```
+
+### 发送用户登录验证码 
+
+```shell
+curl -v -X POST -H "X-API: sms/sendUserLoginSms" -d \
+'{
+  "cellphone": "17612116527",
+  "aliveSec": 60
 }' "http://127.0.0.1:8080/usercenter"
 ```
 
