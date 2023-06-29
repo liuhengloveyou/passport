@@ -1,10 +1,11 @@
 package face
 
 import (
+	"net/http"
+
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/sessions"
-	"net/http"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 	"github.com/liuhengloveyou/passport/service"
@@ -67,7 +68,6 @@ func userModify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gocommon.HttpErr(w, http.StatusOK, 0, "OK")
-	return
 }
 
 func modifyPWD(w http.ResponseWriter, r *http.Request) {
@@ -84,6 +84,26 @@ func modifyPWD(w http.ResponseWriter, r *http.Request) {
 
 	if _, err := service.UpdateUserPWD(uid, req.OldPwd, req.NewPwd); err != nil {
 		logger.Errorf("modifyPWD %d %v %s\n", uid, req, err.Error())
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+
+	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
+}
+
+func getbackPWD(w http.ResponseWriter, r *http.Request) {
+
+	req := protos.GetbackPwdReq{}
+	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Error("getbackPWD param ERR: ", err)
+		return
+	}
+
+	logger.Infof("getbackPWD body: %v\n", req)
+
+	if _, err := service.UpdateUserPWDBySms(req.Cellphone, req.SmsCode, req.NewPwd); err != nil {
+		logger.Errorf("getbackPWD ERR: %#v %s\n", req, err.Error())
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}

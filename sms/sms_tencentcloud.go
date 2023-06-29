@@ -18,8 +18,9 @@ type SmsTencentcloud struct {
 	SdkAppId  string
 	SignName  string
 
-	UserAddTemplateId   string // 注册用户验证码短信模板ID
-	UserLoginTemplateId string // 用户登录验证码短信模板ID
+	UserAddTemplateId    string // 注册用户验证码短信模板ID
+	UserLoginTemplateId  string // 用户登录验证码短信模板ID
+	GetBackPwdTemplateId string // 短信找回密码验证码短信模板ID
 }
 
 func init() {
@@ -38,6 +39,10 @@ func NewSmsTencentcloud(config map[string]interface{}) Sms {
 	if _, ok := config["user_login_template_id"].(string); ok {
 		tmp.UserLoginTemplateId = config["user_login_template_id"].(string)
 	}
+	if _, ok := config["getback_pwd_template_id"].(string); ok {
+		tmp.GetBackPwdTemplateId = config["getback_pwd_template_id"].(string)
+	}
+
 	if len(tmp.SecretID) == 0 ||
 		len(tmp.SecretKey) == 0 {
 		return nil
@@ -62,6 +67,17 @@ func (p *SmsTencentcloud) SendUserLoginSms(phoneNumber string, aliveSecond int64
 	code = fmt.Sprintf("%06v", rand.New(rand.NewSource((time.Now().UnixNano()))).Int31n(1000000))
 
 	if err = p.sendSms([]string{phoneNumber}, "", p.UserLoginTemplateId, []string{code}); err != nil {
+		return
+	}
+
+	return
+}
+
+// 发送用户找回密码验证码
+func (p *SmsTencentcloud) SendGetBackPwdSms(phoneNumber string, aliveSecond int64) (code string, err error) {
+	code = fmt.Sprintf("%06v", rand.New(rand.NewSource((time.Now().UnixNano()))).Int31n(1000000))
+
+	if err = p.sendSms([]string{phoneNumber}, "", p.GetBackPwdTemplateId, []string{code}); err != nil {
 		return
 	}
 

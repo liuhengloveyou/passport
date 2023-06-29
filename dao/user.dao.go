@@ -114,6 +114,17 @@ func UserUpdatePWD(UID uint64, oldPWD, newPWD string) (rows int64, e error) {
 	return rst.RowsAffected()
 }
 
+func UserUpdatePWDByCellphone(cellphone, newPWD string) (rows int64, e error) {
+	var rst sql.Result
+
+	rst, e = common.DB.Exec("UPDATE users SET password=? WHERE (cellphone=?)", newPWD, cellphone)
+	if e != nil {
+		return
+	}
+
+	return rst.RowsAffected()
+}
+
 func SetUserPWD(UID, tenantId uint64, PWD string) (rows int64, e error) {
 	var rst sql.Result
 

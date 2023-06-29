@@ -730,6 +730,16 @@ curl -v -X POST -H "X-API: sms/sendUserAddSmsCode" -d \
 }' "http://127.0.0.1:8080/usercenter"
 ```
 
+### 发送找回密码验证码 
+
+```shell
+curl -v -X POST -H "X-API: sms/sendGetBackPwdSms" -d \
+'{
+  "cellphone": "17612116527",
+  "aliveSec": 60
+}' "http://127.0.0.1:8080/usercenter"
+
+
 ### 发送用户登录验证码 
 
 ```shell

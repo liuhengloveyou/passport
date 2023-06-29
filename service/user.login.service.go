@@ -101,6 +101,10 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 }
 
 func loginBySmsCode(p *protos.UserReq) (one *protos.User, e error) {
+	if len(p.Cellphone) == 0 || len(p.SmsCode) == 0 {
+		return nil, common.ErrParam
+	}
+
 	e = sms.CheckSmsCode(p.Cellphone, p.SmsCode)
 	if e != nil && e != sms.ErrSmsNotInit {
 		return nil, e

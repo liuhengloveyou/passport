@@ -27,6 +27,10 @@ type Sms interface {
 	// 发送用户登录验证码
 	// 返回验证码
 	SendUserLoginSms(phoneNumber string, aliveSecond int64) (code string, err error)
+
+	// 发送用户找回密码验证码
+	// 返回验证码
+	SendGetBackPwdSms(phoneNumber string, aliveSecond int64) (code string, err error)
 }
 
 var smsFactoryByName = make(map[string]factoryFun)
@@ -96,6 +100,21 @@ func SendUserLoginSms(phoneNumber string, aliveSecond int64) (code string, err e
 	}
 
 	code, err = defaultSms.SendUserAddSms(phoneNumber, aliveSecond)
+	codeCache.Set(phoneNumber, code, time.Now().Unix()+aliveSecond)
+
+	return
+}
+
+func SendGetBackPwdSms(phoneNumber string, aliveSecond int64) (code string, err error) {
+	if defaultSms == nil {
+		return "", ErrSmsNotInit
+	}
+
+	if codeCache.TTL(phoneNumber) >= 0 {
+		return "", ErrSmsExist
+	}
+
+	code, err = defaultSms.SendGetBackPwdSms(phoneNumber, aliveSecond)
 	codeCache.Set(phoneNumber, code, time.Now().Unix()+aliveSecond)
 
 	return

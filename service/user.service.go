@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/sms"
 
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/dao"
@@ -139,6 +140,26 @@ func UpdateUserPWD(uid uint64, oldPWD, newPWD string) (rows int64, e error) {
 	oldPWD = common.EncryPWD(oldPWD)
 
 	rows, e = dao.UserUpdatePWD(uid, oldPWD, newPWD)
+	if rows < 1 {
+		return 0, common.ErrModify
+	}
+
+	return
+}
+
+func UpdateUserPWDBySms(cellphone, smsCode, newPWD string) (rows int64, e error) {
+	if len(cellphone) == 0 || len(smsCode) == 0 || len(newPWD) == 0 {
+		return 0, common.ErrParam
+	}
+
+	e = sms.CheckSmsCode(cellphone, smsCode)
+	if e != nil {
+		return -1, e
+	}
+
+	newPWD = common.EncryPWD(newPWD)
+
+	rows, e = dao.UserUpdatePWDByCellphone(cellphone, newPWD)
 	if rows < 1 {
 		return 0, common.ErrModify
 	}

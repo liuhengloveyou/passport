@@ -26,6 +26,12 @@ type ModifyPwdReq struct {
 	NewPwd string `json:"n" validate:"required,min=6,max=64"`
 }
 
+type GetbackPwdReq struct {
+	Cellphone string `json:"cellphone" validate:"required,phone,len=11"`
+	SmsCode   string `json:"sms" validate:"required,len=6"`
+	NewPwd    string `json:"n" validate:"required,min=6,max=64"`
+}
+
 type PolicyReq struct {
 	Role string `json:"role" validate:"required,max=100"`
 	Obj  string `json:"obj" validate:"required,min=1,max=100"`

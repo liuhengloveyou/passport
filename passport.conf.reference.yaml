@@ -22,6 +22,7 @@ sms_conf:
   sign_name: "xxx"
   user_add_template_id: "xxx"
   user_login_template_id: "xxx"
+  getback_pwd_template_id: "xxx"
   
 wx_mini_app:
   appid: "wxf0bc577b0c0d9d50"
