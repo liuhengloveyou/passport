@@ -327,6 +327,32 @@ curl -v -X POST -H "X-API: user/modify/password" --cookie "go-session-id=MTYxNDE
 }
 ```
 
+### 用短信更新密码
+
+
+
+| 参数 | 解释   | 是否必须 |
+| ---- | ------ | -------- |
+| cellphone    | 手机号码 | 是       |
+| sms    | 短信验证码 | 是       |
+| n    | 6~64位字符串新密码 | 是       |
+
+
+示例：
+```bash
+curl -v -X POST -H "X-API: user/modify/getbackpwd" -d \
+'{
+  "cellphone":"17612116527", 
+  "sms":"xxxxxx", 
+  "n":"new pwd",
+}' "http://127.0.0.1:8080/usercenter"
+
+{
+	"code":0,
+	"data":"OK"
+}
+```
+
 ### 更新头像
 
 ```

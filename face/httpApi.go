@@ -85,7 +85,7 @@ func init() {
 			Handler:   modifyPWD,
 			NeedLogin: true,
 		},
-		"user/modify/getbackPWD": {
+		"user/modify/getbackpwd": {
 			Handler:   getbackPWD,
 			NeedLogin: true,
 		},

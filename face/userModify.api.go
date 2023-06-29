@@ -92,7 +92,6 @@ func modifyPWD(w http.ResponseWriter, r *http.Request) {
 }
 
 func getbackPWD(w http.ResponseWriter, r *http.Request) {
-
 	req := protos.GetbackPwdReq{}
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
