@@ -87,7 +87,7 @@ func init() {
 		},
 		"user/modify/getbackpwd": {
 			Handler:   getbackPWD,
-			NeedLogin: true,
+			NeedLogin: false,
 		},
 		"user/modify/avatarForm": {
 			Handler:   modifyAvatarByForm,
@@ -282,7 +282,7 @@ func init() {
 			NeedLogin:  false,
 			NeedAccess: false,
 		},
-		"sms/SendGetBackPwdSms": {
+		"sms/sendGetBackPwdSms": {
 			Handler:    SendGetBackPwdSms,
 			NeedLogin:  false,
 			NeedAccess: false,
