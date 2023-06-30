@@ -764,7 +764,7 @@ curl -v -X POST -H "X-API: sms/sendGetBackPwdSms" -d \
   "cellphone": "17612116527",
   "aliveSec": 60
 }' "http://127.0.0.1:8080/usercenter"
-
+```
 
 ### 发送用户登录验证码 
 
