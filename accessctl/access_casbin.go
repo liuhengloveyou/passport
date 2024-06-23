@@ -37,11 +37,11 @@ func removePolicy(sub, domain, obj, act string) (err error) {
 	return
 }
 
-func getFilteredPolicy(domain string) [][]string {
+func getFilteredPolicy(domain string) ([][]string, error) {
 	return enforcer.GetFilteredPolicy(1, domain)
 }
 
-func HasPolicy(sub, domain, obj, act string) bool {
+func HasPolicy(sub, domain, obj, act string) (bool, error) {
 	return enforcer.HasPolicy(sub, domain, obj, act)
 }
 

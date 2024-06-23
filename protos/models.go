@@ -85,7 +85,7 @@ type Tenant struct {
 	ID            uint64               `json:"id" validate:"-" db:"id"`
 	UID           uint64               `json:"uid,omitempty" validate:"-" db:"uid"`
 	TenantName    string               `json:"tenantName" db:"tenant_name" validate:"omitempty,min=2,max=64"`
-	TenantType    string               `json:"tenantType" db:"tenant_type" validate:"omitempty,min=2,max=10"`
+	TenantType    string               `json:"tenantType" db:"tenant_type" validate:"omitempty,min=2,max=64"`
 	AddTime       *time.Time           `json:"addTime,omitempty" validate:"-" db:"add_time"`
 	UpdateTime    *time.Time           `json:"updateTime,omitempty" validate:"-" db:"update_time"`
 	Info          MapStruct            `json:"info,omitempty" db:"info"`
