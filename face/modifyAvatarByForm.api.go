@@ -2,14 +2,15 @@ package face
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strconv"
+
 	. "github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/service"
 	"github.com/liuhengloveyou/passport/sessions"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"strconv"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 )
@@ -26,7 +27,7 @@ func modifyAvatarByForm(w http.ResponseWriter, r *http.Request) {
 	}
 	if uid <= 0 {
 		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
-		logger.Error("modifyAvatarByForm session ERR.")
+		logger.Error("modifyAvatarByForm session ERR")
 		return
 	}
 
@@ -40,12 +41,14 @@ func modifyAvatarByForm(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseMultipartForm(32 << 20)
 
-	fileType := r.FormValue("type")
-	if fileType == "" {
-		logger.Error("FileUpload fileType nil")
-		gocommon.HttpErr(w, http.StatusBadRequest, -1, "文件类型错误")
-		return
-	}
+	fileType := "png"
+	// fileType := r.FormValue("ext_name")
+	// fmt.Println(">>>>>>>>>>>>>>>>>>", fileType, r.Form)
+	// if fileType == "" {
+	// 	logger.Error("FileUpload fileType nil")
+	// 	gocommon.HttpErr(w, http.StatusBadRequest, -1, "文件类型错误")
+	// 	return
+	// }
 
 	file, _, err := r.FormFile("file")
 	if err != nil {
@@ -55,13 +58,14 @@ func modifyAvatarByForm(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	fileBuff, err := ioutil.ReadAll(file)
+	fileBuff, err := io.ReadAll(file)
 	if err != nil {
 		logger.Error("FileUpload ReadAll err: ", err)
 		gocommon.HttpErr(w, http.StatusBadRequest, -1, "读上传文件错误")
 		return
 	}
 
+	fmt.Println("!!!!!!!!!!!!1", len(fileBuff), file)
 	dir = fmt.Sprintf("%s/", ServConfig.AvatarDir)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		gocommon.HttpErr(w, http.StatusOK, -1, "文件系统错误")
@@ -69,10 +73,10 @@ func modifyAvatarByForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fp = fmt.Sprintf("%s/%d%s", dir, uid, fileType)
+	fp = fmt.Sprintf("%s/%d.%s", dir, uid, fileType)
 	logger.Info("FileUpload fn: ", fp)
 
-	if err := ioutil.WriteFile(fp, fileBuff, 0755); err != nil {
+	if err := os.WriteFile(fp, fileBuff, 0755); err != nil {
 		logger.Error("FileUpload err: ", err)
 		gocommon.HttpErr(w, http.StatusInternalServerError, -1, "写文件失败")
 		return
@@ -81,13 +85,11 @@ func modifyAvatarByForm(w http.ResponseWriter, r *http.Request) {
 	logger.Info("FileUpload ok: ", fp)
 
 	// 更新用户信息到数据库
-	if _, err = service.UpdateUserService(&protos.UserReq{UID: uid, AvatarURL: fmt.Sprintf("avatar/%d%s", uid, fileType)}); err != nil {
+	if _, err = service.UpdateUserService(&protos.UserReq{UID: uid, AvatarURL: fmt.Sprintf("avatar/%d.%s", uid, fileType)}); err != nil {
 		logger.Errorf("modifyAvatarByForm service ERR: %v", err)
 		gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
 		return
 	}
 
 	gocommon.HttpErr(w, http.StatusOK, 0, fmt.Sprintf("%d%s", uid, fileType))
-
-	return
 }

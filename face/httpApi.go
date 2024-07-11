@@ -91,7 +91,7 @@ func init() {
 		},
 		"user/modify/avatarForm": {
 			Handler:   modifyAvatarByForm,
-			NeedLogin: false,
+			NeedLogin: true,
 		},
 		"user/s/1": {
 			Handler:   searchLite,
@@ -369,29 +369,34 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// t1 := time.Now()
 	if apiHandler.NeedLogin {
 		sess, auth := AuthFilter(r)
 		logger.Debug("passport session:", sess, auth)
 
-		if auth == false && sess == nil {
+		if !auth && sess == nil {
 			gocommon.HttpErr(w, http.StatusUnauthorized, -1, "请登录")
 			return
-		} else if auth == false && sess != nil {
+		} else if !auth && sess != nil {
 			gocommon.HttpErr(w, http.StatusForbidden, -1, "您没有权限")
 			return
 		}
 
 		r = r.WithContext(context.WithValue(context.Background(), "session", sess))
+
+		// fmt.Println("passport:STATE: authFilter: ", time.Since(t1).Milliseconds())
 	}
 
 	if apiHandler.NeedAccess {
-		if false == AccessFilter(r) {
+		if !AccessFilter(r) {
 			gocommon.HttpErr(w, http.StatusForbidden, -1, "您没有权限")
 			return
 		}
+		// fmt.Println("passport:STATE: accessFilter: ", time.Since(t1).Milliseconds())
 	}
 
 	apiHandler.Handler(w, r)
+	// fmt.Printf("passport:STATE: %v %v\n\n", apiName, time.Since(t1).Milliseconds())
 }
 
 func GetSessionUser(r *http.Request) (sessionUser protos.User) {

@@ -3,6 +3,7 @@ package accessctl
 import (
 	"database/sql"
 	"fmt"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +18,18 @@ import (
 
 var policyCache = make(map[string]bool, 10000)
 
+func finalizer(db *sql.DB) {
+	fmt.Println("finalizer: ", db.Stats())
+	if db == nil {
+		return
+	}
+
+	err := db.Close()
+	if err != nil {
+		panic(err)
+	}
+}
+
 func InitAccessControl(rbacModel, mysqlURN string) (err error) {
 	// connect to the database first.
 	db, err := sql.Open("mysql", mysqlURN)
@@ -29,7 +42,10 @@ func InitAccessControl(rbacModel, mysqlURN string) (err error) {
 	//defer db.Close()
 
 	db.SetMaxIdleConns(10)
+	db.SetMaxOpenConns(20)
 	db.SetConnMaxLifetime(time.Minute * 10)
+
+	runtime.SetFinalizer(db, finalizer)
 
 	// Initialize an adapter and use it in a Casbin enforcer:
 	// The adapter will use the Sqlite3 table name "casbin_rule_test",
@@ -44,7 +60,12 @@ func InitAccessControl(rbacModel, mysqlURN string) (err error) {
 		return err
 	}
 
-	enforcer.StartAutoLoadPolicy(time.Minute)
+	// Load the policy from DB.
+	if err = enforcer.LoadPolicy(); err != nil {
+		return err
+	}
+
+	// enforcer.StartAutoLoadPolicy(10 * time.Minute)
 
 	enforcer.AddFunction("MyMatch", func(args ...interface{}) (interface{}, error) {
 		rsub, rdom, _, _ := args[0].(string), args[1].(string), args[2].(string), args[3].(string)
@@ -124,6 +145,7 @@ func GetUsersForRoleInDomain(role string, tenantID uint64) (ids []uint64) {
 
 func AddPolicyToRole(tenantID uint64, role, obj, act string) (err error) {
 	return addPolicy(role, genDomainByTenantID(tenantID), obj, act)
+
 }
 
 func RemovePolicyFromRole(tenantID uint64, role, obj, act string) (err error) {

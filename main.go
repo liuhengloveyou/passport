@@ -3,11 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"math/rand"
 	"os"
 	"runtime"
 	"runtime/pprof"
-	"time"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 
@@ -21,7 +19,6 @@ var (
 	GitTag    string
 
 	showVer = flag.Bool("version", false, "show version")
-	initSys = flag.Bool("init", false, "初始化系统.")
 
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile `file`")
 	memprofile = flag.String("memprofile", "", "write memory profile to `file`")
@@ -37,7 +34,6 @@ func main() {
 	}
 
 	gocommon.SingleInstane(common.ServConfig.PidFile)
-	rand.Seed(time.Now().UnixNano())
 
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
