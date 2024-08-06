@@ -1,3 +1,4 @@
+// https://cloud.tencent.com/document/product/382/43199
 package sms
 
 import (

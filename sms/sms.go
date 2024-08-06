@@ -100,7 +100,11 @@ func SendUserLoginSms(phoneNumber string, aliveSecond int64) (code string, err e
 	}
 
 	code, err = defaultSms.SendUserAddSms(phoneNumber, aliveSecond)
-	codeCache.Set(phoneNumber, code, time.Now().Unix()+aliveSecond)
+	if err != nil {
+		return
+	} else {
+		codeCache.Set(phoneNumber, code, time.Now().Unix()+aliveSecond)
+	}
 
 	return
 }

@@ -17,20 +17,20 @@ func TenantUserAdd(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
-		logger.Error("TenantUserAdd TenantID ERR")
+		logger.Sugar().Error("TenantUserAdd TenantID ERR")
 		return
 	}
 
 	req := &protos.UserReq{}
 	if err := readJsonBodyFromRequest(r, req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("TenantUserAdd param ERR: ", err)
+		logger.Sugar().Error("TenantUserAdd param ERR: ", err)
 		return
 	}
-	logger.Infof("TenantUserAdd body: %#v\n", req)
+	logger.Sugar().Infof("TenantUserAdd body: %#v\n", req)
 	if len(req.Roles) > 10 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("TenantUserAdd param roles ERR")
+		logger.Sugar().Error("TenantUserAdd param roles ERR")
 		return
 
 	}
@@ -39,7 +39,7 @@ func TenantUserAdd(w http.ResponseWriter, r *http.Request) {
 		nuid, e := service.AddUserService(req)
 		if e != nil {
 			gocommon.HttpJsonErr(w, http.StatusOK, e)
-			logger.Error("TenantUserAdd AddUserService ERR: ", e)
+			logger.Sugar().Error("TenantUserAdd AddUserService ERR: ", e)
 			return
 		}
 
@@ -48,7 +48,7 @@ func TenantUserAdd(w http.ResponseWriter, r *http.Request) {
 
 	if err := service.TenantUserAdd(req.UID, sessionUser.TenantID, req.DepIds, req.Roles, req.Disable); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
-		logger.Error("TenantUserAdd service ERR: ", err)
+		logger.Sugar().Error("TenantUserAdd service ERR: ", err)
 		return
 	}
 
@@ -59,22 +59,22 @@ func TenantUserDel(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
-		logger.Error("TenantUserDel session ERR")
+		logger.Sugar().Error("TenantUserDel session ERR")
 		return
 	}
 
 	req := &protos.Tenant{} // 只用一个UID字段
 	if err := readJsonBodyFromRequest(r, req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("TenantUserDel param ERR: ", err)
+		logger.Sugar().Error("TenantUserDel param ERR: ", err)
 		return
 	}
-	logger.Infof("TenantUserDel body: %#v\n", req)
+	logger.Sugar().Infof("TenantUserDel body: %#v\n", req)
 
 	_, e := service.TenantUserDel(req.UID, sessionUser.TenantID)
 	if e != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, e)
-		logger.Error("TenantUserDel service ERR: ", e)
+		logger.Sugar().Error("TenantUserDel service ERR: ", e)
 	}
 
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
@@ -84,7 +84,7 @@ func TenantUserGet(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
-		logger.Error("TenantUserGet TenantID ERR")
+		logger.Sugar().Error("TenantUserGet TenantID ERR")
 		return
 	}
 
@@ -100,7 +100,7 @@ func TenantUserGet(w http.ResponseWriter, r *http.Request) {
 		uidss := strings.Split(uidStr, ",")
 		if len(uidss) <= 0 {
 			gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-			logger.Error("TenantUserGet uids ERR: ", uidStr)
+			logger.Sugar().Error("TenantUserGet uids ERR: ", uidStr)
 			return
 		}
 		uids = make([]uint64, len(uidss))
@@ -108,7 +108,7 @@ func TenantUserGet(w http.ResponseWriter, r *http.Request) {
 		for i, ouids := range uidss {
 			if uids[i], err = strconv.ParseUint(ouids, 10, 64); err != nil {
 				gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-				logger.Error("TenantUserGet uids ERR: ", uidStr, uidStr, uidss)
+				logger.Sugar().Error("TenantUserGet uids ERR: ", uidStr, uidStr, uidss)
 				return
 			}
 		}
@@ -129,7 +129,7 @@ func TenantUserGet(w http.ResponseWriter, r *http.Request) {
 	rr, e := service.TenantUserGet(sessionUser.TenantID, page, pageSize, nickname, uids, hasTotal == 1)
 	if e != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, e)
-		logger.Error("TenantUserGet db ERR: ", e)
+		logger.Sugar().Error("TenantUserGet db ERR: ", e)
 		return
 	}
 
@@ -146,19 +146,19 @@ func TenantUserSetDepartment(w http.ResponseWriter, r *http.Request) {
 	var req protos.SetDepartmentReq
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("TenantUserSetDepartment param ERR: ", err)
+		logger.Sugar().Error("TenantUserSetDepartment param ERR: ", err)
 		return
 	}
-	logger.Infof("TenantUserSetDepartment param: %v", req)
+	logger.Sugar().Infof("TenantUserSetDepartment param: %v", req)
 
 	if req.UID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("TenantUserSetDepartment param ERR: ", req)
+		logger.Sugar().Error("TenantUserSetDepartment param ERR: ", req)
 		return
 	}
 
 	if err := service.TenantUserSetDepartment(req.UID, sessionUser.TenantID, req.DepIds); err != nil {
-		logger.Errorf("TenantUserSetDepartment %v %s\n", req, err.Error())
+		logger.Sugar().Errorf("TenantUserSetDepartment %v %s\n", req, err.Error())
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
@@ -170,33 +170,33 @@ func TenantUserDisableByUID(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
-		logger.Error("TenantID ERR")
+		logger.Sugar().Error("TenantID ERR")
 		return
 	}
 
 	var req protos.DisableUserReq
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("TenantUserDisableByUID param ERR: ", err)
+		logger.Sugar().Error("TenantUserDisableByUID param ERR: ", err)
 		return
 	}
 
 	if req.UID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("TenantUserDisableByUID param ERR: ", req)
+		logger.Sugar().Error("TenantUserDisableByUID param ERR: ", req)
 		return
 	}
 
 	if req.Disable != 0 && req.Disable != 1 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("TenantUserDisableByUID param ERR: ", req)
+		logger.Sugar().Error("TenantUserDisableByUID param ERR: ", req)
 		return
 	}
 
-	logger.Infof("TenantUserDisableByUID %v\n", req)
+	logger.Sugar().Infof("TenantUserDisableByUID %v\n", req)
 
 	if err := service.TenantUserDisabledService(req.UID, sessionUser.TenantID, int8(req.Disable)); err != nil {
-		logger.Errorf("TenantUserDisableByUID %v %s\n", req, err.Error())
+		logger.Sugar().Errorf("TenantUserDisableByUID %v %s\n", req, err.Error())
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
@@ -208,20 +208,20 @@ func TenantUserModifyExtInfo(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
-		logger.Error("TenantID ERR")
+		logger.Sugar().Error("TenantID ERR")
 		return
 	}
 
 	var req protos.KvReq
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("TenantUserModifyExtInfo param ERR: ", err)
+		logger.Sugar().Error("TenantUserModifyExtInfo param ERR: ", err)
 		return
 	}
-	logger.Infof("TenantUserModifyExtInfo %v\n", req)
+	logger.Sugar().Infof("TenantUserModifyExtInfo %v\n", req)
 
 	if err := service.TenantUpdateUserExt(req.ID, sessionUser.TenantID, req.K, req.V); err != nil {
-		logger.Errorf("TenantUserModifyExtInfo %v %s\n", req, err.Error())
+		logger.Sugar().Errorf("TenantUserModifyExtInfo %v %s\n", req, err.Error())
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
@@ -239,14 +239,14 @@ func TenantUserModifyPWDByUID(w http.ResponseWriter, r *http.Request) {
 	var req map[string]interface{}
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("modifyPWDByID param ERR: ", err)
+		logger.Sugar().Error("modifyPWDByID param ERR: ", err)
 		return
 	}
 
 	uid, ok := req["uid"].(float64)
 	if !ok || uint64(uid) <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("modifyPWDByUID param ERR: ", req)
+		logger.Sugar().Error("modifyPWDByUID param ERR: ", req)
 		return
 	}
 
@@ -254,14 +254,14 @@ func TenantUserModifyPWDByUID(w http.ResponseWriter, r *http.Request) {
 	pwd = strings.TrimSpace(pwd)
 	if len(pwd) < 4 || len(pwd) > 16 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("modifyPWDByUID param ERR: ", req)
+		logger.Sugar().Error("modifyPWDByUID param ERR: ", req)
 		return
 	}
 
-	logger.Infof("modifyPWDByUID %v %s\n", uid, pwd)
+	logger.Sugar().Infof("modifyPWDByUID %v %s\n", uid, pwd)
 
 	if _, err := service.SetUserPWD(uint64(uid), sessionUser.TenantID, pwd); err != nil {
-		logger.Errorf("modifyPWDByUID %v %s %s\n", uid, pwd, err.Error())
+		logger.Sugar().Errorf("modifyPWDByUID %v %s %s\n", uid, pwd, err.Error())
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}

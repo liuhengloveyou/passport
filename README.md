@@ -878,13 +878,14 @@ CREATE SCHEMA `passport` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin ;
 CREATE TABLE `users` (
   `uid` bigint(64) NOT NULL AUTO_INCREMENT,
   `tenant_id` bigint(20) NOT NULL DEFAULT '0' COMMENT '租户ID',
-  `cellphone` varchar(11) COLLATE utf8_bin DEFAULT NULL COMMENT '手机号',
-  `email` varchar(255) COLLATE utf8_bin DEFAULT NULL COMMENT '邮件是址',
-  `nickname` varchar(255) COLLATE utf8_bin DEFAULT NULL COMMENT '昵称',
-  `password` varchar(255) COLLATE utf8_bin NOT NULL,
-  `avatar_url` varchar(255) COLLATE utf8_bin DEFAULT NULL COMMENT '头像URL',
+  `cellphone` varchar(11) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '手机号',
+  `email` varchar(255) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '邮件是址',
+  `nickname` varchar(255) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '昵称',
+  `wx_openid` varchar(64) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '微信openid',
+  `password` varchar(255) COLLATE utf8mb4_bin NOT NULL,
+  `avatar_url` varchar(255) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '头像URL',
   `gender` int(11) DEFAULT NULL COMMENT '性别；1=男，2=女',
-  `addr` varchar(100) COLLATE utf8_bin DEFAULT NULL COMMENT '通讯地址',
+  `addr` varchar(100) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '通讯地址',
   `ext` json DEFAULT NULL COMMENT '扩展信息',
   `add_time` datetime NOT NULL,
   `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -893,8 +894,9 @@ CREATE TABLE `users` (
   UNIQUE KEY `cellphone_UNIQUE` (`cellphone`),
   UNIQUE KEY `email_UNIQUE` (`email`),
   UNIQUE KEY `nickname_UNIQUE` (`nickname`),
+  UNIQUE KEY `wxopenid_UNIQUE` (`wx_openid`),
   KEY `tenant_index` (`tenant_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 CREATE TABLE `tenant` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,

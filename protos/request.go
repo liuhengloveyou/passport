@@ -12,6 +12,9 @@ type UserReq struct {
 	Gender    int32  `json:"gender" validate:"omitempty,min=1,max=2"`
 	SmsCode   string `json:"sms" validate:"omitempty,min=1,max=6"`
 
+	// 微信
+	WxOpenId string `json:"wxopenid,omitempty" validate:"-"`
+
 	Roles   []string  `json:"roles" validate:"-"`
 	DepIds  []uint64  `json:"depIds" validate:"-"`
 	Ext     MapStruct `json:"ext" validate:"-"` // 记录用户的扩展信息

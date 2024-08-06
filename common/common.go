@@ -23,9 +23,8 @@ import (
 )
 
 const (
-	SYS_PWD         = "When you forgive, You love. And when you love, God's light shines on you. Now, 2021"
-	SessionKey      = "go-session-id"
-	SessUserInfoKey = "sessionUserInfo"
+	SYS_PWD         = "When you forgive, You love. And when you love, God's light shines on you. Now, 2024"
+	SessUserInfoKey = "sessUser"
 	MAX_UPLOAD_LEN  = (8 * 1024 * 1024) // 最大上传文件大小
 )
 
@@ -60,6 +59,10 @@ func init() {
 		return
 	}
 
+	if len(ServConfig.SessionKey) == 0 {
+		panic("sessionKey nil.")
+	}
+
 	if e = InitWithOption(&ServConfig); e != nil {
 		log.Panic("InitWithOption ", e)
 	}
@@ -72,6 +75,12 @@ func init() {
 }
 
 func InitWithOption(option *protos.OptionStruct) (e error) {
+	if option.LogDir != "" && Logger == nil {
+		if err := InitLog(option.LogDir, option.LogLevel); err != nil {
+			return e
+		}
+	}
+
 	if option.MysqlURN != "" && DB == nil {
 		ServConfig.MysqlURN = option.MysqlURN
 		if e = InitMysql(option.MysqlURN); e != nil {
@@ -82,12 +91,6 @@ func InitWithOption(option *protos.OptionStruct) (e error) {
 	if option.RedisAddr != "" && RedisClient == nil {
 		ServConfig.RedisAddr = option.RedisAddr
 		if e = InitRedis(option.RedisAddr); e != nil {
-			return e
-		}
-	}
-
-	if option.LogDir != "" && Logger == nil {
-		if err := InitLog(option.LogDir, option.LogLevel); err != nil {
 			return e
 		}
 	}
@@ -108,8 +111,8 @@ func InitWithOption(option *protos.OptionStruct) (e error) {
 
 func InitLog(logDir, logLevel string) error {
 	writer, _ := rotatelogs.New(
-		logDir+"/log.%Y%m%d%H%M",
-		rotatelogs.WithLinkName("passport.log"),
+		logDir+"/passport.%Y%m%d%H%M",
+		rotatelogs.WithLinkName("log.passport"),
 		rotatelogs.WithMaxAge(7*24*time.Hour),
 		rotatelogs.WithRotationTime(time.Hour),
 	)
@@ -128,6 +131,7 @@ func InitLog(logDir, logLevel string) error {
 		level)
 
 	Logger = zap.New(core, zap.AddCaller())
+	Logger.Info("passport initLog OK\n")
 
 	return nil
 }
@@ -142,6 +146,7 @@ func InitMysql(urn string) (err error) {
 		panic(err)
 	}
 
+	fmt.Println("passport mysql inited.")
 	return nil
 }
 
@@ -155,6 +160,8 @@ func InitRedis(addr string) (err error) {
 	if _, e := RedisClient.Ping(context.Background()).Result(); e != nil {
 		panic(e)
 	}
+
+	fmt.Println("passport redis inited.")
 
 	return nil
 }

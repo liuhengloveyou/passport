@@ -7,6 +7,7 @@ log_level: "debug"
 redis: ""
 mysql: "root:lhisroot@tcp(127.0.0.1:3306)/passport?charset=utf8mb4&parseTime=True&loc=Local"
 
+session_key: "go-session"
 session_store_type: "mem" # cookie
 session_expire: 0 # -1: 删除；0: 本会话; >0...
 

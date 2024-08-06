@@ -46,10 +46,10 @@ func searchLite(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
-		logger.Error("searchLite ERR: " + err.Error())
+		logger.Sugar().Error("searchLite ERR: " + err.Error())
 		return
 	}
 
 	gocommon.HttpErr(w, http.StatusOK, 0, userInfos)
-	logger.Infof("searchLite OK: %#v %#v\n", k, userInfos)
+	logger.Sugar().Infof("searchLite OK: %#v %#v\n", k, userInfos)
 }

@@ -13,20 +13,17 @@ type OptionStruct struct {
 
 	AdminTenantID uint64 `yaml:"admin_tenant_id"` // admin接口只有一个租户有权限
 
+	SessionKey       string `yaml:"session_key"`
 	SessionStoreType string `yaml:"session_store_type"` // 会话存储类型；"cookie/mem/reids"
 	SessionExpire    int    `yaml:"session_expire"`
 
 	SmsDriveer string                 `yaml:"sms"`
 	SmsConf    map[string]interface{} `yaml:"sms_conf"`
 
-	WxMiniApp WxMiniAppStruct `yaml:"wx_mini_app"`
+	AppID     string `yaml:"wx_appid"`
+	AppSecret string `yaml:"wx_secret"`
 
 	ApiConf map[string]ApiConfStruct `yaml:"api_conf"`
-}
-
-type WxMiniAppStruct struct {
-	AppID     string `yaml:"appid"`
-	AppSecret string `yaml:"secret"`
 }
 
 type ApiConfStruct struct {

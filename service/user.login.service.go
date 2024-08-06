@@ -40,10 +40,10 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 		one, e = loginBySmsCode(user)
 	} else if user.Cellphone != "" {
 		one, e = loginByCellphone(user)
-	} else if user.Email != "" {
-		one, e = loginByEmail(user)
 	} else if user.Nickname != "" {
 		one, e = loginByNickname(user)
+	} else if user.Email != "" {
+		one, e = loginByEmail(user)
 	}
 
 	if e != nil {

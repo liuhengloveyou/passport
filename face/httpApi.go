@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"sync"
 
 	/*
@@ -36,7 +37,7 @@ import (
 var (
 	apis         map[string]Api
 	sessionStore sessions.Store
-	logger       *zap.SugaredLogger
+	logger       *zap.Logger
 
 	// 登录用户信息缓存
 	loginUserCache sync.Map
@@ -51,7 +52,7 @@ type Api struct {
 }
 
 func init() {
-	sessionStore = sessions.NewCookieStore([]byte(common.SessionKey))
+	sessionStore = sessions.NewCookieStore([]byte(common.ServConfig.SessionKey))
 	loginUserCache = sync.Map{}
 
 	apis = map[string]Api{
@@ -288,8 +289,6 @@ func init() {
 			NeedAccess: false,
 		},
 	}
-
-	initWXAPI()
 }
 
 func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
@@ -304,7 +303,7 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 		fmt.Println("InitAccessControl ERR: ", e)
 	}
 
-	logger = common.Logger.Sugar()
+	logger = common.Logger
 
 	sessPWD := md5.Sum([]byte(common.SYS_PWD))
 	switch common.ServConfig.SessionStoreType {
@@ -316,9 +315,12 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 	}
 
 	handler = &PassportHttpServer{}
+	// 网页授权
+	// https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/Wechat_webpage_authorization.html
+	http.HandleFunc("/usercenter/wx/h5auth", h5Auth)
+	http.Handle("/usercenter", handler)
 
 	if common.ServConfig.Addr != "" {
-		http.Handle("/usercenter", handler)
 		s := &http.Server{
 			Addr:           common.ServConfig.Addr,
 			ReadTimeout:    10 * time.Minute,
@@ -355,16 +357,20 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	apiName := r.Header.Get("X-API")
-	logger.Debugf("passport api: %v", apiName)
 	if apiName == "" {
-		//gocommon.HttpErr(w, http.StatusBadRequest, -1, "?API")
-		logger.Warnf("?API: %v", r.RemoteAddr)
+		URL, _ := url.Parse(r.RequestURI)
+		apiName = URL.Path
+	}
+	logger.Debug("?API: %v %v\n", zap.String("RemoteAddr", r.RemoteAddr), zap.String("RequestURI", r.RequestURI))
+	if apiName == "" {
+
+		gocommon.HttpErr(w, http.StatusMethodNotAllowed, -1, "?API")
 		return
 	}
 
 	apiHandler, ok := apis[apiName]
 	if !ok {
-		logger.Warnf("no found api: %v\n", apiName)
+		logger.Warn("no found api: %v\n", zap.String("apiName", apiName))
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
@@ -372,7 +378,7 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// t1 := time.Now()
 	if apiHandler.NeedLogin {
 		sess, auth := AuthFilter(r)
-		logger.Debug("passport session:", sess, auth)
+		logger.Sugar().Debug("passport session:", sess, auth)
 
 		if !auth && sess == nil {
 			gocommon.HttpErr(w, http.StatusUnauthorized, -1, "请登录")
@@ -420,9 +426,9 @@ func GetSessionUser(r *http.Request) (sessionUser protos.User) {
 func AuthFilter(r *http.Request) (sess *sessions.Session, auth bool) {
 	var err error
 
-	sess, err = sessionStore.Get(r, common.SessionKey)
+	sess, err = sessionStore.Get(r, common.ServConfig.SessionKey)
 	if err != nil {
-		logger.Error("session ERR: ", err)
+		logger.Error("session ERR: ", zap.Error(err))
 		return nil, false
 	}
 
@@ -442,12 +448,13 @@ func AuthFilter(r *http.Request) (sess *sessions.Session, auth bool) {
 	uid := sess.Values[common.SessUserInfoKey].(protos.User).UID
 	userInfo, ok := loginUserCache.Load(uid)
 	if userInfo == nil || !ok || time.Now().Unix()-userInfo.(*protos.User).CacheTime > 600 {
-		logger.Warnf("AuthFilter: user %v not found", uid)
 		userInfo, _ = service.GetUserInfo(uid)
 	}
 	if userInfo == nil {
+		logger.Sugar().Warnf("AuthFilter: user %v not found\n", uid)
 		return nil, false // 用户已经不存在
 	}
+
 	userInfo.(*protos.User).CacheTime = time.Now().Unix()
 	loginUserCache.Store(uid, userInfo) // 缓存账号信息
 
@@ -460,14 +467,14 @@ func AuthFilter(r *http.Request) (sess *sessions.Session, auth bool) {
 }
 
 func AccessFilter(r *http.Request) bool {
-	sess, err := sessionStore.Get(r, common.SessionKey)
+	sess, err := sessionStore.Get(r, common.ServConfig.SessionKey)
 	if err != nil {
-		logger.Errorf("AccessFilter sessionStore.Get ERR: %v", err)
+		logger.Error("AccessFilter sessionStore.Get ERR ", zap.Error(err))
 		return false
 	}
 	sessUser := sess.Values[common.SessUserInfoKey].(protos.User)
 	if sessUser.UID <= 0 {
-		logger.Errorf("AccessFilter sessUser ERR: %#v", sessUser)
+		logger.Error("AccessFilter sessUser ERR: ", zap.Any("sess", sessUser))
 		return false
 	}
 
@@ -479,15 +486,15 @@ func AccessFilter(r *http.Request) bool {
 		obj = r.RequestURI
 	}
 	if obj == "" {
-		logger.Errorf("AccessFilter obj ERR")
+		logger.Error("AccessFilter obj ERR")
 		return false // 不知道需要访问什么资源
 	}
-	logger.Debugf("AccessFilter obj: %v\n", obj)
+	logger.Sugar().Debug("AccessFilter obj: %v\n", obj)
 
 	// 管理接口只有指定的租户可用
 	if strings.HasPrefix(obj, "admin/") {
 		if sessUser.TenantID != common.ServConfig.AdminTenantID {
-			logger.Warnf("only admin; obj: %v; %v; sess: %v", obj, common.ServConfig.AdminTenantID, sessUser)
+			logger.Sugar().Warnf("only admin; obj: %v; %v; sess: %v\n", obj, common.ServConfig.AdminTenantID, sessUser)
 			return false
 		}
 	}
@@ -506,13 +513,13 @@ func AccessFilter(r *http.Request) bool {
 
 		needAccess = apiConf.NeedAccess
 	}
-	logger.Debugf("AccessFilter needAccess: %v %v", obj, needAccess)
+	logger.Sugar().Debugf("AccessFilter needAccess: %v %v", obj, needAccess)
 
 	if needAccess {
 		access, err := accessctl.Enforce(sessUser.UID, sessUser.TenantID, obj, r.Method)
-		logger.Debugf("AccessFilter: %v %v %v %v %v\n", sessUser.UID, sessUser.TenantID, obj, r.Method, access)
+		logger.Sugar().Debugf("AccessFilter: %v %v %v %v %v\n", sessUser.UID, sessUser.TenantID, obj, r.Method, access)
 		if err != nil {
-			logger.Errorf("AccessFilter Enforce ERR: %v\n", err)
+			logger.Sugar().Errorf("AccessFilter Enforce ERR: %v\n", err)
 			return false
 		}
 
@@ -527,9 +534,9 @@ func readJsonBodyFromRequest(r *http.Request, dst interface{}, bodyMaxLen int) e
 	if err != nil {
 		return err
 	}
-	logger.Debugf("request body: '%v'\n", string(body))
+	logger.Sugar().Debugf("request body: '%v'\n", string(body))
 	if len(body) >= bodyMaxLen {
-		logger.Errorf("readJsonBodyFromRequest len ERR: %d %d\n", len(body), bodyMaxLen)
+		logger.Error("readJsonBodyFromRequest len ERR: ", zap.Int("body", len(body)), zap.Int("bodyMaxLen", bodyMaxLen))
 		return common.ErrParam
 	}
 
@@ -539,7 +546,7 @@ func readJsonBodyFromRequest(r *http.Request, dst interface{}, bodyMaxLen int) e
 
 	if err = common.Validate.Struct(dst); err != nil {
 		if _, ok := err.(*validator.InvalidValidationError); !ok {
-			logger.Errorf("readJsonBodyFromRequest Validate ERR: %v \n", err.Error())
+			logger.Error("readJsonBodyFromRequest Validate ERR: ", zap.Error(err))
 			return common.ErrParam
 		}
 	}

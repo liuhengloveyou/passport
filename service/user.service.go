@@ -29,7 +29,7 @@ func AddUserService(p *protos.UserReq) (id uint64, e error) {
 	}
 
 	if p.Cellphone != "" {
-		if duplicatePhone(p.Cellphone) == true {
+		if duplicatePhone(p.Cellphone) {
 			return 0, common.ErrPhoneDup
 		}
 		if p.Nickname == "" {
@@ -38,7 +38,7 @@ func AddUserService(p *protos.UserReq) (id uint64, e error) {
 	}
 
 	if p.Email != "" {
-		if duplicateEmail(p.Email) == true {
+		if duplicateEmail(p.Email) {
 			return 0, common.ErrEmailDup
 		}
 		if p.Nickname == "" {
@@ -47,8 +47,14 @@ func AddUserService(p *protos.UserReq) (id uint64, e error) {
 	}
 
 	if p.Nickname != "" {
-		if duplicateNickname(p.Nickname) == true {
+		if duplicateNickname(p.Nickname) {
 			return 0, common.ErrNickDup
+		}
+	}
+
+	if len(p.WxOpenId) > 0 {
+		if duplicateWxOpenid(p.WxOpenId) {
+			return 0, common.ErrWxOpenidDup
 		}
 	}
 
@@ -107,19 +113,19 @@ func UpdateUserService(p *protos.UserReq) (rows int64, e error) {
 	}
 
 	if p.Cellphone != "" {
-		if duplicatePhone(p.Cellphone) == true {
+		if duplicatePhone(p.Cellphone) {
 			return -1, fmt.Errorf("电话号码重复")
 		}
 	}
 
 	if p.Email != "" {
-		if duplicateEmail(p.Email) == true {
+		if duplicateEmail(p.Email) {
 			return -1, fmt.Errorf("邮箱重复")
 		}
 	}
 
 	if p.Nickname != "" {
-		if duplicateNickname(p.Nickname) == true {
+		if duplicateNickname(p.Nickname) {
 			return -1, fmt.Errorf("昵称重复")
 		}
 	}
@@ -280,7 +286,23 @@ func duplicateNickname(nickname string) (has bool) {
 	if len(rr) == 0 {
 		return false
 	}
-	if rr[0].UID <= 0 {
+	if rr[0].UID > 0 {
+		return true
+	}
+
+	return false
+
+}
+
+func duplicateWxOpenid(openid string) (has bool) {
+	rr, err := dao.UserSelect(&protos.UserReq{WxOpenId: openid}, 1, 100)
+	if err != nil {
+		return false
+	}
+	if len(rr) == 0 {
+		return false
+	}
+	if rr[0].UID > 0 {
 		return true
 	}
 

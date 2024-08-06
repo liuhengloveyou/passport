@@ -24,33 +24,33 @@ func TenantAdd(w http.ResponseWriter, r *http.Request) {
 
 	if err := readJsonBodyFromRequest(r, req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("tenantAdd param ERR: ", err)
+		logger.Sugar().Error("tenantAdd param ERR: ", err)
 		return
 	}
-	logger.Infof("tenantAdd body: %#v\n", req)
+	logger.Sugar().Infof("tenantAdd body: %#v\n", req)
 
 	req.TenantName = strings.TrimSpace(req.TenantName)
 	req.TenantType = strings.TrimSpace(req.TenantType)
 	if req.TenantName == "" {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNameNull)
-		logger.Error("tenantAdd param ERR: ", req)
+		logger.Sugar().Error("tenantAdd param ERR: ", req)
 		return
 	}
 	if req.TenantType == "" {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantTypeNull)
-		logger.Error("tenantAdd param ERR: ", req)
+		logger.Sugar().Error("tenantAdd param ERR: ", req)
 		return
 	}
 
 	uid, err := service.TenantAdd(req)
 	if err != nil {
-		logger.Error("tenantAdd service ERR: ", err)
+		logger.Sugar().Error("tenantAdd service ERR: ", err)
 
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
 
-	logger.Info("user add ok:", uid)
+	logger.Sugar().Info("user add ok:", uid)
 	gocommon.HttpErr(w, http.StatusOK, 0, uid)
 
 	return
@@ -60,7 +60,7 @@ func TenantGetRole(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
-		logger.Error("GetRole TenantID ERR")
+		logger.Sugar().Error("GetRole TenantID ERR")
 		return
 	}
 
@@ -80,13 +80,13 @@ func TenantRoleAdd(w http.ResponseWriter, r *http.Request) {
 	req := protos.RoleStruct{}
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("RoleAdd param ERR: ", err)
+		logger.Sugar().Error("RoleAdd param ERR: ", err)
 		return
 	}
-	logger.Infof("RoleAdd body: %#v\n", req)
+	logger.Sugar().Infof("RoleAdd body: %#v\n", req)
 
 	if err := service.TenantAddRole(sessionUser.TenantID, req); err != nil {
-		logger.Error("TenantAddRole service ERR: ", err)
+		logger.Sugar().Error("TenantAddRole service ERR: ", err)
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
@@ -105,13 +105,13 @@ func TenantRoleDel(w http.ResponseWriter, r *http.Request) {
 	req := protos.RoleStruct{}
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("TenantRoleDel param ERR: ", err)
+		logger.Sugar().Error("TenantRoleDel param ERR: ", err)
 		return
 	}
-	logger.Infof("TenantRoleDel body: %#v\n", req)
+	logger.Sugar().Infof("TenantRoleDel body: %#v\n", req)
 
 	if err := service.TenantDelRole(sessionUser.TenantID, req); err != nil {
-		logger.Error("TenantRoleDel service ERR: ", err)
+		logger.Sugar().Error("TenantRoleDel service ERR: ", err)
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
@@ -132,12 +132,12 @@ func LoadConfiguration(w http.ResponseWriter, r *http.Request) {
 
 	confMap, err := service.TenantLoadConfiguration(sessionUser.TenantID, k)
 	if err != nil {
-		logger.Error("LoadConfiguration service ERR: ", err)
+		logger.Sugar().Error("LoadConfiguration service ERR: ", err)
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
 
-	logger.Debug("LoadConfiguration OK:", sessionUser.UID, sessionUser.TenantID, confMap)
+	logger.Sugar().Debug("LoadConfiguration OK:", sessionUser.UID, sessionUser.TenantID, confMap)
 	gocommon.HttpErr(w, http.StatusOK, 0, confMap)
 }
 
@@ -151,14 +151,14 @@ func UpdateConfiguration(w http.ResponseWriter, r *http.Request) {
 	var req map[string]interface{}
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("UpdateConfiguration param ERR: ", err)
+		logger.Sugar().Error("UpdateConfiguration param ERR: ", err)
 		return
 	}
 
-	logger.Infof("UpdateConfiguration: %v\n", req)
+	logger.Sugar().Infof("UpdateConfiguration: %v\n", req)
 
 	if err := service.TenantUpdateConfiguration(sessionUser.TenantID, req); err != nil {
-		logger.Error("UpdateConfiguration service ERR: ", err)
+		logger.Sugar().Error("UpdateConfiguration service ERR: ", err)
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
@@ -176,14 +176,14 @@ func TenantModifyPWDByUID(w http.ResponseWriter, r *http.Request) {
 	var req map[string]interface{}
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("modifyPWDByID param ERR: ", err)
+		logger.Sugar().Error("modifyPWDByID param ERR: ", err)
 		return
 	}
 
 	uid, ok := req["uid"].(float64)
 	if !ok || uint64(uid) <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("modifyPWDByUID param ERR: ", req)
+		logger.Sugar().Error("modifyPWDByUID param ERR: ", req)
 		return
 	}
 
@@ -191,14 +191,14 @@ func TenantModifyPWDByUID(w http.ResponseWriter, r *http.Request) {
 	pwd = strings.TrimSpace(pwd)
 	if len(pwd) < 4 || len(pwd) > 16 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("modifyPWDByUID param ERR: ", req)
+		logger.Sugar().Error("modifyPWDByUID param ERR: ", req)
 		return
 	}
 
-	logger.Infof("modifyPWDByUID %v %s\n", uid, pwd)
+	logger.Sugar().Infof("modifyPWDByUID %v %s\n", uid, pwd)
 
 	if _, err := service.SetUserPWD(uint64(uid), sessionUser.TenantID, pwd); err != nil {
-		logger.Errorf("modifyPWDByUID %v %s %s\n", uid, pwd, err.Error())
+		logger.Sugar().Errorf("modifyPWDByUID %v %s %s\n", uid, pwd, err.Error())
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}

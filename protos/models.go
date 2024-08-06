@@ -18,7 +18,7 @@ type PageResponse struct {
 }
 
 type User struct {
-	UID        uint64       `json:"uid,omitempty" validate:"-" db:"uid"` // 正常要从10000开始往上自增，100以下保留内部使用
+	UID        uint64       `json:"uid,omitempty" validate:"-" db:"uid"` // 正常要从10000开始往上自增，10000以下保留内部使用
 	TenantID   uint64       `json:"tenant_id,omitempty" validate:"-" db:"tenant_id"`
 	Password   string       `json:"password,omitempty" validate:"required,min=6,max=256" db:"password"`
 	Cellphone  *null.String `json:"cellphone,omitempty" validate:"omitempty,len=11" db:"cellphone"`
@@ -43,6 +43,9 @@ type User struct {
 		}
 	*/
 	Ext MapStruct `json:"ext,omitempty" validate:"-" db:"ext"` // 记录用户的扩展信息
+
+	// 微信
+	WxOpenId string `json:"wxopenid,omitempty" validate:"-" db:"wx_openid"`
 
 	CacheTime int64 `json:"-" validate:"-" db:"-"` // 缓存到内存的时间
 }

@@ -22,23 +22,23 @@ func addDepartment(w http.ResponseWriter, r *http.Request) {
 	var req protos.Department
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Errorf("addDepartment param ERR: %v\n", err)
+		logger.Sugar().Errorf("addDepartment param ERR: %v\n", err)
 		return
 	}
 
 	req.TenantID = sessionUser.TenantID
 	req.UserId = sessionUser.UID
-	logger.Info("addDepartment: ", req)
+	logger.Sugar().Info("addDepartment: ", req)
 
 	lastInsertId, err := service.DepartmentCreate(&req)
 	if err != nil {
-		logger.Errorf("addDepartment service ERR: %v\n", err)
+		logger.Sugar().Errorf("addDepartment service ERR: %v\n", err)
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
 
 	gocommon.HttpErr(w, http.StatusOK, 0, lastInsertId)
-	logger.Info("addDepartment OK: ", lastInsertId, req)
+	logger.Sugar().Info("addDepartment OK: ", lastInsertId, req)
 }
 
 func deleteDepartment(w http.ResponseWriter, r *http.Request) {
@@ -50,17 +50,17 @@ func deleteDepartment(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 	id, _ := strconv.ParseUint(r.FormValue("id"), 10, 64)
-	logger.Infof("deleteDepartment id: %v\n", id)
+	logger.Sugar().Infof("deleteDepartment id: %v\n", id)
 
 	err := service.DepartmentDelete(id, sessionUser.TenantID)
 	if err != nil {
-		logger.Errorf("deleteDepartment service ERR: %v\n", err)
+		logger.Sugar().Errorf("deleteDepartment service ERR: %v\n", err)
 		gocommon.HttpErr(w, http.StatusOK, -1, err)
 		return
 	}
 
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
-	logger.Infof("deleteDepartment id: %v\n", id)
+	logger.Sugar().Infof("deleteDepartment id: %v\n", id)
 }
 
 func listDepartment(w http.ResponseWriter, r *http.Request) {
@@ -72,17 +72,17 @@ func listDepartment(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 	id, _ := strconv.ParseUint(r.FormValue("id"), 10, 64)
-	logger.Infof("listDepartment id: %v\n", id)
+	logger.Sugar().Infof("listDepartment id: %v\n", id)
 
 	list, err := service.DepartmentFind(id, sessionUser.TenantID)
 	if err != nil {
-		logger.Errorf("listDepartment service ERR: %v\n", err)
+		logger.Sugar().Errorf("listDepartment service ERR: %v\n", err)
 		gocommon.HttpErr(w, http.StatusOK, -1, err)
 		return
 	}
 
 	gocommon.HttpErr(w, http.StatusOK, 0, list)
-	logger.Infof("listDepartment id: %v %v\n", id, len(list))
+	logger.Sugar().Infof("listDepartment id: %v %v\n", id, len(list))
 }
 
 func updateDepartment(w http.ResponseWriter, r *http.Request) {
@@ -94,22 +94,22 @@ func updateDepartment(w http.ResponseWriter, r *http.Request) {
 
 	var req protos.Department
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
-		logger.Errorf("updateDepartment param ERR: %v\n", err)
+		logger.Sugar().Errorf("updateDepartment param ERR: %v\n", err)
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
-	logger.Info("updateDepartment: ", req)
+	logger.Sugar().Info("updateDepartment: ", req)
 	req.TenantID = sessionUser.TenantID
 
 	err := service.DepartmentUpdate(&req)
 	if err != nil {
-		logger.Errorf("updateDepartment service ERR: %v\n", err)
+		logger.Sugar().Errorf("updateDepartment service ERR: %v\n", err)
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
 
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
-	logger.Info("updateDepartment OK: ", req)
+	logger.Sugar().Info("updateDepartment OK: ", req)
 }
 
 func updateDepartmentConfig(w http.ResponseWriter, r *http.Request) {
@@ -122,18 +122,18 @@ func updateDepartmentConfig(w http.ResponseWriter, r *http.Request) {
 	var req protos.KvReq
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("updateDepartmentConfig param ERR: ", err)
+		logger.Sugar().Error("updateDepartmentConfig param ERR: ", err)
 		return
 	}
-	logger.Infof("updateDepartmentConfig %d %d %v\n", sessionUser.UID, sessionUser.TenantID, req)
+	logger.Sugar().Infof("updateDepartmentConfig %d %d %v\n", sessionUser.UID, sessionUser.TenantID, req)
 
 	err := service.DepartmentUpdateConfig(req.ID, sessionUser.UID, sessionUser.TenantID, req.K, req.V)
 	if err != nil {
-		logger.Errorf("updateDepartmentConfig service ERR: %v\n", err)
+		logger.Sugar().Errorf("updateDepartmentConfig service ERR: %v\n", err)
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
 
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
-	logger.Info("updateDepartmentConfig OK: ", req)
+	logger.Sugar().Info("updateDepartmentConfig OK: ", req)
 }

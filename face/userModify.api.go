@@ -21,13 +21,13 @@ func userModify(w http.ResponseWriter, r *http.Request) {
 	user := &protos.UserReq{}
 	if err := readJsonBodyFromRequest(r, user, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("userLogin param ERR: ", err)
+		logger.Sugar().Error("userLogin param ERR: ", err)
 		return
 	}
-	logger.Infof("userModify: %#v\n", user)
+	logger.Sugar().Infof("userModify: %#v\n", user)
 
 	info := sess.Values[common.SessUserInfoKey].(protos.User)
-	logger.Info("userModify", user, info)
+	logger.Sugar().Info("userModify", user, info)
 
 	if info.Cellphone != nil && user.Cellphone == info.Cellphone.String {
 		user.Cellphone = "" // 不需要更新
@@ -42,19 +42,19 @@ func userModify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Gender < 0 || user.Gender > 2 {
-		logger.Error("userModify gender ERR: ", user.Gender)
+		logger.Sugar().Error("userModify gender ERR: ", user.Gender)
 		gocommon.HttpErr(w, http.StatusBadRequest, -1, "性别取值错误")
 		return
 	}
 
 	if user.AvatarURL != "" && len(user.AvatarURL) > 128 {
-		logger.Error("userModify AvatarURL ERR: ", user.AvatarURL)
+		logger.Sugar().Error("userModify AvatarURL ERR: ", user.AvatarURL)
 		gocommon.HttpErr(w, http.StatusBadRequest, -1, "头像地址过长")
 		return
 	}
 
 	if user.Addr != "" && len(user.Addr) > 256 {
-		logger.Error("userModify Addr ERR: ", user.Addr)
+		logger.Sugar().Error("userModify Addr ERR: ", user.Addr)
 		gocommon.HttpErr(w, http.StatusBadRequest, -1, "地址过长")
 		return
 	}
@@ -62,7 +62,7 @@ func userModify(w http.ResponseWriter, r *http.Request) {
 	user.UID = info.UID
 
 	if _, err := service.UpdateUserService(user); err != nil {
-		logger.Error(*user, err)
+		logger.Sugar().Error(*user, err)
 		gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
 		return
 	}
@@ -76,14 +76,14 @@ func modifyPWD(w http.ResponseWriter, r *http.Request) {
 	req := protos.ModifyPwdReq{}
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("modifyPWD param ERR: ", err)
+		logger.Sugar().Error("modifyPWD param ERR: ", err)
 		return
 	}
 
-	logger.Infof("modifyPWD body: %v %v\n", uid, req)
+	logger.Sugar().Infof("modifyPWD body: %v %v\n", uid, req)
 
 	if _, err := service.UpdateUserPWD(uid, req.OldPwd, req.NewPwd); err != nil {
-		logger.Errorf("modifyPWD %d %v %s\n", uid, req, err.Error())
+		logger.Sugar().Errorf("modifyPWD %d %v %s\n", uid, req, err.Error())
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
@@ -95,14 +95,14 @@ func getbackPWD(w http.ResponseWriter, r *http.Request) {
 	req := protos.GetbackPwdReq{}
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("getbackPWD param ERR: ", err)
+		logger.Sugar().Error("getbackPWD param ERR: ", err)
 		return
 	}
 
-	logger.Infof("getbackPWD body: %v\n", req)
+	logger.Sugar().Infof("getbackPWD body: %v\n", req)
 
 	if _, err := service.UpdateUserPWDBySms(req.Cellphone, req.SmsCode, req.NewPwd); err != nil {
-		logger.Errorf("getbackPWD ERR: %#v %s\n", req, err.Error())
+		logger.Sugar().Errorf("getbackPWD ERR: %#v %s\n", req, err.Error())
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}

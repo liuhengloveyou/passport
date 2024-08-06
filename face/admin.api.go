@@ -1,12 +1,13 @@
 package face
 
 import (
-	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/service"
 	"net/http"
 	"strconv"
 	"strings"
+
+	gocommon "github.com/liuhengloveyou/go-common"
+	"github.com/liuhengloveyou/passport/common"
+	"github.com/liuhengloveyou/passport/service"
 )
 
 func TenantList(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +29,7 @@ func TenantList(w http.ResponseWriter, r *http.Request) {
 	rr, e := service.TenantList(page, pageSize, hasTotal == 1)
 	if e != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, e)
-		logger.Error("TenantList ERR: ", e)
+		logger.Sugar().Error("TenantList ERR: ", e)
 		return
 	}
 
@@ -41,28 +42,28 @@ func UpdateTenantConfiguration(w http.ResponseWriter, r *http.Request) {
 	var req map[string]interface{}
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("UpdateTenantConfiguration param ERR: ", err)
+		logger.Sugar().Error("UpdateTenantConfiguration param ERR: ", err)
 		return
 	}
 
 	tenantID, ok := req["tenant_id"].(float64)
 	if !ok {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("UpdateTenantConfiguration param tenantID nil")
+		logger.Sugar().Error("UpdateTenantConfiguration param tenantID nil")
 		return
 	}
 
 	data, ok := req["data"].(map[string]interface{})
 	if !ok {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("UpdateTenantConfiguration param data nil")
+		logger.Sugar().Error("UpdateTenantConfiguration param data nil")
 		return
 	}
 
-	logger.Infof("UpdateTenantConfiguration : %v\n", req)
+	logger.Sugar().Infof("UpdateTenantConfiguration : %v\n", req)
 
 	if err := service.TenantUpdateConfiguration(uint64(tenantID), data); err != nil {
-		logger.Error("UpdateTenantConfiguration service ERR: ", err)
+		logger.Sugar().Error("UpdateTenantConfiguration service ERR: ", err)
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
@@ -76,14 +77,14 @@ func modifyPWDByUID(w http.ResponseWriter, r *http.Request) {
 	var req map[string]interface{}
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("modifyPWDByID param ERR: ", err)
+		logger.Sugar().Error("modifyPWDByID param ERR: ", err)
 		return
 	}
 
 	uid, ok := req["uid"].(float64)
 	if !ok || uint64(uid) <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("modifyPWDByUID param ERR: ", req)
+		logger.Sugar().Error("modifyPWDByUID param ERR: ", req)
 		return
 	}
 
@@ -91,14 +92,14 @@ func modifyPWDByUID(w http.ResponseWriter, r *http.Request) {
 	pwd = strings.TrimSpace(pwd)
 	if len(pwd) < 4 || len(pwd) > 16 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("modifyPWDByUID param ERR: ", req)
+		logger.Sugar().Error("modifyPWDByUID param ERR: ", req)
 		return
 	}
 
-	logger.Infof("modifyPWDByUID %v %s\n", uid, pwd)
+	logger.Sugar().Infof("modifyPWDByUID %v %s\n", uid, pwd)
 
 	if _, err := service.SetUserPWD(uint64(uid), 0, pwd); err != nil {
-		logger.Errorf("modifyPWDByUID %v %s %s\n", uid, pwd, err.Error())
+		logger.Sugar().Errorf("modifyPWDByUID %v %s %s\n", uid, pwd, err.Error())
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}

@@ -3,13 +3,13 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
-	"time"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 )
-
 
 type miniAppService struct {
 	AppID     string
@@ -44,7 +44,6 @@ func (p *miniAppService) Login(code string) (*protos.MiniAppSessionInfo, error) 
 	return sessionInfo, nil
 }
 
-
 func (p *miniAppService) WxMiniAppUserInfoUpdate(req protos.WxMiniAppUserInfoUpdateReq) {
 	//
 	//rows, e := dao.UserUpdateExt(uid, &userInfo.Ext)
@@ -59,4 +58,3 @@ func (p *miniAppService) WxMiniAppUserInfoUpdate(req protos.WxMiniAppUserInfoUpd
 	//return nil
 
 }
-

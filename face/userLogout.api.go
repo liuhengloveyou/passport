@@ -16,9 +16,9 @@ func userLogout(w http.ResponseWriter, r *http.Request) {
 		uid = r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User).UID
 	}
 
-	session, err := sessionStore.New(r, common.SessionKey)
+	session, err := sessionStore.New(r, common.ServConfig.SessionKey)
 	if err != nil {
-		logger.Error("userLogout session ERR: ", err)
+		logger.Sugar().Error("userLogout session ERR: ", err)
 		gocommon.HttpErr(w, http.StatusOK, -1, "会话错误")
 		return
 	}
@@ -27,12 +27,12 @@ func userLogout(w http.ResponseWriter, r *http.Request) {
 	session.Options.MaxAge = -1
 
 	if err := session.Save(r, w); err != nil {
-		logger.Error("userLogout session ERR: ", err)
+		logger.Sugar().Error("userLogout session ERR: ", err)
 		gocommon.HttpErr(w, http.StatusOK, -1, "会话错误")
 		return
 	}
 
-	logger.Infof("userLogout ok: %v\n", uid)
+	logger.Sugar().Infof("userLogout ok: %v\n", uid)
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
 
 	return

@@ -30,6 +30,9 @@ func UserInsert(p *protos.UserReq) (id int64, e error) {
 	if len(p.Ext) > 0 {
 		data["ext"] = p.Ext
 	}
+	if len(p.WxOpenId) > 0 {
+		data["wx_openid"] = p.WxOpenId
+	}
 
 	sql, vals, err := builder.Insert(data).Into(table).ToSQL()
 	common.Logger.Sugar().Debugf("%v %v %v\n", sql, vals, err)
@@ -229,6 +232,9 @@ func UserSelect(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.User, e
 	}
 	if p.Nickname != "" {
 		eq["nickname"] = p.Nickname
+	}
+	if len(p.WxOpenId) > 0 {
+		eq["wx_openid"] = p.WxOpenId
 	}
 
 	sql, args, err := sq.Select("*").Offset((pageNo - 1) * pageSize).Limit(pageSize).Where(eq).From("users").ToSql()

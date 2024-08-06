@@ -17,25 +17,25 @@ func userAdd(w http.ResponseWriter, r *http.Request) {
 	user := &protos.UserReq{}
 	if err := readJsonBodyFromRequest(r, user, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		logger.Error("userAdd param ERR: ", err)
+		logger.Sugar().Error("userAdd param ERR: ", err)
 		return
 	}
-	logger.Infof("userAdd body: %#v\n", user)
+	logger.Sugar().Infof("userAdd body: %#v\n", user)
 
 	if user.Cellphone == "" && user.Email == "" && user.Nickname == "" {
-		logger.Error("userAdd ERR: 用户手机号和邮箱地址同时为空")
+		logger.Sugar().Error("userAdd ERR: 用户手机号和邮箱地址同时为空")
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
 	if user.Password == "" {
-		logger.Error("userAdd ERR: 用户密码为空")
+		logger.Sugar().Error("userAdd ERR: 用户密码为空")
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrPWD)
 		return
 	}
 
 	if len(user.Cellphone) > 0 {
 		if err := sms.CheckSmsCode(user.Cellphone, user.SmsCode); err != nil && err != sms.ErrSmsNotInit {
-			logger.Error("userAdd ERR: 短信验证码错误")
+			logger.Sugar().Error("userAdd ERR: 短信验证码错误")
 			gocommon.HttpJsonErr(w, http.StatusOK, err)
 			return
 		}
@@ -43,7 +43,7 @@ func userAdd(w http.ResponseWriter, r *http.Request) {
 
 	uid, err := service.AddUserService(user)
 	if err != nil {
-		logger.Error("userAdd service.AddUser ERR: ", err)
+		logger.Sugar().Error("userAdd service.AddUser ERR: ", err)
 		if merr, ok := err.(*mysql.MySQLError); ok {
 			if merr.Number == 1062 {
 				gocommon.HttpJsonErr(w, http.StatusOK, common.ErrMysql1062)
@@ -55,7 +55,7 @@ func userAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Info("user add ok:", uid)
+	logger.Sugar().Info("user add ok:", uid)
 	gocommon.HttpErr(w, http.StatusOK, 0, uid)
 
 	return

@@ -16,16 +16,22 @@ type MiniAppSessionInfo struct {
 	MiniAppErr
 
 	Code       string `json:"code,omitempty"`
-	Openid     string `json:"openid,omitempty"`
 	SessionKey string `json:"session_key,omitempty"`
 	ExpiresIn  int    `json:"expires_in,omitempty"`
 	LoginAt    int64  `json:"login_at,omitempty"`
 
+	// weixin拉取用户信息(需scope为 snsapi_userinfo)
+	Openid     string `json:"openid,omitempty"`
+	NickName   string `json:"nickname"`
+	Sex        int    `json:"sex"`
+	Province   string `json:"province"`
+	City       string `json:"city"`
+	Country    string `json:"country"`
+	HeadImgUrl string `json:"headimgurl"`
+
+	//
 	UserId             string `json:"uid,omitempty"`
 	Avatar             string `json:"avatar"`
-	Province           string `json:"province"`
-	City               string `json:"city"`
-	NickName           string `json:"nick_name"`
 	IsStudentCertified string `json:"is_student_certified"`
 	UserType           string `json:"user_type"`
 	UserStatus         string `json:"user_status"`
@@ -34,13 +40,16 @@ type MiniAppSessionInfo struct {
 }
 
 func (p *MiniAppSessionInfo) UserKey() string {
-	if p.UserId != "" {
-		return p.UserId // 支付宝
-	} else if p.Openid != "" {
-		return p.Openid // 微信
+	// 微信/支付宝都用openid.
+	// 但是支付宝的太长, 截断先
+
+	key := p.Openid
+	if len(key) > 45 {
+		key = key[:40]
 	}
 
-	return ""
+	return key
+
 }
 
 // /////////////////////////////////////////////////////////////////////////////
