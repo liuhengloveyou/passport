@@ -361,9 +361,7 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		URL, _ := url.Parse(r.RequestURI)
 		apiName = URL.Path
 	}
-	logger.Debug("?API: %v %v\n", zap.String("RemoteAddr", r.RemoteAddr), zap.String("RequestURI", r.RequestURI))
 	if apiName == "" {
-
 		gocommon.HttpErr(w, http.StatusMethodNotAllowed, -1, "?API")
 		return
 	}
@@ -381,9 +379,11 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		logger.Sugar().Debug("passport session:", sess, auth)
 
 		if !auth && sess == nil {
+			logger.Warn("session nil.")
 			gocommon.HttpErr(w, http.StatusUnauthorized, -1, "请登录")
 			return
 		} else if !auth && sess != nil {
+			logger.Warn("auth false.")
 			gocommon.HttpErr(w, http.StatusForbidden, -1, "您没有权限")
 			return
 		}
@@ -395,6 +395,7 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if apiHandler.NeedAccess {
 		if !AccessFilter(r) {
+			logger.Warn("access false.")
 			gocommon.HttpErr(w, http.StatusForbidden, -1, "您没有权限")
 			return
 		}
@@ -489,7 +490,7 @@ func AccessFilter(r *http.Request) bool {
 		logger.Error("AccessFilter obj ERR")
 		return false // 不知道需要访问什么资源
 	}
-	logger.Sugar().Debug("AccessFilter obj: %v\n", obj)
+	logger.Sugar().Debugf("AccessFilter obj: %v\n", obj)
 
 	// 管理接口只有指定的租户可用
 	if strings.HasPrefix(obj, "admin/") {

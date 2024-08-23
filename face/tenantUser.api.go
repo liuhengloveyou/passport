@@ -9,6 +9,7 @@ import (
 	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/service"
 	"github.com/liuhengloveyou/passport/sessions"
+	"go.uber.org/zap"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 )
@@ -82,6 +83,7 @@ func TenantUserDel(w http.ResponseWriter, r *http.Request) {
 
 func TenantUserGet(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	logger.Debug("TenantUserGet session", zap.Any("session", sessionUser))
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		logger.Sugar().Error("TenantUserGet TenantID ERR")
@@ -94,6 +96,7 @@ func TenantUserGet(w http.ResponseWriter, r *http.Request) {
 	hasTotal, _ := strconv.ParseUint(r.FormValue("hasTotal"), 10, 64)
 	nickname := strings.TrimSpace(r.FormValue("nickname"))
 	uidStr := r.FormValue("uids")
+	logger.Info("TenantUserGet: ", zap.Any("uids", uidStr), zap.String("nickname", nickname), zap.Uint64("total", hasTotal))
 
 	var uids []uint64
 	if uidStr != "" {

@@ -238,7 +238,7 @@ func AddPolicyToRole(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
-
+	logger.Sugar().Infoln("AddPolicyToRole ", sessionUser.TenantID, req.Role, req.Obj, req.Act)
 	if err := accessctl.AddPolicyToRole(sessionUser.TenantID, req.Role, req.Obj, req.Act); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
 		return

@@ -63,7 +63,7 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 	}
 
 	if len(user.Password) > 0 && (common.EncryPWD(user.Password) != one.Password) {
-		common.Logger.Sugar().Errorf("login pwd ERR: [%v] [%v] \n", user.Password, one.Password)
+		common.Logger.Sugar().Errorf("login pwd ERR: [%v] [%v] [%v]\n", user.Password, common.EncryPWD(user.Password), one.Password)
 		return nil, common.ErrPWD
 	}
 

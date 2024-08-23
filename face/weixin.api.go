@@ -200,3 +200,25 @@ func WxMiniAppUserInfoUpdate(w http.ResponseWriter, r *http.Request) {
 
 	gocommon.HttpErr(w, http.StatusOK, 0, "OK")
 }
+
+func SetWxUserToSession(w http.ResponseWriter, r *http.Request, userInfo *protos.User) {
+	if userInfo == nil {
+		return
+	}
+
+	r.Header.Del("Cookie") // 删除老的会话信息
+	session, err := sessionStore.New(r, common.ServConfig.SessionKey)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
+		logger.Error("SetWxUserToSession session ERR: ", zap.Error(err))
+		return
+	}
+
+	session.Values[common.SessUserInfoKey] = userInfo
+
+	if err := session.Save(r, w); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
+		logger.Error("SetWxUserToSession session ERR: ", zap.Error(err))
+		return
+	}
+}
