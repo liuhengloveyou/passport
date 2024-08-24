@@ -121,10 +121,11 @@ func TenantDelRole(tenantId uint64, role protos.RoleStruct) error {
 		common.Logger.Sugar().Errorf("TenantDelRole db ERR: %v\n", err)
 		return common.ErrService
 	}
-	common.Logger.Sugar().Debugf("tenant: %v\n", tenant)
+	common.Logger.Sugar().Infof("tenant: %v\n", tenant)
 	if nil == tenant {
 		return common.ErrTenantNotFound
 	}
+	common.Logger.Sugar().Infof("tenant: %v %v\n", role, tenant.Configuration.Roles)
 
 	i := 0
 	for ; i < len(tenant.Configuration.Roles); i++ {
@@ -132,9 +133,13 @@ func TenantDelRole(tenantId uint64, role protos.RoleStruct) error {
 			break
 		}
 	}
-	tenant.Configuration.Roles = append(tenant.Configuration.Roles[:i], tenant.Configuration.Roles[i+1:]...)
 
-	return dao.TenantUpdateConfiguration(tenant)
+	if i < len(tenant.Configuration.Roles) {
+		tenant.Configuration.Roles = append(tenant.Configuration.Roles[:i], tenant.Configuration.Roles[i+1:]...)
+		return dao.TenantUpdateConfiguration(tenant)
+	}
+
+	return nil
 }
 
 func TenantGetRole(tenantId uint64) (roles []protos.RoleStruct) {

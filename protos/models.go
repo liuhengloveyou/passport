@@ -62,6 +62,7 @@ type UserLite struct {
 	UID       uint64       `json:"uid,omitempty" validate:"-" db:"uid"` // 正常要从10000开始往上自增，100以下保留内部使用
 	TenantID  uint64       `json:"tenant_id,omitempty" validate:"-" db:"tenant_id"`
 	Nickname  *null.String `json:"nickname,omitempty" validate:"omitempty,min=2,max=64" db:"nickname"`
+	Cellphone *null.String `json:"cellphone,omitempty" validate:"omitempty,len=11" db:"cellphone"`
 	AvatarURL *null.String `json:"avatarUrl" db:"avatar_url"`
 	Ext       MapStruct    `json:"ext,omitempty" validate:"-" db:"ext"` // 记录用户的扩展信息
 }
