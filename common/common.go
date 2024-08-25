@@ -10,16 +10,16 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/liuhengloveyou/passport/protos"
-	"github.com/liuhengloveyou/passport/sms"
-
-	redis "github.com/go-redis/redis/v8"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
-	gocommon "github.com/liuhengloveyou/go-common"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	gocommon "github.com/liuhengloveyou/go-common"
+	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/sms"
 )
 
 const (

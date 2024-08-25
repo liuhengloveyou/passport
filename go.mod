@@ -3,16 +3,20 @@ module github.com/liuhengloveyou/passport
 go 1.22
 
 require (
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/Blank-Xu/sql-adapter v1.0.0
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/bytedance/sonic v1.11.9 // indirect
+	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/casbin/casbin/v2 v2.98.0
+	github.com/casbin/govaluate v1.2.0 // indirect
+	github.com/cloudwego/base64x v0.1.4 // indirect
+	github.com/cloudwego/iasm v0.2.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.4 // indirect
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-playground/locales v0.14.1
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.22.0
-	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/gorilla/securecookie v1.1.2
 	github.com/jmoiron/sqlx v1.4.0
@@ -20,6 +24,7 @@ require (
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/liuhengloveyou/go-common v0.0.0-20221114072452-55965afc96b8
 	github.com/liuhengloveyou/go-errors v0.0.0-20211025085721-e6717f3d23d1
+	github.com/redis/go-redis/v9 v9.6.1
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	go.uber.org/zap v1.27.0
 	golang.org/x/arch v0.8.0 // indirect
@@ -54,12 +59,4 @@ require (
 	golang.org/x/text v0.16.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-)
-
-require (
-	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/bytedance/sonic/loader v0.1.1 // indirect
-	github.com/casbin/govaluate v1.2.0 // indirect
-	github.com/cloudwego/base64x v0.1.4 // indirect
-	github.com/cloudwego/iasm v0.2.0 // indirect
 )
