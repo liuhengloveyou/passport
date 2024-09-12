@@ -35,5 +35,4 @@ func userLogout(w http.ResponseWriter, r *http.Request) {
 	logger.Sugar().Infof("userLogout ok: %v\n", uid)
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
 
-	return
 }

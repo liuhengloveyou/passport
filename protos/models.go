@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"time"
 
-	null "gopkg.in/guregu/null.v3/zero"
+	null "gopkg.in/guregu/null.v4/zero"
 )
 
 const (
 	DepartmentExtKey = "deps"
+
+	WX_MP_AUTH_UID = 100
+	ALI_AUTH_UID   = 101
 )
 
 type PageResponse struct {
@@ -18,23 +21,30 @@ type PageResponse struct {
 }
 
 type User struct {
-	UID        uint64       `json:"uid,omitempty" validate:"-" db:"uid"` // 正常要从10000开始往上自增，10000以下保留内部使用
-	TenantID   uint64       `json:"tenant_id,omitempty" validate:"-" db:"tenant_id"`
-	Password   string       `json:"password,omitempty" validate:"required,min=6,max=256" db:"password"`
-	Cellphone  *null.String `json:"cellphone,omitempty" validate:"omitempty,len=11" db:"cellphone"`
-	Email      *null.String `json:"email,omitempty" validate:"omitempty,email" db:"email"`
-	Nickname   *null.String `json:"nickname,omitempty" validate:"omitempty,min=2,max=64" db:"nickname"`
-	AvatarURL  *null.String `json:"avatarUrl,omitempty" db:"avatar_url"`
-	Addr       *null.String `json:"addr,omitempty" db:"addr"`
-	Gender     *null.Int    `json:"gender,omitempty" db:"gender"`
-	AddTime    *time.Time   `json:"addTime,omitempty" validate:"-" db:"add_time"`
-	UpdateTime *time.Time   `json:"updateTime,omitempty" validate:"-" db:"update_time"`
-	DeleteTime *time.Time   `json:"deleteTime,omitempty" validate:"-" db:"delete_time"`
-	LoginTime  *time.Time   `json:"loginTime,omitempty" validate:"-" db:"login_time"`
+	UID       uint64       `json:"uid,omitempty" validate:"-" db:"uid"` // 正常要从10000开始往上自增，10000以下保留内部使用
+	TenantID  uint64       `json:"tenant_id,omitempty" validate:"-" db:"tenant_id"`
+	Password  string       `json:"password,omitempty" validate:"required,min=6,max=256" db:"password"`
+	Cellphone *null.String `json:"cellphone,omitempty" validate:"omitempty,len=11" db:"cellphone"`
+	Email     *null.String `json:"email,omitempty" validate:"omitempty,email" db:"email"`
+	Nickname  *null.String `json:"nickname,omitempty" validate:"omitempty,min=2,max=64" db:"nickname"`
+	AvatarURL *null.String `json:"avatarUrl,omitempty" db:"avatar_url"`
+	Addr      *null.String `json:"addr,omitempty" db:"addr"`
+	Gender    *null.Int    `json:"gender,omitempty" db:"gender"`
+
+	Province *null.String `json:"province,omitempty" db:"province"`
+	City     *null.String `json:"city,omitempty" db:"city"`
+
+	AddTime    *time.Time `json:"addTime,omitempty" validate:"-" db:"add_time"`
+	UpdateTime *time.Time `json:"updateTime,omitempty" validate:"-" db:"update_time"`
+	DeleteTime *time.Time `json:"deleteTime,omitempty" validate:"-" db:"delete_time"`
+	LoginTime  *time.Time `json:"loginTime,omitempty" validate:"-" db:"login_time"`
 
 	Tenant      *Tenant      `json:"tenant,omitempty" validate:"-" db:"tenant"`
 	Roles       []RoleStruct `json:"roles,omitempty" validate:"-"`
 	Departments []Department `json:"departments,omitempty" validate:"-"`
+
+	WxOpenId *null.String `json:"wxopenid,omitempty" validate:"omitempty,min=2,max=64" db:"wx_openid"` // 微信
+
 	/*
 		{
 			"disabled": [1 | 0]
@@ -43,9 +53,6 @@ type User struct {
 		}
 	*/
 	Ext MapStruct `json:"ext,omitempty" validate:"-" db:"ext"` // 记录用户的扩展信息
-
-	// 微信
-	WxOpenId string `json:"wxopenid,omitempty" validate:"-" db:"wx_openid"`
 
 	CacheTime int64 `json:"-" validate:"-" db:"-"` // 缓存到内存的时间
 }

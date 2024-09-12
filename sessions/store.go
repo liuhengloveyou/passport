@@ -6,14 +6,15 @@ package sessions
 
 import (
 	"encoding/base32"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
+)
 
-	"github.com/gorilla/securecookie"
+const (
+	// File name prefix for session files.
+	sessionFilePrefix = "session_"
 )
 
 // Store is an interface for custom session stores.
@@ -49,10 +50,12 @@ type Store interface {
 // AES-128, AES-192, or AES-256 modes.
 func NewCookieStore(keyPairs ...[]byte) *CookieStore {
 	cs := &CookieStore{
-		Codecs: securecookie.CodecsFromPairs(keyPairs...),
+		Codecs: CodecsFromPairs(keyPairs...),
 		Options: &Options{
-			Path:   "/",
-			MaxAge: 86400 * 30,
+			Path:     "/",
+			MaxAge:   86400 * 30,
+			SameSite: http.SameSiteNoneMode,
+			Secure:   true,
 		},
 	}
 
@@ -62,7 +65,7 @@ func NewCookieStore(keyPairs ...[]byte) *CookieStore {
 
 // CookieStore stores sessions using secure cookies.
 type CookieStore struct {
-	Codecs  []securecookie.Codec
+	Codecs  []Codec
 	Options *Options // default configuration
 }
 
@@ -74,7 +77,9 @@ type CookieStore struct {
 // It returns a new session and an error if the session exists but could
 // not be decoded.
 func (s *CookieStore) Get(r *http.Request, name string) (*Session, error) {
-	return GetRegistry(r).Get(s, name)
+	reg := GetRegistry(r)
+
+	return reg.Get(s, name)
 }
 
 // New returns a session for the given name without adding it to the registry.
@@ -89,7 +94,7 @@ func (s *CookieStore) New(r *http.Request, name string) (*Session, error) {
 	session.IsNew = true
 	var err error
 	if c, errCookie := r.Cookie(name); errCookie == nil {
-		err = securecookie.DecodeMulti(name, c.Value, &session.Values, s.Codecs...)
+		err = DecodeMulti(name, c.Value, &session.Values, s.Codecs...)
 		if err == nil {
 			session.IsNew = false
 		}
@@ -100,7 +105,8 @@ func (s *CookieStore) New(r *http.Request, name string) (*Session, error) {
 // Save adds a single session to the response.
 func (s *CookieStore) Save(r *http.Request, w http.ResponseWriter,
 	session *Session) error {
-	encoded, err := securecookie.EncodeMulti(session.Name(), session.Values, s.Codecs...)
+	encoded, err := EncodeMulti(session.Name(), session.Values,
+		s.Codecs...)
 	if err != nil {
 		return err
 	}
@@ -116,7 +122,7 @@ func (s *CookieStore) MaxAge(age int) {
 
 	// Set the maxAge for each securecookie instance.
 	for _, codec := range s.Codecs {
-		if sc, ok := codec.(*securecookie.SecureCookie); ok {
+		if sc, ok := codec.(*SecureCookie); ok {
 			sc.MaxAge(age)
 		}
 	}
@@ -137,7 +143,7 @@ func NewFilesystemStore(path string, keyPairs ...[]byte) *FilesystemStore {
 		path = os.TempDir()
 	}
 	fs := &FilesystemStore{
-		Codecs: securecookie.CodecsFromPairs(keyPairs...),
+		Codecs: CodecsFromPairs(keyPairs...),
 		Options: &Options{
 			Path:   "/",
 			MaxAge: 86400 * 30,
@@ -155,7 +161,7 @@ func NewFilesystemStore(path string, keyPairs ...[]byte) *FilesystemStore {
 //
 // This store is still experimental and not well tested. Feedback is welcome.
 type FilesystemStore struct {
-	Codecs  []securecookie.Codec
+	Codecs  []Codec
 	Options *Options // default configuration
 	path    string
 }
@@ -165,7 +171,7 @@ type FilesystemStore struct {
 // The default for a new FilesystemStore is 4096.
 func (s *FilesystemStore) MaxLength(l int) {
 	for _, c := range s.Codecs {
-		if codec, ok := c.(*securecookie.SecureCookie); ok {
+		if codec, ok := c.(*SecureCookie); ok {
 			codec.MaxLength(l)
 		}
 	}
@@ -188,7 +194,7 @@ func (s *FilesystemStore) New(r *http.Request, name string) (*Session, error) {
 	session.IsNew = true
 	var err error
 	if c, errCookie := r.Cookie(name); errCookie == nil {
-		err = securecookie.DecodeMulti(name, c.Value, &session.ID, s.Codecs...)
+		err = DecodeMulti(name, c.Value, &session.ID, s.Codecs...)
 		if err == nil {
 			err = s.load(session)
 			if err == nil {
@@ -198,6 +204,8 @@ func (s *FilesystemStore) New(r *http.Request, name string) (*Session, error) {
 	}
 	return session, err
 }
+
+var base32RawStdEncoding = base32.StdEncoding.WithPadding(base32.NoPadding)
 
 // Save adds a single session to the response.
 //
@@ -209,7 +217,7 @@ func (s *FilesystemStore) Save(r *http.Request, w http.ResponseWriter,
 	session *Session) error {
 	// Delete if max-age is <= 0
 	if session.Options.MaxAge <= 0 {
-		if err := s.erase(session); err != nil {
+		if err := s.erase(session); err != nil && !os.IsNotExist(err) {
 			return err
 		}
 		http.SetCookie(w, NewCookie(session.Name(), "", session.Options))
@@ -219,14 +227,13 @@ func (s *FilesystemStore) Save(r *http.Request, w http.ResponseWriter,
 	if session.ID == "" {
 		// Because the ID is used in the filename, encode it to
 		// use alphanumeric characters only.
-		session.ID = strings.TrimRight(
-			base32.StdEncoding.EncodeToString(
-				securecookie.GenerateRandomKey(32)), "=")
+		session.ID = base32RawStdEncoding.EncodeToString(
+			GenerateRandomKey(32))
 	}
 	if err := s.save(session); err != nil {
 		return err
 	}
-	encoded, err := securecookie.EncodeMulti(session.Name(), session.ID,
+	encoded, err := EncodeMulti(session.Name(), session.ID,
 		s.Codecs...)
 	if err != nil {
 		return err
@@ -243,7 +250,7 @@ func (s *FilesystemStore) MaxAge(age int) {
 
 	// Set the maxAge for each securecookie instance.
 	for _, codec := range s.Codecs {
-		if sc, ok := codec.(*securecookie.SecureCookie); ok {
+		if sc, ok := codec.(*SecureCookie); ok {
 			sc.MaxAge(age)
 		}
 	}
@@ -251,27 +258,27 @@ func (s *FilesystemStore) MaxAge(age int) {
 
 // save writes encoded session.Values to a file.
 func (s *FilesystemStore) save(session *Session) error {
-	encoded, err := securecookie.EncodeMulti(session.Name(), session.Values,
+	encoded, err := EncodeMulti(session.Name(), session.Values,
 		s.Codecs...)
 	if err != nil {
 		return err
 	}
-	filename := filepath.Join(s.path, "session_"+session.ID)
+	filename := filepath.Join(s.path, sessionFilePrefix+filepath.Base(session.ID))
 	fileMutex.Lock()
 	defer fileMutex.Unlock()
-	return ioutil.WriteFile(filename, []byte(encoded), 0600)
+	return os.WriteFile(filename, []byte(encoded), 0600)
 }
 
 // load reads a file and decodes its content into session.Values.
 func (s *FilesystemStore) load(session *Session) error {
-	filename := filepath.Join(s.path, "session_"+session.ID)
+	filename := filepath.Join(s.path, sessionFilePrefix+filepath.Base(session.ID))
 	fileMutex.RLock()
 	defer fileMutex.RUnlock()
-	fdata, err := ioutil.ReadFile(filename)
+	fdata, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return err
 	}
-	if err = securecookie.DecodeMulti(session.Name(), string(fdata),
+	if err = DecodeMulti(session.Name(), string(fdata),
 		&session.Values, s.Codecs...); err != nil {
 		return err
 	}
@@ -280,7 +287,7 @@ func (s *FilesystemStore) load(session *Session) error {
 
 // delete session file
 func (s *FilesystemStore) erase(session *Session) error {
-	filename := filepath.Join(s.path, "session_"+session.ID)
+	filename := filepath.Join(s.path, sessionFilePrefix+filepath.Base(session.ID))
 
 	fileMutex.RLock()
 	defer fileMutex.RUnlock()

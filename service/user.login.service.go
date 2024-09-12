@@ -8,9 +8,70 @@ import (
 	"github.com/liuhengloveyou/passport/dao"
 	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/sms"
+	"go.uber.org/zap"
 
 	validator "github.com/go-playground/validator/v10"
 )
+
+/*
+微信公众号oauth2登录
+*/
+func UserLoginByWeixin(req *protos.UserReq) (one *protos.User, e error) {
+	if req == nil || len(req.WxOpenId) == 0 {
+		return nil, common.ErrParam
+	}
+
+	userPreTreat(req)
+
+	one, e = dao.UserSelectOne(req)
+	if e != nil {
+		common.Logger.Error("db err: ", zap.Error(e), zap.Any("req", req))
+		e = common.ErrService
+	}
+
+	if one == nil {
+		common.Logger.Error("login user nil: ", zap.Any("req", req))
+		return nil, common.ErrLogin
+	}
+
+	disabled, ok := one.Ext["disabled"].(float64)
+	if ok && int8(disabled) == 1 {
+		common.Logger.Sugar().Errorf("login Disabled ERR: [%v] \n", one.Ext)
+		return nil, common.ErrDisable
+	}
+
+	now := time.Now()
+	one.LoginTime = &now
+
+	rows, err := dao.UserUpdateLoginTime(one.UID, one.LoginTime)
+	if err != nil || rows != 1 {
+		common.Logger.Error("UserUpdateLoginTime ERR: ", zap.Int64("row", rows), zap.Error(e), zap.Any("req", req))
+		e = common.ErrService
+		return
+	}
+
+	one.Password = ""
+	one.Ext = nil
+	one.Roles = nil
+	one.Departments = nil
+
+	// tenant
+	if one.TenantID > 0 {
+		if one.Tenant, e = dao.TenantGetByID(one.TenantID); e != nil {
+			common.Logger.Sugar().Errorf("TenantGetByID ERR: ", e)
+			one.TenantID, e = 0, nil // 没有租户也可以登录成功
+		}
+		if one.Tenant != nil {
+			one.Tenant.Configuration = nil
+			one.Tenant.Info = nil
+			one.Tenant.AddTime = nil
+			one.Tenant.UpdateTime = nil
+		}
+	}
+	common.Logger.Sugar().Infof("UserLoginByWeixin: %#v\n", one)
+
+	return
+}
 
 func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 	if user == nil || (len(user.Password) == 0 && len(user.SmsCode) == 0) || (len(user.Cellphone) == 0 && len(user.Nickname) == 0) {

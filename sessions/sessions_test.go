@@ -9,6 +9,7 @@ import (
 	"encoding/gob"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -39,6 +40,10 @@ func TestFlashes(t *testing.T) {
 
 	store := NewCookieStore([]byte("secret-key"))
 
+	if store.Options.SameSite != http.SameSiteNoneMode {
+		t.Fatalf("cookie store error: default same site is not set to None")
+	}
+
 	// Round 1 ----------------------------------------------------------------
 
 	req, _ = http.NewRequest("GET", "http://localhost:8080/", nil)
@@ -67,6 +72,10 @@ func TestFlashes(t *testing.T) {
 		t.Fatal("No cookies. Header:", hdr)
 	}
 
+	if !strings.Contains(cookies[0], "SameSite=None") || !strings.Contains(cookies[0], "Secure") {
+		t.Fatal("Set-Cookie does not contains SameSite=None with Secure, cookie string:", cookies[0])
+	}
+
 	if _, err = store.Get(req, "session:key"); err.Error() != "sessions: invalid character in cookie name: session:key" {
 		t.Fatalf("Expected error due to invalid cookie name")
 	}
@@ -75,7 +84,6 @@ func TestFlashes(t *testing.T) {
 
 	req, _ = http.NewRequest("GET", "http://localhost:8080/", nil)
 	req.Header.Add("Cookie", cookies[0])
-	rsp = NewRecorder()
 	// Get a session.
 	if session, err = store.Get(req, "session-key"); err != nil {
 		t.Fatalf("Error getting session: %v", err)
@@ -135,7 +143,6 @@ func TestFlashes(t *testing.T) {
 
 	req, _ = http.NewRequest("GET", "http://localhost:8080/", nil)
 	req.Header.Add("Cookie", cookies[0])
-	rsp = NewRecorder()
 	// Get a session.
 	if session, err = store.Get(req, "session-key"); err != nil {
 		t.Fatalf("Error getting session: %v", err)

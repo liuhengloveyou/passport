@@ -22,6 +22,7 @@ type SmsTencentcloud struct {
 	UserAddTemplateId    string // 注册用户验证码短信模板ID
 	UserLoginTemplateId  string // 用户登录验证码短信模板ID
 	GetBackPwdTemplateId string // 短信找回密码验证码短信模板ID
+	WxBindTemplateId     string // 微信验证绑定手机号验证码短信模板ID
 }
 
 func init() {
@@ -42,6 +43,9 @@ func NewSmsTencentcloud(config map[string]interface{}) Sms {
 	}
 	if _, ok := config["getback_pwd_template_id"].(string); ok {
 		tmp.GetBackPwdTemplateId = config["getback_pwd_template_id"].(string)
+	}
+	if _, ok := config["wx_bind_template_id"].(string); ok {
+		tmp.WxBindTemplateId = config["wx_bind_template_id"].(string)
 	}
 
 	if len(tmp.SecretID) == 0 ||
@@ -79,6 +83,17 @@ func (p *SmsTencentcloud) SendGetBackPwdSms(phoneNumber string, aliveSecond int6
 	code = fmt.Sprintf("%06v", rand.New(rand.NewSource((time.Now().UnixNano()))).Int31n(1000000))
 
 	if err = p.sendSms([]string{phoneNumber}, "", p.GetBackPwdTemplateId, []string{code}); err != nil {
+		return
+	}
+
+	return
+}
+
+// 发送微信公众号验证后绑定手机号验证码
+func (p *SmsTencentcloud) SendWxBindSms(phoneNumber string, aliveSecond int64) (code string, err error) {
+	code = fmt.Sprintf("%06v", rand.New(rand.NewSource((time.Now().UnixNano()))).Int31n(1000000))
+
+	if err = p.sendSms([]string{phoneNumber}, "", p.WxBindTemplateId, []string{code}); err != nil {
 		return
 	}
 

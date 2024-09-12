@@ -1,18 +1,19 @@
 package face
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/go-sql-driver/mysql"
-	gocommon "github.com/liuhengloveyou/go-common"
+	"github.com/liuhengloveyou/go-errors"
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/service"
 	"github.com/liuhengloveyou/passport/sessions"
+	"github.com/liuhengloveyou/passport/weixin"
+
+	gocommon "github.com/liuhengloveyou/go-common"
 	"go.uber.org/zap"
+	"gopkg.in/guregu/null.v4/zero"
 )
 
 func initWXAPI() {
@@ -27,106 +28,94 @@ func initWXAPI() {
 }
 
 /*
-https://open.weixin.qq.com/connect/oauth2/authorize?appid=wx0fd775b6dfdfc7d5&redirect_uri=http%3A%2F%2Fdevelopers.weixin.qq.com&response_type=code&scope=snsapi_userinfo&state=STATE#wechat_redirect
+微信公众平台auth
+https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/Wechat_webpage_authorization.html
 
-auth通过的添加到数据库
+https://open.weixin.qq.com/connect/oauth2/authorize?appid=wx0fd775b6dfdfc7d5&redirect_uri=http%3A%2F%2Fdevelopers.weixin.qq.com&response_type=code&scope=snsapi_userinfo&state=STATE#wechat_redirect
 */
-func h5Auth(w http.ResponseWriter, r *http.Request) {
+func mpAuth(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
 	code := strings.TrimSpace(r.FormValue("code"))
 	// 最多128字节
 	state := strings.TrimSpace(r.FormValue("state"))
-	logger.Sugar().Infoln("h5Auth: ", code, state)
+	logger.Sugar().Infoln("mpAuth param: ", code, state)
 	if state == "" || code == "" {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		logger.Sugar().Errorf("h5Auth param ERR: %v %v\n", code, state)
 		return
 	}
 
-	weixinApiUrl := fmt.Sprintf("https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code",
-		common.ServConfig.AppID, common.ServConfig.AppSecret, code)
-	resp, body, err := gocommon.GetRequest(weixinApiUrl, nil)
+	accessToken, err := weixin.GetAccessToken(common.ServConfig.AppID, common.ServConfig.AppSecret, code)
+	if err != nil || accessToken == nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrWxService)
+		logger.Error("mpAuth GetAccessToken ERR: ", zap.Any("accessToken", accessToken), zap.Error(err))
+		return
+	}
+	logger.Info("mpAuth: ", zap.String("code", code), zap.String("appId", common.ServConfig.AppID), zap.Any("accessToken", accessToken))
+
+	wxUserInfo, err := weixin.GetUserInfo(accessToken.AccessToken, accessToken.OpenId)
+	if err != nil || wxUserInfo == nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrWxService)
+		logger.Error("mpAuth GetUserInfo ERR: ", zap.Any("wxUserInfo", wxUserInfo), zap.Error(err))
+		return
+	}
+	logger.Info("mpAuth: ", zap.String("code", code), zap.String("appId", common.ServConfig.AppID), zap.String("openId", accessToken.OpenId), zap.Any("wxUserInfo", wxUserInfo))
+
+	// 登录
+	loginReq := &protos.UserReq{
+		WxOpenId: accessToken.OpenId,
+	}
+
+	one, err := service.UserLoginByWeixin(loginReq)
 	if err != nil {
-		logger.Sugar().Errorf("huAuth weixin ERR: %v\n", err)
-		return
-	}
-	logger.Sugar().Infof("h5Auth: code:%v; stat: %v; %v\n", code, state, string(body))
-
-	if resp.StatusCode != 200 {
-		logger.Sugar().Error("wx http ERR: ", resp.StatusCode)
-		return
-	}
-
-	var wxResp protos.MiniAppSessionInfo
-	if err := json.Unmarshal(body, &wxResp); err != nil {
-		logger.Sugar().Error("wx resp json ERR: ", err)
-		return
-	}
-
-	if wxResp.ErrCode != 0 {
-		logger.Sugar().Error("wx resp ERR: ", wxResp.ErrCode, wxResp.ErrMsg)
-		return
-	}
-
-	logger.Info("h5Auth: ", zap.String("code", code), zap.String("state", state), zap.String("resp", string(body)))
-
-	//　保存用户信息
-	user := &protos.UserReq{
-		WxOpenId: wxResp.Openid,
-		Nickname: "wx-" + wxResp.Openid,
-		Password: "000000",
-	}
-	uid, err := service.AddUserService(user)
-	user.UID = uid
-	logger.Info("h5Auth: ", zap.String("code", code), zap.String("state", state), zap.Any("user", user))
-	if err != nil && err != common.ErrWxOpenidDup && err != common.ErrNickDup && err != common.ErrMysql1062 {
-		logger.Sugar().Error("h5Auth service.AddUser ERR: ", err)
-
-		if merr, ok := err.(*mysql.MySQLError); ok {
-			if merr.Number == 1062 {
-				gocommon.HttpJsonErr(w, http.StatusOK, common.ErrMysql1062)
-				return
-			}
+		myErr, ok := err.(*errors.Error)
+		logger.Sugar().Errorf("mpAuth userLogin ERR: %v %v \n", loginReq, err.Error())
+		if ok && myErr.Code == common.ErrLogin.Code {
+			//
+		} else {
+			gocommon.HttpJsonErr(w, http.StatusOK, err)
+			return
 		}
-
-		gocommon.HttpJsonErr(w, http.StatusOK, err)
-		return
+	}
+	if one == nil {
+		logger.Info("mpAuth userLogin: ", zap.String("code", code), zap.String("appId", common.ServConfig.AppID), zap.Any("req", loginReq))
+		nickname := zero.StringFrom(wxUserInfo.Nickname)
+		avatarurl := zero.StringFrom(wxUserInfo.Headimgurl)
+		sex := zero.IntFrom(wxUserInfo.Sex)
+		wxOpenId := zero.StringFrom(accessToken.OpenId)
+		one = &protos.User{
+			UID:       protos.WX_MP_AUTH_UID,
+			WxOpenId:  &wxOpenId,
+			Nickname:  &nickname,
+			AvatarURL: &avatarurl,
+			Gender:    &sex,
+		}
 	}
 
-	// 登录账号
-	user.Password = "000000"
-	logined, err := service.UserLogin(user)
-	if err != nil {
-		gocommon.HttpJsonErr(w, http.StatusOK, err)
-		logger.Sugar().Errorf("h5Auth ERR: %v %v \n", user, err.Error())
-		return
-	}
-	if logined == nil {
-		gocommon.HttpErr(w, http.StatusOK, -1, "用户不存在")
-		logger.Sugar().Warnf("h5Auth 用户不存在: %v\n", user)
-		return
-	}
+	// 删除老的会话信息
+	r.Header.Del("Cookie")
 
-	r.Header.Del("Cookie") // 删除老的会话信息
+	// 新建会话
 	session, err := sessionStore.New(r, common.ServConfig.SessionKey)
 	if err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
-		logger.Sugar().Error("h5Auth session ERR: ", err)
+		logger.Sugar().Error("mpAuth session ERR: ", err)
 		return
 	}
+	session.IsNew = true
+	session.Options.Domain = common.ServConfig.Domain
+	session.Options.MaxAge = 0
 
-	session.Values[common.SessUserInfoKey] = logined
-
+	session.Values[common.SessUserInfoKey] = one
 	if err := session.Save(r, w); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
-		logger.Sugar().Error("h5Auth session ERR: ", err)
+		logger.Sugar().Error("mpAuth session ERR: ", err)
 		return
 	}
 
-	logger.Sugar().Infof("h5Auth login ok: %v sess :%#v\n", user, session)
+	logger.Info("mpAuth login ok: ", zap.Any("session", session.Values[common.SessUserInfoKey]))
 	http.Redirect(w, r, state, http.StatusTemporaryRedirect)
-
-	return
 }
 
 // func WxMiniAppLogin(w http.ResponseWriter, r *http.Request) {
@@ -206,19 +195,68 @@ func SetWxUserToSession(w http.ResponseWriter, r *http.Request, userInfo *protos
 		return
 	}
 
-	r.Header.Del("Cookie") // 删除老的会话信息
+	// 删除老的会话信息
+	r.Header.Del("Cookie")
+
+	// 新建会话
 	session, err := sessionStore.New(r, common.ServConfig.SessionKey)
 	if err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
-		logger.Error("SetWxUserToSession session ERR: ", zap.Error(err))
+		logger.Sugar().Error("mpAuth session ERR: ", err)
 		return
 	}
+	session.IsNew = true
+	session.Options.MaxAge = 0
 
 	session.Values[common.SessUserInfoKey] = userInfo
-
 	if err := session.Save(r, w); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
-		logger.Error("SetWxUserToSession session ERR: ", zap.Error(err))
+		logger.Sugar().Error("SetWxUserToSession session ERR: ", err)
 		return
 	}
+}
+
+func wxMpBindCellphone(w http.ResponseWriter, r *http.Request) {
+	sess, auth := AuthFilter(r)
+	if !auth {
+		gocommon.HttpErr(w, http.StatusForbidden, -1, "末登录用户")
+		return
+	}
+
+	userReq := &protos.UserReq{}
+	if err := readJsonBodyFromRequest(r, userReq, 1024); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Sugar().Error("wxMpBindCellphone param ERR: ", err)
+		return
+	}
+
+	sessUserInfo := sess.Values[common.SessUserInfoKey].(protos.User)
+	logger.Info("wxMpBindCellphone: ", zap.Any("info", sessUserInfo), zap.Any("req", userReq))
+
+	if len(userReq.Cellphone) == 0 || len(userReq.SmsCode) == 0 {
+		gocommon.HttpJsonErr(w, http.StatusForbidden, common.ErrParam)
+		logger.Error("wxMpBindCellphone ERR: ", zap.Any("info", sessUserInfo), zap.Any("req", userReq))
+		return
+	}
+
+	if sessUserInfo.UID != protos.WX_MP_AUTH_UID {
+		gocommon.HttpJsonErr(w, http.StatusForbidden, common.ErrSession)
+		return
+	}
+	if sessUserInfo.WxOpenId == nil || len(sessUserInfo.WxOpenId.String) == 0 {
+		gocommon.HttpJsonErr(w, http.StatusForbidden, common.ErrSession)
+		return
+	}
+	if sessUserInfo.Cellphone != nil && len(sessUserInfo.Cellphone.String) > 0 {
+		gocommon.HttpJsonErr(w, http.StatusForbidden, common.ErrSession)
+		return
+	}
+
+	if _, err := service.UpdateUserWxOpenIdByCellphone(userReq.Cellphone, sessUserInfo.WxOpenId.String, userReq.SmsCode); err != nil {
+		logger.Error("wxMpBindCellphone ERR: ", zap.Any("req", userReq), zap.String("openId", sessUserInfo.WxOpenId.String), zap.Error(err))
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+
+	gocommon.HttpErr(w, http.StatusOK, 0, "成功")
 }

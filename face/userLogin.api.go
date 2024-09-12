@@ -45,7 +45,7 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 		logger.Sugar().Error("userLogin session ERR: ", err)
 		return
 	}
-
+	session.Options.Domain = common.ServConfig.Domain
 	session.Values[common.SessUserInfoKey] = one
 
 	if err := session.Save(r, w); err != nil {

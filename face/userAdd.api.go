@@ -33,7 +33,7 @@ func userAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(user.Cellphone) > 0 {
+	if len(user.Cellphone) > 0 && len(user.SmsCode) > 0 {
 		if err := sms.CheckSmsCode(user.Cellphone, user.SmsCode); err != nil && err != sms.ErrSmsNotInit {
 			logger.Sugar().Error("userAdd ERR: 短信验证码错误")
 			gocommon.HttpJsonErr(w, http.StatusOK, err)

@@ -128,6 +128,17 @@ func UserUpdatePWDByCellphone(cellphone, newPWD string) (rows int64, e error) {
 	return rst.RowsAffected()
 }
 
+func UserUpdateWxOpenIdByCellphone(cellphone, wxOpenId string) (rows int64, e error) {
+	var rst sql.Result
+
+	rst, e = common.DB.Exec("UPDATE users SET wx_openid=?,update_time=? WHERE (cellphone=?)", wxOpenId, time.Now(), cellphone)
+	if e != nil {
+		return
+	}
+
+	return rst.RowsAffected()
+}
+
 func SetUserPWD(UID, tenantId uint64, PWD string) (rows int64, e error) {
 	var rst sql.Result
 
@@ -198,6 +209,9 @@ func UserSelectOne(p *protos.UserReq) (r *protos.User, e error) {
 	}
 	if p.Nickname != "" {
 		eq["nickname"] = p.Nickname
+	}
+	if p.WxOpenId != "" {
+		eq["wx_openid"] = p.WxOpenId
 	}
 
 	sql, args, err := sq.Select("*").Limit(1).Where(eq).From("users").ToSql()

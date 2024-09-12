@@ -141,7 +141,9 @@ func (e *ExpiredMap) DoForEachWithBreak(handler func(interface{}, interface{}) b
 }
 
 func (e *ExpiredMap) checkDeleteKey(key interface{}) bool {
-	if val, found := e.m[key]; found {
+	val, found := e.m[key]
+
+	if found {
 		if val.expiredAt <= time.Now().Unix() {
 			delete(e.m, key)
 			return false

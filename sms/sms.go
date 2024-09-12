@@ -31,6 +31,10 @@ type Sms interface {
 	// 发送用户找回密码验证码
 	// 返回验证码
 	SendGetBackPwdSms(phoneNumber string, aliveSecond int64) (code string, err error)
+
+	// 发送微信公众号验证后绑定手机号验证码
+	// 返回验证码
+	SendWxBindSms(phoneNumber string, aliveSecond int64) (code string, err error)
 }
 
 var smsFactoryByName = make(map[string]factoryFun)
@@ -83,6 +87,9 @@ func SendUserAddSms(phoneNumber string, aliveSecond int64) (code string, err err
 	if codeCache.TTL(phoneNumber) >= 0 {
 		return "", ErrSmsExist
 	}
+	if aliveSecond == 0 {
+		aliveSecond = 60
+	}
 
 	code, err = defaultSms.SendUserAddSms(phoneNumber, aliveSecond)
 	codeCache.Set(phoneNumber, code, time.Now().Unix()+aliveSecond)
@@ -97,6 +104,9 @@ func SendUserLoginSms(phoneNumber string, aliveSecond int64) (code string, err e
 
 	if codeCache.TTL(phoneNumber) >= 0 {
 		return "", ErrSmsExist
+	}
+	if aliveSecond == 0 {
+		aliveSecond = 60
 	}
 
 	code, err = defaultSms.SendUserAddSms(phoneNumber, aliveSecond)
@@ -117,9 +127,38 @@ func SendGetBackPwdSms(phoneNumber string, aliveSecond int64) (code string, err 
 	if codeCache.TTL(phoneNumber) >= 0 {
 		return "", ErrSmsExist
 	}
+	if aliveSecond == 0 {
+		aliveSecond = 60
+	}
 
 	code, err = defaultSms.SendGetBackPwdSms(phoneNumber, aliveSecond)
-	codeCache.Set(phoneNumber, code, time.Now().Unix()+aliveSecond)
+	if err != nil {
+		return
+	} else {
+		codeCache.Set(phoneNumber, code, time.Now().Unix()+aliveSecond)
+	}
+
+	return
+}
+
+func SendWxBindSms(phoneNumber string, aliveSecond int64) (code string, err error) {
+	if defaultSms == nil {
+		return "", ErrSmsNotInit
+	}
+
+	if codeCache.TTL(phoneNumber) >= 0 {
+		return "", ErrSmsExist
+	}
+	if aliveSecond == 0 {
+		aliveSecond = 60
+	}
+
+	code, err = defaultSms.SendWxBindSms(phoneNumber, aliveSecond)
+	if err != nil {
+		return
+	} else {
+		codeCache.Set(phoneNumber, code, time.Now().Unix()+aliveSecond)
+	}
 
 	return
 }

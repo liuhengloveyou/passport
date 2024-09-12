@@ -1,4 +1,4 @@
-package sessions
+package memstore
 
 import (
 	"bytes"
@@ -7,46 +7,10 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"sync"
 
 	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
 )
-
-type cache struct {
-	data  map[string]valueType
-	mutex sync.RWMutex
-}
-
-func newCache() *cache {
-	return &cache{
-		data: make(map[string]valueType),
-	}
-}
-
-func (c *cache) get(name string) (v valueType, ok bool) {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-
-	v, ok = c.data[name]
-
-	return
-}
-
-func (c *cache) set(name string, value valueType) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	c.data[name] = value
-}
-
-func (c *cache) delete(name string) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	if _, ok := c.data[name]; ok {
-		delete(c.data, name)
-	}
-}
 
 // MemStore is an in-memory implementation of gorilla/sessions, suitable
 // for use in tests and development environments. Do not use in production.
@@ -54,7 +18,7 @@ func (c *cache) delete(name string) {
 // multiple goroutines.
 type MemStore struct {
 	Codecs  []securecookie.Codec
-	Options *Options
+	Options *sessions.Options
 	cache   *cache
 }
 
@@ -78,7 +42,7 @@ type valueType map[interface{}]interface{}
 func NewMemStore(keyPairs ...[]byte) *MemStore {
 	store := MemStore{
 		Codecs: securecookie.CodecsFromPairs(keyPairs...),
-		Options: &Options{
+		Options: &sessions.Options{
 			Path:   "/",
 			MaxAge: 86400 * 30,
 		},
@@ -95,8 +59,8 @@ func NewMemStore(keyPairs ...[]byte) *MemStore {
 //
 // It returns a new session and an error if the session exists but could
 // not be decoded.
-func (m *MemStore) Get(r *http.Request, name string) (*Session, error) {
-	return GetRegistry(r).Get(m, name)
+func (m *MemStore) Get(r *http.Request, name string) (*sessions.Session, error) {
+	return sessions.GetRegistry(r).Get(m, name)
 }
 
 // New returns a session for the given name without adding it to the registry.
@@ -104,8 +68,8 @@ func (m *MemStore) Get(r *http.Request, name string) (*Session, error) {
 // The difference between New() and Get() is that calling New() twice will
 // decode the session data twice, while Get() registers and reuses the same
 // decoded session after the first call.
-func (m *MemStore) New(r *http.Request, name string) (*Session, error) {
-	session := NewSession(m, name)
+func (m *MemStore) New(r *http.Request, name string) (*sessions.Session, error) {
+	session := sessions.NewSession(m, name)
 	options := *m.Options
 	session.Options = &options
 	session.IsNew = true
@@ -122,7 +86,7 @@ func (m *MemStore) New(r *http.Request, name string) (*Session, error) {
 		return session, err
 	}
 
-	v, ok := m.cache.get(session.ID)
+	v, ok := m.cache.value(session.ID)
 	if !ok {
 		// No value found in cache, don't set any values in session object,
 		// consider a new session
@@ -137,7 +101,7 @@ func (m *MemStore) New(r *http.Request, name string) (*Session, error) {
 
 // Save adds a single session to the response.
 // Set Options.MaxAge to -1 or call MaxAge(-1) before saving the session to delete all values in it.
-func (m *MemStore) Save(r *http.Request, w http.ResponseWriter, s *Session) error {
+func (m *MemStore) Save(r *http.Request, w http.ResponseWriter, s *sessions.Session) error {
 	var cookieValue string
 	if s.Options.MaxAge < 0 {
 		cookieValue = ""
@@ -154,9 +118,9 @@ func (m *MemStore) Save(r *http.Request, w http.ResponseWriter, s *Session) erro
 			return err
 		}
 		cookieValue = encrypted
-		m.cache.set(s.ID, m.copy(s.Values))
+		m.cache.setValue(s.ID, m.copy(s.Values))
 	}
-	http.SetCookie(w, NewCookie(s.Name(), cookieValue, s.Options))
+	http.SetCookie(w, sessions.NewCookie(s.Name(), cookieValue, s.Options))
 	return nil
 }
 

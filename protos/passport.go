@@ -13,6 +13,7 @@ type OptionStruct struct {
 
 	AdminTenantID uint64 `yaml:"admin_tenant_id"` // admin接口只有一个租户有权限
 
+	Domain           string `json:"domain"`
 	SessionKey       string `yaml:"session_key"`
 	SessionStoreType string `yaml:"session_store_type"` // 会话存储类型；"cookie/mem/reids"
 	SessionExpire    int    `yaml:"session_expire"`

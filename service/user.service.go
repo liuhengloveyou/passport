@@ -8,6 +8,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/sms"
+	"go.uber.org/zap"
 
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/dao"
@@ -166,7 +167,8 @@ func UpdateUserPWDBySms(cellphone, smsCode, newPWD string) (rows int64, e error)
 	newPWD = common.EncryPWD(newPWD)
 
 	rows, e = dao.UserUpdatePWDByCellphone(cellphone, newPWD)
-	if rows < 1 {
+	if rows < 1 || e != nil {
+		common.Logger.Error("UpdateUserPWDBySms ERR: ", zap.Any("row", rows), zap.Error(e))
 		return 0, common.ErrModify
 	}
 
@@ -336,4 +338,23 @@ func userPreTreat(p *protos.UserReq) error {
 	}
 
 	return nil
+}
+
+func UpdateUserWxOpenIdByCellphone(cellphone, wxOpenId, smsCode string) (rows int64, e error) {
+	if len(cellphone) == 0 || len(wxOpenId) == 0 {
+		return 0, common.ErrParam
+	}
+
+	e = sms.CheckSmsCode(cellphone, smsCode)
+	if e != nil {
+		return -1, e
+	}
+
+	rows, e = dao.UserUpdateWxOpenIdByCellphone(cellphone, wxOpenId)
+	if e != nil || rows < 1 {
+		common.Logger.Error("UpdateUserWxOpenIdByCellphone ERR: ", zap.String("cellphone", cellphone), zap.String("wxOpenId", wxOpenId), zap.Any("row", rows), zap.Error(e))
+		return 0, common.ErrModify
+	}
+
+	return
 }

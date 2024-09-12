@@ -24,7 +24,7 @@ import (
 
 const (
 	SYS_PWD         = "When you forgive, You love. And when you love, God's light shines on you. Now, 2021"
-	SessUserInfoKey = "sessUser"
+	SessUserInfoKey = "sess-user"
 	MAX_UPLOAD_LEN  = (8 * 1024 * 1024) // 最大上传文件大小
 )
 

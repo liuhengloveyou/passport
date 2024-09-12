@@ -1,4 +1,4 @@
-package sessions
+package memstore
 
 import (
 	"net/http"
@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/gorilla/sessions"
 )
 
 func TestMemStore_Get(t *testing.T) {
@@ -28,7 +30,7 @@ func TestMemStore_Get_Bogus(t *testing.T) {
 	)
 
 	req := httptest.NewRequest("GET", "http://test.local", nil)
-	req.AddCookie(NewCookie("mycookiename", "SomeBogusValueThatIsActuallyNotEncrypted", store.Options))
+	req.AddCookie(sessions.NewCookie("mycookiename", "SomeBogusValueThatIsActuallyNotEncrypted", store.Options))
 	_, err := store.Get(req, "mycookiename")
 	if err == nil {
 		t.Error(`store.Get(req, "mycookiename") should have returned error if cookie value is bogus`)

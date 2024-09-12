@@ -935,7 +935,7 @@ CREATE TABLE `departments` (
   `config` json DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `index_tenant_name` (`tenant_id`,`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 ```
 

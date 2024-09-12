@@ -20,7 +20,7 @@ func addDepartment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req protos.Department
-	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
+	if err := readJsonBodyFromRequest(r, &req, 2048); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		logger.Sugar().Errorf("addDepartment param ERR: %v\n", err)
 		return
@@ -93,7 +93,7 @@ func updateDepartment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req protos.Department
-	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
+	if err := readJsonBodyFromRequest(r, &req, 2048); err != nil {
 		logger.Sugar().Errorf("updateDepartment param ERR: %v\n", err)
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
@@ -114,13 +114,13 @@ func updateDepartment(w http.ResponseWriter, r *http.Request) {
 
 func updateDepartmentConfig(w http.ResponseWriter, r *http.Request) {
 	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
-	if sessionUser.TenantID <= 0 {
+	if sessionUser.TenantID <= 0 || sessionUser.UID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		return
 	}
 
 	var req protos.KvReq
-	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
+	if err := readJsonBodyFromRequest(r, &req, 2048); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		logger.Sugar().Error("updateDepartmentConfig param ERR: ", err)
 		return

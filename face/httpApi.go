@@ -288,6 +288,18 @@ func init() {
 			NeedLogin:  false,
 			NeedAccess: false,
 		},
+		"sms/sendWxBindSms": {
+			Handler:    SendWxBindSms,
+			NeedLogin:  false,
+			NeedAccess: false,
+		},
+
+		// 微信
+		"wx/bindCellphone": {
+			Handler:    wxMpBindCellphone,
+			NeedLogin:  true,
+			NeedAccess: false,
+		},
 	}
 }
 
@@ -308,7 +320,7 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 	sessPWD := md5.Sum([]byte(common.SYS_PWD))
 	switch common.ServConfig.SessionStoreType {
 	case "mem":
-		sessionStore = sessions.NewMemStore([]byte(common.SYS_PWD), sessPWD[:])
+		// sessionStore = sessions.NewMemStore([]byte(common.SYS_PWD), sessPWD[:])
 	default:
 		sessionStore = sessions.NewCookieStore([]byte(common.SYS_PWD), sessPWD[:])
 		sessionStore.(*sessions.CookieStore).MaxAge(common.ServConfig.SessionExpire)
@@ -317,7 +329,7 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 	handler = &PassportHttpServer{}
 	// 网页授权
 	// https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/Wechat_webpage_authorization.html
-	http.HandleFunc("/usercenter/wx/h5auth", h5Auth)
+	http.HandleFunc("/usercenter/wx/mpauth", mpAuth)
 	http.Handle("/usercenter", handler)
 
 	if common.ServConfig.Addr != "" {
@@ -376,10 +388,10 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// t1 := time.Now()
 	if apiHandler.NeedLogin {
 		sess, auth := AuthFilter(r)
-		logger.Sugar().Debug("passport session:", sess, auth)
+		logger.Sugar().Debug("passport session:", sess, auth, apiName)
 
 		if !auth && sess == nil {
-			logger.Warn("session nil.")
+			logger.Warn("session nil.", zap.String("api", apiName))
 			gocommon.HttpErr(w, http.StatusUnauthorized, -1, "请登录")
 			return
 		} else if !auth && sess != nil {
@@ -426,7 +438,6 @@ func GetSessionUser(r *http.Request) (sessionUser protos.User) {
 
 func AuthFilter(r *http.Request) (sess *sessions.Session, auth bool) {
 	var err error
-
 	sess, err = sessionStore.Get(r, common.ServConfig.SessionKey)
 	if err != nil {
 		logger.Error("session ERR: ", zap.Error(err))
