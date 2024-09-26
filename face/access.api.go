@@ -11,6 +11,7 @@ import (
 	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/service"
 	"github.com/liuhengloveyou/passport/sessions"
+	"go.uber.org/zap"
 )
 
 func AddRoleForUser(w http.ResponseWriter, r *http.Request) {
@@ -240,14 +241,13 @@ func AddPolicyToRole(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Sugar().Infoln("AddPolicyToRole ", sessionUser.TenantID, req.Role, req.Obj, req.Act)
 	if err := accessctl.AddPolicyToRole(sessionUser.TenantID, req.Role, req.Obj, req.Act); err != nil {
+		logger.Error("AddPolicyToRole ERR: ", zap.Uint64("tid", sessionUser.TenantID), zap.Any("role", req.Role), zap.String("obj", req.Obj), zap.String("act", req.Act))
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
 		return
 	}
 
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
-	logger.Sugar().Infof("AddPolicy OK: %#v\n", req)
-
-	return
+	logger.Sugar().Infof("AddPolicyToRole OK: %#v\n", req)
 }
 
 func RemovePolicyFromRole(w http.ResponseWriter, r *http.Request) {
@@ -329,5 +329,5 @@ func GetPolicyForUser(w http.ResponseWriter, r *http.Request) {
 	policys := accessctl.GetFilteredPolicy(sessionUser.TenantID, roles)
 
 	gocommon.HttpErr(w, http.StatusOK, 0, policys)
-	logger.Sugar().Infof("GetPolicyForUser OK: %#v\n", policys)
+	logger.Sugar().Infof("GetPolicyForUser OK: %v %#v\n", roles, policys)
 }

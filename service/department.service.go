@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/go-sql-driver/mysql"
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/dao"
@@ -24,6 +26,10 @@ func DepartmentCreate(m *protos.Department) (lastInsertId int64, e error) {
 }
 
 func DepartmentDelete(id, tenantID uint64) (e error) {
+	defer func() {
+		deparmentCache.Delete(fmt.Sprintf("%d/%d", tenantID, id))
+	}()
+
 	rr, err := dao.DepartmentDelete(common.DB, id, tenantID)
 	if err != nil {
 		common.Logger.Sugar().Errorf("DepartmentDelete ERR: %v\n", err)
@@ -36,6 +42,10 @@ func DepartmentDelete(id, tenantID uint64) (e error) {
 }
 
 func DepartmentFind(id, tenantId uint64) (rr []protos.Department, e error) {
+	if tenantId <= 0 {
+		return nil, common.ErrParam
+	}
+
 	rr, err := dao.DepartmentFind(common.DB, id, tenantId)
 	if err != nil {
 		common.Logger.Sugar().Errorf("DepartmentFind ERR: %v\n", err)
@@ -44,6 +54,11 @@ func DepartmentFind(id, tenantId uint64) (rr []protos.Department, e error) {
 	}
 
 	common.Logger.Sugar().Infof("DepartmentFind: %v", rr)
+
+	if id > 0 && len(rr) == 1 {
+		deparmentCache.Set(fmt.Sprintf("%d/%d", tenantId, id), rr[0], 600)
+	}
+
 	return
 }
 
@@ -54,6 +69,10 @@ func DepartmentUpdate(model *protos.Department) (e error) {
 	}
 	model.UserId = 0
 	model.ParentID = 0
+
+	defer func() {
+		deparmentCache.Delete(fmt.Sprintf("%d/%d", model.TenantID, model.Id))
+	}()
 
 	row, err := dao.DepartmentUpdate(common.DB, model)
 	if err != nil {
@@ -78,6 +97,10 @@ func DepartmentUpdateConfig(id, currUid, currTenantID uint64, k string, v interf
 		common.Logger.Sugar().Errorf("DepartmentUpdateConfig ERR: %d %d %d %v %v", id, currUid, currTenantID, k, v)
 		return common.ErrParam
 	}
+
+	defer func() {
+		deparmentCache.Delete(fmt.Sprintf("%d/%d", currTenantID, currUid))
+	}()
 
 	rr, e := dao.DepartmentFind(common.DB, id, currTenantID)
 	if e != nil {

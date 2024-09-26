@@ -47,6 +47,7 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	session.Options.Domain = common.ServConfig.Domain
 	session.Values[common.SessUserInfoKey] = one
+	session.Options.MaxAge = common.ServConfig.SessionExpire
 
 	if err := session.Save(r, w); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)

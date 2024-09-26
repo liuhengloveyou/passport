@@ -11,12 +11,13 @@ import (
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/dao"
 	"github.com/liuhengloveyou/passport/protos"
+	"go.uber.org/zap"
 
 	sqladapter "github.com/Blank-Xu/sql-adapter"
 	"github.com/casbin/casbin/v2"
 )
 
-var policyCache = make(map[string]bool, 10000)
+// var policyCache = make(map[string]bool, 10000)
 
 func finalizer(db *sql.DB) {
 	fmt.Println("finalizer: ", db.Stats())
@@ -85,6 +86,9 @@ func InitAccessControl(rbacModel, mysqlURN string) (err error) {
 		return false, nil
 	})
 
+	// enforcer.EnableLog(true)
+	// enforcer.SetLogger(zaplogger.NewLoggerByZap(common.Logger, true))
+
 	return nil
 }
 
@@ -128,6 +132,8 @@ func GetRoleForUserInDomain(uid, tenantID uint64) (roles []string) {
 		return
 	}
 
+	common.Logger.Debug("GetRoleForUserInDomain: ", zap.Uint64("uid", uid), zap.Uint64("tid", tenantID), zap.Any("user", userInfo), zap.Error(err))
+
 	return getRoleForUserInDomain(genUserByUID(uid), genDomainByTenantID(tenantID))
 }
 
@@ -154,7 +160,7 @@ func RemovePolicyFromRole(tenantID uint64, role, obj, act string) (err error) {
 
 func GetFilteredPolicy(tenantID uint64, roles []string) (lists [][]string) {
 	policys, err := getFilteredPolicy(genDomainByTenantID(tenantID))
-	common.Logger.Sugar().Debugf("getFilteredPolicy: %v %v\n", policys, roles, err)
+	common.Logger.Debug("getFilteredPolicy:", zap.Any("policys", policys), zap.Any("roles", roles), zap.Error(err))
 	if len(policys) == 0 {
 		return
 	}
