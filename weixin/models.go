@@ -1,15 +1,43 @@
-package protos
+package weixin
 
-// const MiniAppSessionInfoKey = "MiniAppSessionInfo"
-
-type MiniAppErr struct {
+type WeixinErrResponse struct {
 	ErrCode int    `json:"errcode,omitempty"`
 	ErrMsg  string `json:"errmsg,omitempty"`
 }
 
-type LoginRst struct {
-	ErrMsg string `json:"errMsg"`
-	Code   string `json:"code"`
+/*
+access_token	网页授权接口调用凭证,注意：此access_token与基础支持的access_token不同
+expires_in	access_token接口调用凭证超时时间，单位（秒）
+refresh_token	用户刷新access_token
+openid	用户唯一标识，请注意，在未关注公众号时，用户访问公众号的网页，也会产生一个用户和公众号唯一的OpenID
+scope	用户授权的作用域，使用逗号（,）分隔
+is_snapshotuser	是否为快照页模式虚拟账号，只有当用户是快照页模式虚拟账号时返回，值为1
+unionid	用户统一标识（针对一个微信开放平台账号下的应用，同一用户的 unionid 是唯一的），只有当scope为"snsapi_userinfo"时返回
+*/
+type WeixinMpAccessTokenResponse struct {
+	WeixinErrResponse
+
+	AccessToken    string `json:"access_token"`
+	ExpiresIn      int    `json:"expires_in"`
+	RefreshToken   string `json:"refresh_token"`
+	OpenId         string `json:"openid"`
+	Scope          string `json:"scope"`
+	IsSnapshotuser int    `json:"is_snapshotuser"`
+	Unionid        string `json:"unionid"`
+}
+
+type WeixinMpUserInfoResponse struct {
+	WeixinErrResponse
+
+	OpenId     string   `json:"openid"`
+	Nickname   string   `json:"nickname"`
+	Sex        int64    `json:"sex"`
+	Province   string   `json:"province"`
+	City       string   `json:"city"`
+	Country    string   `json:"country"`
+	Headimgurl string   `json:"headimgurl"`
+	Privilege  []string `json:"privilege"`
+	Unionid    string   `json:"unionid"`
 }
 
 // type MiniAppSessionInfo struct {

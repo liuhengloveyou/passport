@@ -5,7 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"sync"
@@ -327,9 +327,12 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 	}
 
 	handler = &PassportHttpServer{}
-	// 网页授权
+
+	// 微信公众号网页授权
 	// https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/Wechat_webpage_authorization.html
 	http.HandleFunc("/usercenter/wx/mpauth", mpAuth)
+	http.HandleFunc("/usercenter/wx/mini/login", WxMiniAppLogin)
+
 	http.Handle("/usercenter", handler)
 
 	if common.ServConfig.Addr != "" {
@@ -447,7 +450,6 @@ func AuthFilter(r *http.Request) (sess *sessions.Session, auth bool) {
 	if sess.Values[common.SessUserInfoKey] == nil {
 		return nil, false
 	}
-
 	if _, ok := sess.Values[common.SessUserInfoKey].(protos.User); !ok {
 		return nil, false
 	}
@@ -542,11 +544,11 @@ func AccessFilter(r *http.Request) bool {
 }
 
 func readJsonBodyFromRequest(r *http.Request, dst interface{}, bodyMaxLen int) error {
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		return err
 	}
-	logger.Sugar().Debugf("request body: '%v'\n", string(body))
+	logger.Debug("readJsonBodyFromRequest body: ", zap.ByteString("body", body))
 	if len(body) >= bodyMaxLen {
 		logger.Error("readJsonBodyFromRequest len ERR: ", zap.Int("body", len(body)), zap.Int("bodyMaxLen", bodyMaxLen))
 		return common.ErrParam

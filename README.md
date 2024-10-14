@@ -922,7 +922,7 @@ CREATE TABLE `permission` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `index-unique-title` (`tenant_id`,`domain`,`title`),
   UNIQUE KEY `index-unique-value` (`value`,`domain`,`tenant_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 CREATE TABLE `departments` (
   `id` int NOT NULL AUTO_INCREMENT,

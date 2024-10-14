@@ -21,8 +21,13 @@ type OptionStruct struct {
 	SmsDriveer string                 `yaml:"sms"`
 	SmsConf    map[string]interface{} `yaml:"sms_conf"`
 
+	// 微信开放平台
 	AppID     string `yaml:"wx_appid"`
 	AppSecret string `yaml:"wx_secret"`
+
+	// 微信小程序
+	MiniAppID     string `yaml:"wx_mini_appid"`
+	MiniAppSecret string `yaml:"wx_mini_secret"`
 
 	ApiConf map[string]ApiConfStruct `yaml:"api_conf"`
 }

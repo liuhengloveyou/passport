@@ -271,6 +271,10 @@ func UserSearchLite(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.Use
 		and = append(and, sq.Eq{"uid": p.UID})
 	}
 
+	if len(p.WxOpenId) > 0 {
+		and = append(and, sq.Eq{"wx_openid": p.WxOpenId})
+	}
+
 	or := sq.Or{}
 	if p.Cellphone != "" {
 		or = append(or, sq.Like{"cellphone": "%" + p.Cellphone + "%"})

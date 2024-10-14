@@ -71,7 +71,8 @@ type UserLite struct {
 	Nickname  *null.String `json:"nickname,omitempty" validate:"omitempty,min=2,max=64" db:"nickname"`
 	Cellphone *null.String `json:"cellphone,omitempty" validate:"omitempty,len=11" db:"cellphone"`
 	AvatarURL *null.String `json:"avatarUrl" db:"avatar_url"`
-	Ext       MapStruct    `json:"ext,omitempty" validate:"-" db:"ext"` // 记录用户的扩展信息
+	WxOpenId  *null.String `json:"wxopenid,omitempty" validate:"omitempty,min=2,max=64" db:"wx_openid"` // 微信
+	Ext       MapStruct    `json:"ext,omitempty" validate:"-" db:"ext"`                                 // 记录用户的扩展信息
 }
 
 type UserLiteArr []UserLite

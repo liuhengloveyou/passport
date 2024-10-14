@@ -30,7 +30,6 @@ func initWXAPI() {
 /*
 微信公众平台auth
 https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/Wechat_webpage_authorization.html
-
 https://open.weixin.qq.com/connect/oauth2/authorize?appid=wx0fd775b6dfdfc7d5&redirect_uri=http%3A%2F%2Fdevelopers.weixin.qq.com&response_type=code&scope=snsapi_userinfo&state=STATE#wechat_redirect
 */
 func mpAuth(w http.ResponseWriter, r *http.Request) {
@@ -118,104 +117,9 @@ func mpAuth(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, state, http.StatusTemporaryRedirect)
 }
 
-// func WxMiniAppLogin(w http.ResponseWriter, r *http.Request) {
-// 	var req protos.WxMiniAppLoginReq
-// 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
-// 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-// 		logger.Sugar().Error("WxMiniAppLogin param ERR: ", err)
-// 		return
-// 	}
-
-// 	info, err := service.MiniAppService.Login(req.Code)
-// 	if err != nil {
-// 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-// 		logger.Sugar().Error("WxMiniAppLogin MiniAppService.Login ERR: ", err)
-// 		return
-// 	}
-
-// 	if info == nil {
-// 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-// 		logger.Sugar().Warnf("WxMiniAppLogin MiniAppService.Login ERR: %v %v\n", info, err)
-// 		return
-// 	}
-
-// 	r.Header.Del("Cookie") // 删除老的会话信息
-// 	session, err := sessionStore.New(r, common.SessionKey)
-// 	if err != nil {
-// 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
-// 		logger.Sugar().Error("WxMiniAppLogin session ERR: ", err)
-// 		return
-// 	}
-
-// 	sessionUser := &protos.User{UID: 1}
-// 	sessionUser.SetExt(protos.MiniAppSessionInfoKey, *info)
-// 	session.Values[common.SessUserInfoKey] = *sessionUser
-
-// 	if err := session.Save(r, w); err != nil {
-// 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
-// 		logger.Sugar().Error("userLogin session ERR: ", err)
-// 		return
-// 	}
-
-// 	token := strings.Split(w.Header().Get("Set-Cookie"), ";")[0][len(common.SessionKey)+1:]
-// 	w.Header().Del("Set-Cookie")
-
-// 	logger.Sugar().Infof("WxMiniAppLogin ok: %#v\n", info)
-// 	gocommon.HttpErr(w, http.StatusOK, 0, token)
-// }
-
-func WxMiniAppUserInfoUpdate(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
-	//if sessionUser.TenantID <= 0 {
-	//	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
-	//	logger.Sugar().Error("AddRoleForUser TenantID ERR")
-	//	return
-	//}
-
-	var req protos.WxMiniAppUserInfoUpdateReq
-	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
-		logger.Sugar().Error("WxMiniAppUserInfoUpdate param ERR: ", err)
-		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
-		return
-	}
-
-	logger.Sugar().Infof("WxMiniAppUserInfoUpdate: %#v %#v", sessionUser, req)
-	//
-	//if _, err := service.MiniAppService.WxMiniAppUserInfoUpdate(req); err != nil {
-	//	logger.Sugar().Error(*user, err)
-	//	gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
-	//	return
-	//}return
-
-	gocommon.HttpErr(w, http.StatusOK, 0, "OK")
-}
-
-func SetWxUserToSession(w http.ResponseWriter, r *http.Request, userInfo *protos.User) {
-	if userInfo == nil {
-		return
-	}
-
-	// 删除老的会话信息
-	r.Header.Del("Cookie")
-
-	// 新建会话
-	session, err := sessionStore.New(r, common.ServConfig.SessionKey)
-	if err != nil {
-		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
-		logger.Sugar().Error("mpAuth session ERR: ", err)
-		return
-	}
-	session.IsNew = true
-	session.Options.MaxAge = 0
-
-	session.Values[common.SessUserInfoKey] = userInfo
-	if err := session.Save(r, w); err != nil {
-		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
-		logger.Sugar().Error("SetWxUserToSession session ERR: ", err)
-		return
-	}
-}
-
+/*
+微信公众平台绑定手机号
+*/
 func wxMpBindCellphone(w http.ResponseWriter, r *http.Request) {
 	sess, auth := AuthFilter(r)
 	if !auth {
@@ -259,4 +163,129 @@ func wxMpBindCellphone(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gocommon.HttpErr(w, http.StatusOK, 0, "成功")
+}
+
+// 微信小程序登录
+func WxMiniAppLogin(w http.ResponseWriter, r *http.Request) {
+	var req weixin.WxMiniAppLoginReq
+	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Sugar().Error("WxMiniAppLogin param ERR: ", err)
+		return
+	}
+
+	wxSession, err := weixin.WxMiniAppLogin(req.Code, common.ServConfig.MiniAppID, common.ServConfig.MiniAppSecret)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Sugar().Error("WxMiniAppLogin MiniAppService.Login ERR: ", err)
+		return
+	}
+
+	if wxSession == nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		logger.Sugar().Warnf("WxMiniAppLogin MiniAppService.Login ERR: %v %v\n", wxSession, err)
+		return
+	}
+
+	// 登录
+	loginReq := &protos.UserReq{
+		WxOpenId: wxSession.OpenId,
+	}
+
+	one, err := service.UserLoginByWeixin(loginReq)
+	if err != nil {
+		myErr, ok := err.(*errors.Error)
+		logger.Sugar().Errorf("mpAuth userLogin ERR: %v %v \n", loginReq, err.Error())
+		if ok && myErr.Code == common.ErrLogin.Code {
+			//
+		} else {
+			gocommon.HttpJsonErr(w, http.StatusOK, err)
+			return
+		}
+	}
+	if one == nil {
+		// 还没有存到系统数据库里
+		logger.Info("mpAuth userLogin: ", zap.String("code", req.Code), zap.String("appId", common.ServConfig.MiniAppID))
+		wxOpenId := zero.StringFrom(wxSession.OpenId)
+		one = &protos.User{
+			UID:      protos.WX_MP_AUTH_UID,
+			WxOpenId: &wxOpenId,
+		}
+	}
+
+	// 删除老的会话信息
+	r.Header.Del("Cookie")
+
+	// 新建会话
+	session, err := sessionStore.New(r, common.ServConfig.SessionKey)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
+		logger.Sugar().Error("mpAuth session ERR: ", err)
+		return
+	}
+	session.IsNew = true
+	session.Options.MaxAge = 0
+
+	session.Values[common.SessUserInfoKey] = one
+	if err := session.Save(r, w); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
+		logger.Sugar().Error("mpAuth session ERR: ", err)
+		return
+	}
+
+	logger.Info("mpAuth login ok: ", zap.Any("session", session.Values[common.SessUserInfoKey]))
+	// http.Redirect(w, r, state, http.StatusTemporaryRedirect)
+	gocommon.HttpErr(w, http.StatusOK, 0, "成功")
+}
+
+func WxMiniAppUserInfoUpdate(w http.ResponseWriter, r *http.Request) {
+	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	//if sessionUser.TenantID <= 0 {
+	//	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
+	//	logger.Sugar().Error("AddRoleForUser TenantID ERR")
+	//	return
+	//}
+
+	var req weixin.WxMiniAppUserInfoUpdateReq
+	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
+		logger.Sugar().Error("WxMiniAppUserInfoUpdate param ERR: ", err)
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+
+	logger.Sugar().Infof("WxMiniAppUserInfoUpdate: %#v %#v", sessionUser, req)
+	//
+	//if _, err := service.MiniAppService.WxMiniAppUserInfoUpdate(req); err != nil {
+	//	logger.Sugar().Error(*user, err)
+	//	gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
+	//	return
+	//}return
+
+	gocommon.HttpErr(w, http.StatusOK, 0, "OK")
+}
+
+func SetWxUserToSession(w http.ResponseWriter, r *http.Request, userInfo *protos.User) {
+	if userInfo == nil {
+		return
+	}
+
+	// 删除老的会话信息
+	r.Header.Del("Cookie")
+
+	// 新建会话
+	session, err := sessionStore.New(r, common.ServConfig.SessionKey)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
+		logger.Sugar().Error("mpAuth session ERR: ", err)
+		return
+	}
+	session.IsNew = true
+	session.Options.MaxAge = 0
+
+	session.Values[common.SessUserInfoKey] = userInfo
+	if err := session.Save(r, w); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
+		logger.Sugar().Error("SetWxUserToSession session ERR: ", err)
+		return
+	}
 }
