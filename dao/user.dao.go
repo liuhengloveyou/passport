@@ -290,7 +290,7 @@ func UserSearchLite(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.Use
 		and = append(and, or)
 	}
 
-	sql, args, err := sq.Select("uid,tenant_id,nickname,avatar_url,ext").Offset((pageNo - 1) * pageSize).Limit(pageSize).Where(and).From("users").ToSql()
+	sql, args, err := sq.Select("uid,tenant_id,nickname,avatar_url,wx_openid,ext").Offset((pageNo - 1) * pageSize).Limit(pageSize).Where(and).From("users").ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v", sql, args, err)
 	if e = common.DB.Select(&rr, sql, args...); e != nil {
 		return
