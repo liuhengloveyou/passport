@@ -391,7 +391,7 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// t1 := time.Now()
 	if apiHandler.NeedLogin {
 		sess, auth := AuthFilter(r)
-		logger.Sugar().Debug("passport session:", sess, auth, apiName)
+		logger.Debug("passport session:", zap.Bool("auth", auth), zap.String("api", apiName))
 
 		if !auth && sess == nil {
 			logger.Warn("session nil.", zap.String("api", apiName))
@@ -441,6 +441,8 @@ func GetSessionUser(r *http.Request) (sessionUser protos.User) {
 
 func AuthFilter(r *http.Request) (sess *sessions.Session, auth bool) {
 	var err error
+	// fmt.Println("AuthFilter Cookies:", common.ServConfig.SessionKey, r.Header, r.Cookies())
+
 	sess, err = sessionStore.Get(r, common.ServConfig.SessionKey)
 	if err != nil {
 		logger.Error("session ERR: ", zap.Error(err))

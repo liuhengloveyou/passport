@@ -11,13 +11,13 @@ import (
 
 func UserAuth(w http.ResponseWriter, r *http.Request) {
 	sess, auth := AuthFilter(r)
-	if auth == false || sess == nil {
+	if !auth || sess == nil {
 		logger.Sugar().Error("UserAuth auth false")
 		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoLogin)
 		return
 	}
 
-	if false == AccessFilter(r) {
+	if !AccessFilter(r) {
 		logger.Sugar().Error("UserAuth AccessFilter false")
 		gocommon.HttpJsonErr(w, http.StatusForbidden, common.ErrNoAuth)
 		return

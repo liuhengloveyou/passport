@@ -2,10 +2,8 @@ package dao
 
 import (
 	"database/sql"
-	"encoding/gob"
 
 	. "github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/protos"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -16,10 +14,6 @@ type DAOInterface interface {
 	Update(tx *sql.Tx) (int64, error)
 	Delete(tx *sql.Tx) (int64, error)
 	Select(tx *sql.Tx, pageNo, pageSize uint) (interface{}, error)
-}
-
-func init() {
-	gob.Register(protos.User{})
 }
 
 func Insert(tx *sql.Tx, model DAOInterface) (rows int64, e error) {

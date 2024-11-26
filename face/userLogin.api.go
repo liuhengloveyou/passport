@@ -1,6 +1,7 @@
 package face
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -37,6 +38,7 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 		logger.Sugar().Warnf("userLogin 用户不存在: %v\n", user)
 		return
 	}
+	fmt.Printf("userLogin: %#v\n", one)
 
 	r.Header.Del("Cookie") // 删除老的会话信息
 	session, err := sessionStore.New(r, common.ServConfig.SessionKey)
@@ -45,9 +47,13 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 		logger.Sugar().Error("userLogin session ERR: ", err)
 		return
 	}
-	session.Options.Domain = common.ServConfig.Domain
+
 	session.Values[common.SessUserInfoKey] = one
 	session.Options.MaxAge = common.ServConfig.SessionExpire
+	session.Options.Domain = common.ServConfig.Domain
+	// HTTP  // TODO
+	session.Options.Secure = false
+	session.Options.SameSite = http.SameSiteDefaultMode
 
 	if err := session.Save(r, w); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrSession)
@@ -60,7 +66,10 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 		w.Header().Del("Set-Cookie")
 	}
 
-	logger.Sugar().Infof("user login ok: %v sess :%#v\n", user, session)
+	logger.Sugar().Infof("user login ok: %v sess: %#v \n", user, session)
+	// for k, v := range session.Values {
+	// 	logger.Sugar().Infof("user login ok: %#v: %#v \n", k, v)
+	// }
 
 	gocommon.HttpErr(w, http.StatusOK, 0, one)
 }

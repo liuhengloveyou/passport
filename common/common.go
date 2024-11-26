@@ -44,6 +44,7 @@ func (p *NilWriter) Write(b []byte) (n int, err error) { return 0, nil }
 func init() {
 	var e error
 
+	gob.Register(protos.User{})
 	gob.Register(protos.MapStruct{})
 	gob.Register(map[string]interface{}{})
 
