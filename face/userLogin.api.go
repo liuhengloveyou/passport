@@ -8,6 +8,7 @@ import (
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/service"
+	"go.uber.org/zap"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 )
@@ -25,12 +26,12 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 		logger.Sugar().Error("userLogin param ERR: ", err)
 		return
 	}
-	logger.Sugar().Infof("userLogin: %#vv\n", user)
+	logger.Sugar().Infof("userLogin: %#v\n", user)
 
 	one, err := service.UserLogin(user)
 	if err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
-		logger.Sugar().Errorf("userLogin ERR: %v %v \n", user, err.Error())
+		logger.Error("userLogin ERR: ", zap.Any("user", user), zap.Error(err))
 		return
 	}
 	if one == nil {

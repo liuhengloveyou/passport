@@ -257,7 +257,7 @@ func UserSelect(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.User, e
 	if e = common.DB.Select(&rr, sql, args...); e != nil {
 		return
 	}
-
+	common.Logger.Sugar().Debugf("%v %v %v", sql, args, rr)
 	return rr, nil
 }
 

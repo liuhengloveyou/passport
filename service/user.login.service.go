@@ -74,7 +74,9 @@ func UserLoginByWeixin(req *protos.UserReq) (one *protos.User, e error) {
 }
 
 func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
-	if user == nil || (len(user.Password) == 0 && len(user.SmsCode) == 0) || (len(user.Cellphone) == 0 && len(user.Nickname) == 0) {
+	if user == nil ||
+		(len(user.Password) == 0 && len(user.SmsCode) == 0) ||
+		(len(user.Cellphone) == 0 && len(user.Nickname) == 0 && len(user.Email) == 0) {
 		return nil, common.ErrParam
 	}
 
