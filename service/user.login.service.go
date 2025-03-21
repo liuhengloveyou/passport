@@ -9,6 +9,7 @@ import (
 	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/sms"
 	"go.uber.org/zap"
+	"gopkg.in/guregu/null.v4/zero"
 
 	validator "github.com/go-playground/validator/v10"
 )
@@ -174,6 +175,20 @@ func loginBySmsCode(p *protos.UserReq) (one *protos.User, e error) {
 	}
 
 	one, e = dao.UserSelectOne(p)
+
+	// 短信登录，用户不存在则自动注册
+	if one == nil {
+		id, e := dao.UserInsert(p)
+		if e != nil {
+			common.Logger.Error("loginBySmsCode.UserInsert ERR: ", zap.Error(e))
+			return nil, e
+		}
+		cellphone := zero.StringFrom(p.Cellphone)
+		one = &protos.User{
+			UID:       uint64(id),
+			Cellphone: &cellphone,
+		}
+	}
 
 	return
 }

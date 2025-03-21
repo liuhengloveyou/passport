@@ -11,7 +11,7 @@ import (
 	builder "xorm.io/builder"
 )
 
-func UserInsert(p *protos.UserReq) (id int64, e error) {
+func UserInsert(p *protos.UserReq) (uid int64, e error) {
 	table := "users"
 	data := builder.Eq{
 		"password": p.Password,
@@ -45,7 +45,7 @@ func UserInsert(p *protos.UserReq) (id int64, e error) {
 		return -1, err
 	}
 
-	id, e = rst.LastInsertId()
+	uid, e = rst.LastInsertId()
 
 	return
 }
