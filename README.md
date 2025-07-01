@@ -9,11 +9,11 @@
 ## 开始使用
 ### 作为一个单独的服务
 
-可以启动为一个独立的用户中心服务，提供HTTP服务。
+可以启动为一个独立的用户中心服务，提供HTTP服务。passport会接管API的签权逻辑。业务逻辑不必关心会话权限。
 
 <img src="./doc/IMG245.jpeg" style="zoom:25%;" />
 
-> passport会接管API的签权逻辑。业务逻辑不必关心会话权限。
+
 
 #### 配置
 
@@ -24,7 +24,7 @@ addr: ":8080"
 log_dir: "./logs"
 log_level: "debug"
 
-mysql: "root:xxx@tcp(127.0.0.1:3306)/passport?charset=utf8mb4&parseTime=True&loc=Local"
+pg_urn: "host=localhost user=passport password=passport123 dbname=passport port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 redis: ""
 
 session_store_type: "mem" # cookie
@@ -79,7 +79,7 @@ func InitHttpApi(addr string) error {
 	options := &passportprotos.OptionStruct{
 		LogDir:    "./logs", // 日志目录
 		LogLevel:  "debug",  // 日志级别
-		MysqlURN:  "root:root@tcp(127.0.0.1:3306)/passport?charset=utf8mb4&parseTime=true&loc=Local",
+		PgURN:  "host=localhost user=passport password=passport123 dbname=passport port=5432 sslmode=disable TimeZone=Asia/Shanghai",
 	}
 	http.Handle("/usercenter", passport.InitAndRunHttpApi(options))
 	// 业务可以挂在这里
@@ -137,7 +137,7 @@ func InitAdnRun(addr string) error {
 	options := &passportprotos.OptionStruct{
 		LogDir:    "./logs", // 日志目录
 		LogLevel:  "debug",  // 日志级别
-		MysqlURN:  "root:lhisroot@tcp(127.0.0.1:3306)/xxx?charset=utf8mb4&parseTime=true&loc=Local",
+		PgURN:  "host=localhost user=passport password=passport123 dbname=passport port=5432 sslmode=disable TimeZone=Asia/Shanghai",
 	}
 	engine.Any("/user", gin.WrapH(passport.InitAndRunHttpApi(options)))
 
@@ -201,7 +201,7 @@ cellphone、email、nickname三个字段必须有一个且只有一个
 ```shell
 curl -v -H "X-API: user/register" -d \
 '{
-	"nickname": "17612116527",
+	"cellphone": "15360651247",
 	"password": "123456"
 }' "http://127.0.0.1:10000/usercenter"
 
@@ -225,9 +225,9 @@ cellphone、email、nickname三个字段必须有一个且只有一个
 ```bash
 curl -v -X POST -H "X-API: user/login" -H "USE-COOKIE: true" -d \
 '{
-    "cellphone": "17688396389",
+    "cellphone": "15360651247",
     "password": "123456"
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 
 {
 	"code":0,
@@ -256,7 +256,7 @@ curl -v -X POST -H "X-API: user/login" -H "USE-COOKIE: true" -d \
 
 ```bash
 curl -i -X GET -H "X-API: user/logout" --cookie "go-session-id=MTY" \
-"http://127.0.0.1:8080/usercenter"
+"http://127.0.0.1:10000/usercenter"
 
 {
 	code: 0,
@@ -267,7 +267,8 @@ curl -i -X GET -H "X-API: user/logout" --cookie "go-session-id=MTY" \
 ### 签权
 
 ```bash
-curl -i -X GET -H "X-API: user/auth" -H "X-Requested-By: api1" --cookie "go-session-id=Opc=" "http://127.0.0.1:8080/usercenter"
+curl -i -X GET -H "X-API: user/auth" -H "X-Requested-By: api1" --cookie "go-session=MTc1MDc2xxx" \
+"http://127.0.0.1:10000/usercenter"
 
 {
 	code: 0,
@@ -295,7 +296,7 @@ curl -i -X GET -H "X-API: user/auth" -H "X-Requested-By: api1" --cookie "go-sess
 curl -v -X POST -H "X-API: user/modify" --cookie "go-session-id=MTYxNDE0N" -d \
 '{
 	"email":"liuhengloveyou@gmail.com"
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 
 {
 	"code":0,
@@ -319,7 +320,7 @@ curl -v -X POST -H "X-API: user/modify/password" --cookie "go-session-id=MTYxNDE
 '{
 	"n":"new pwd", 
 	"o":"old pwd",
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 
 {
 	"code":0,
@@ -345,7 +346,7 @@ curl -v -X POST -H "X-API: user/modify/getbackpwd" -d \
   "cellphone":"17612116527", 
   "sms":"xxxxxx", 
   "n":"new pwd",
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 
 {
 	"code":0,
@@ -367,7 +368,7 @@ Body: {
 ### 查询自己的账号详情
 
 ```bash
-curl -v -X GET -H "X-API: user/info" --cookie "go-session-id=MTYxNDE0N" "http://127.0.0.1:8080/usercenter"
+curl -v -X GET -H "X-API: user/info" --cookie "go-session-id=MTYxNDE0N" "http://127.0.0.1:10000/usercenter"
 
 {
     code: 0,
@@ -382,7 +383,7 @@ curl -v -X GET -H "X-API: user/info" --cookie "go-session-id=MTYxNDE0N" "http://
 ### 用UID查询账号详情
 
 ```
-curl -v -X GET -H "X-API: user/infoByUID" --cookie "go-session-id=MTYxNDE0N" "http://127.0.0.1:8080/usercenter?uid=10000"
+curl -v -X GET -H "X-API: user/infoByUID" --cookie "go-session-id=MTYxNDE0N" "http://127.0.0.1:10000/usercenter?uid=10000"
 
 成功返回:
 {
@@ -413,7 +414,7 @@ curl -v -X POST -H "X-API: access/addRoleForUser" --cookie "go-session-id=MTYxO�
 '{
   "uid": 123,
   "value": "role1"
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 ### 从用户删除角色
@@ -428,18 +429,18 @@ curl -v -X POST -H "X-API: access/removeRoleForUser" --cookie "go-session-id=MTY
 '{
    "uid": 123,
    "value": "role1"
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 
 ### 查询拥有一个角色的用户列表
 ```shell
-curl -v -X GET -H "X-API: access/getUsersForRole" --cookie "go-session-id=MTYxO“ "http://127.0.0.1:8080/usercenter?role=role1"
+curl -v -X GET -H "X-API: access/getUsersForRole" --cookie "go-session-id=MTYxO“ "http://127.0.0.1:10000/usercenter?role=role1"
 ```
 
 ### 查询一个用户拥有的角色列表
 ```shell
-curl -v -X GET -H "X-API: access/getRolesForUser" --cookie "go-session-id=MTYxO“ "http://127.0.0.1:8080/usercenter?uid=123"
+curl -v -X GET -H "X-API: access/getRolesForUser" --cookie "go-session-id=MTYxO“ "http://127.0.0.1:10000/usercenter?uid=123"
 ```
 
 ### 为角色添加权限
@@ -450,7 +451,7 @@ curl -v -X POST -H "X-API: access/addPolicyToRole" --cookie "go-session-id=MTYxO
   "role": "role1",
   "obj": "data1",
   "act": "read"
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 ### 从角色删除权限
@@ -461,13 +462,13 @@ curl -v -X POST -H "X-API: access/removePolicyFromRole" -d \
   "uid": 123,
   "sub": "data1",
   "act": "read"
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 ### 查询策略列表
 默认查询全部，可以用角色过滤
 ```shell
-curl -v -X GET -H "X-API: access/getPolicy" --cookie "go-session-id=MTY" "http://127.0.0.1:8080/usercenter?roles=role1,role2,role3"
+curl -v -X GET -H "X-API: access/getPolicy" --cookie "go-session-id=MTY" "http://127.0.0.1:10000/usercenter?roles=role1,role2,role3"
 
 {
 	"code":0,
@@ -482,7 +483,7 @@ curl -v -X GET -H "X-API: access/getPolicy" --cookie "go-session-id=MTY" "http:/
 ### 查询当前用户策略列表
 
 ```shell
-curl -v -X GET -H "X-API: access/getPolicyForUser" --cookie "go-session-id=MTY" "http://127.0.0.1:8080/usercenter"
+curl -v -X GET -H "X-API: access/getPolicyForUser" --cookie "go-session-id=MTY" "http://127.0.0.1:10000/usercenter"
 
 {
 	"code":0,
@@ -501,14 +502,14 @@ curl -X POST -H "X-API: access/addPermission" --cookie "go-session-id=MTY" -d \
 	"domain": "demo.passport.com",
   "title": "api-a",
   "value": "/a/b/c"
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 ### 删除权限字典条目
 
 ```bash
 curl -X GET -H "X-API: access/delPermission" --cookie "go-session-id=MTY" \
-"http://127.0.0.1:8080/usercenter?id=xxx"
+"http://127.0.0.1:10000/usercenter?id=xxx"
 ```
 
 
@@ -516,7 +517,7 @@ curl -X GET -H "X-API: access/delPermission" --cookie "go-session-id=MTY" \
 
 ```bash
 curl -X GET -H "X-API: access/listPermission" --cookie "go-session-id=MTY" \
-"http://127.0.0.1:8080/usercenter?domain=xxx"
+"http://127.0.0.1:10000/usercenter?domain=xxx"
 ```
 
 
@@ -524,6 +525,54 @@ curl -X GET -H "X-API: access/listPermission" --cookie "go-session-id=MTY" \
 ## 多租户相关接口
 
 每个用户只能属于一个租户
+
+### 添加租户和超级管理员
+
+只有root租户的超级管理员登录，才能通过该接口添加租户和管理员
+
+| 参数字段    | 解释     | 必填 |
+| ----------- | -------- | ---- |
+| tenant_name | 租户名   | 是   |
+| tenant_type | 租户类型 | 是   |
+| cellphone | 该租户管理员手机号 |是|
+| password  | 该租户管理员密码 |是|
+
+
+```shell
+curl -v -X POST -H "X-API: tenant/new" --cookie "go-session-id=V6VbtYfgFKSlOYwQ==" -d \
+'{
+  "tenantName": "tenant1",
+  "tenantType": "t1",
+  "cellphone": "18888888888", 
+  "password": "123456",
+
+}' "http://127.0.0.1:10000/usercenter"
+```
+
+
+### 租户列表
+
+只有root租户的超级管理员登录，才能通过该接口查询租户列表
+
+| 参数字段    | 解释     | 必填 |
+| ----------- | -------- | ---- |
+| tenant_name | 租户名   | 是   |
+| tenant_type | 租户类型 | 是   |
+| cellphone | 该租户管理员手机号 |是|
+| password  | 该租户管理员密码 |是|
+
+
+```shell
+curl -v -X POST -H "X-API: tenant/new" --cookie "go-session-id=V6VbtYfgFKSlOYwQ==" -d \
+'{
+  "tenantName": "tenant1",
+  "tenantType": "t1",
+  "cellphone": "18888888888", 
+  "password": "123456",
+
+}' "http://127.0.0.1:10000/usercenter"
+```
+
 
 ### 添加租户
 
@@ -548,8 +597,9 @@ curl -v -X POST -H "X-API: tenant/add" --cookie "go-session-id=V6VbtYfgFKSlOYwQ=
       }
   	}
   }
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
+
 
 ### 更新租户配置信息
 
@@ -564,13 +614,13 @@ curl -v -X POST -H "X-API: tenant/updateConfiguration" --cookie "go-session-id=V
        "aaa": "aaaaaaaaaaaaaaa"
   },
   "conf-bbb": null,
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 ### 查询当前租户配置信息
 
 ```shell
-curl -v -X GET -H "X-API: tenant/loadConfiguration" --cookie "go-session-id=gFKSlOYwQ==" "http://127.0.0.1:8080/usercenter?k=key"
+curl -v -X GET -H "X-API: tenant/loadConfiguration" --cookie "go-session-id=gFKSlOYwQ==" "http://127.0.0.1:10000/usercenter?k=key"
 ```
 
 ### 成员(账号)
@@ -593,7 +643,7 @@ curl -v -X POST -H "X-API: tenant/user/add" --cookie "go-session-id=MTYfgFKSlOYw
   "role": ["r1", "r2"],
   "depIds": [1, 2],
   "disable": 1
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 
 {
 	"code":0,
@@ -607,7 +657,7 @@ curl -v -X POST -H "X-API: tenant/user/add" --cookie "go-session-id=MTYfgFKSlOYw
 curl -v -X POST -H "X-API: tenant/delUser" --cookie "go-session-id=MTYfgFKSlOYwQ==" -d \
 '{
   "uid": 123,
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 
@@ -622,7 +672,7 @@ curl -v -X POST -H "X-API: tenant/delUser" --cookie "go-session-id=MTYfgFKSlOYwQ
 
 ```shell
 curl -v -X GET -H "X-API: tenant/getUsers" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
-"http://127.0.0.1:8080/usercenter?nickname=xxx&uids=1,2,3&page=1&pageSize=1"
+"http://127.0.0.1:10000/usercenter?nickname=xxx&uids=1,2,3&page=1&pageSize=1"
 ```
 
 
@@ -632,7 +682,7 @@ curl -v -X POST -H "X-API: tenant/modifyUserPassword" --cookie "go-session-id=Vb
 '{
 	"uid": 123,
   "pwd": "pwd"
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 #### 租户管理员停用/启用账号
@@ -647,7 +697,7 @@ curl -v -X POST -H "X-API: tenant/userDisableByUID" --cookie "go-session-id=MTOY
 '{
   "uid": 123,
   "disable": 1
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 #### 租户管理员更新成员账号扩展信息
@@ -664,7 +714,7 @@ curl -v -X POST -H "X-API: tenant/userModifyExtInfo" --cookie "go-session-id=MTO
   "uid": 123,
   "k": "key",
   "v": "xxx"
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 #### 设置成员的部门信息
@@ -674,7 +724,7 @@ curl -i -X POST -H "X-API: tenant/user/setDepartment" --cookie "go-session-id=xx
 -d '{
 	"uid": 123,
 	"depIds": [1,2]
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 ### 角色
@@ -688,7 +738,7 @@ curl -v -X POST -H "X-API: tenant/addRole" --cookie "go-session-id=VbtYfgFKSlOYw
 '{
   "title": "角色1",
   "value": "role1"
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 #### 删除角色字典
@@ -699,13 +749,13 @@ curl -v -X POST -H "X-API: tenant/addRole" --cookie "go-session-id=VbtYfgFKSlOYw
 curl -v -X POST -H "X-API: tenant/delRole" --cookie "go-session-id=VbtYfgFKSlOYwQ==" -d \
 '{
   "value": "role1"
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 #### 查询当前租户的角色字典
 ```shell
 curl -v -X GET -H "X-API: tenant/getRoles" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
-"http://127.0.0.1:8080/usercenter"
+"http://127.0.0.1:10000/usercenter"
 ```
 
 
@@ -718,13 +768,13 @@ curl -v -X POST -H "X-API: tenant/department/add" --cookie "go-session-id=gFKSlO
 '{
   "parentId": 0,
   "name": "dep1"
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 #### 删除部门记录
 
 ```shell
-curl -v -X GET -H "X-API: tenant/department/delete" --cookie "go-session-id=gFKSlOYwQ==" "http://127.0.0.1:8080/usercenter?id=123"
+curl -v -X GET -H "X-API: tenant/department/delete" --cookie "go-session-id=gFKSlOYwQ==" "http://127.0.0.1:10000/usercenter?id=123"
 ```
 
 #### 更新部门名
@@ -734,13 +784,13 @@ curl -v -X POST -H "X-API: tenant/department/update" --cookie "go-session-id=gFK
 '{
   "id": 123,
   "name": "dep1"
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 #### 查询部门列表
 
 ```shell
-curl -v -X GET -H "X-API: tenant/department/list" --cookie "go-session-id=gFKSlOYwQ==" "http://127.0.0.1:8080/usercenter?id=123"
+curl -v -X GET -H "X-API: tenant/department/list" --cookie "go-session-id=gFKSlOYwQ==" "http://127.0.0.1:10000/usercenter?id=123"
 ```
 
 
@@ -753,7 +803,7 @@ curl -v -X POST -H "X-API: sms/sendUserAddSmsCode" -d \
 '{
   "cellphone": "17612116527",
   "aliveSec": 5
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 ### 发送找回密码验证码 
@@ -763,7 +813,7 @@ curl -v -X POST -H "X-API: sms/sendGetBackPwdSms" -d \
 '{
   "cellphone": "17612116527",
   "aliveSec": 60
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 ### 发送用户登录验证码 
@@ -773,7 +823,7 @@ curl -v -X POST -H "X-API: sms/sendUserLoginSms" -d \
 '{
   "cellphone": "17612116527",
   "aliveSec": 60
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 
@@ -785,7 +835,7 @@ curl -v -X POST -H "X-API: sms/sendUserLoginSms" -d \
 
 ```bash
 curl -v -H "X-API: admin/tenantList" --cookie "go-session-id=VbtYfgFKSlOYwQ==" \
-"http://127.0.0.1:8080/usercenter?page=1&pageSize=1&hasTotal=1"
+"http://127.0.0.1:10000/usercenter?page=1&pageSize=1&hasTotal=1"
 ```
 
 ### 更新租户配置信息
@@ -802,7 +852,7 @@ curl -v -X POST -H "X-API: admin/updateTenantConfiguration" --cookie "go-session
          "aaa": "aaaaaaaaaaaaaaa"
     }
 	}
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 ### 更新用户密码
@@ -812,7 +862,7 @@ curl -v -X POST -H "X-API: admin/modifyUserPassword" --cookie "go-session-id=Vbt
 '{
 	"uid": 123,
   "pwd": "pwd"
-}' "http://127.0.0.1:8080/usercenter"
+}' "http://127.0.0.1:10000/usercenter"
 ```
 
 
@@ -848,7 +898,7 @@ ErrService   = errors.NewError(-1001, "服务错误")
 ErrSession   = errors.NewError(-1002, "会话错误")
 ErrNoLogin   = errors.NewError(-1003, "请登录")
 ErrNoAuth    = errors.NewError(-1004, "没有权限")
-ErrMysql1062 = errors.NewError(-1005, "重复记录")
+ErrPgDupKey  = errors.NewError(-1005, "重复记录")
 ErrLogin     = errors.NewError(-1006, "登录失败")
 ErrPWD       = errors.NewError(-1007, "密码不正确")
 ErrDisable   = errors.NewError(-1008, "账号已停用")
@@ -870,72 +920,98 @@ ErrTenantAddERR   = errors.NewError(-2004, "添加租户失败")
 
 ## 数据库表结构
 
-使用mysql数据库。可以创建单独的数据库， 也可以在业务库里添加users表， 表结构至少包含如下字段：
+使用postgresql数据库。可以创建单独的数据库， 也可以在业务库里添加users表， 表结构至少包含如下字段：
 
 ```sql
-CREATE SCHEMA `passport` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin ;
+psql postgres  # 以当前用户登录默认数据库
 
-CREATE TABLE `users` (
-  `uid` bigint(64) NOT NULL AUTO_INCREMENT,
-  `tenant_id` bigint(20) NOT NULL DEFAULT '0' COMMENT '租户ID',
-  `cellphone` varchar(11) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '手机号',
-  `email` varchar(255) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '邮件是址',
-  `nickname` varchar(255) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '昵称',
-  `wx_openid` varchar(64) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '微信openid',
-  `password` varchar(255) COLLATE utf8mb4_bin NOT NULL,
-  `avatar_url` varchar(255) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '头像URL',
-  `gender` int(11) DEFAULT NULL COMMENT '性别；1=男，2=女',
-  `addr` varchar(100) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '通讯地址',
-  `ext` json DEFAULT NULL COMMENT '扩展信息',
-  `add_time` datetime NOT NULL,
-  `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `login_time` timestamp NULL DEFAULT NULL COMMENT '最后登录时间戳(秒)',
-  PRIMARY KEY (`uid`),
-  UNIQUE KEY `cellphone_UNIQUE` (`cellphone`),
-  UNIQUE KEY `email_UNIQUE` (`email`),
-  UNIQUE KEY `nickname_UNIQUE` (`nickname`),
-  UNIQUE KEY `wxopenid_UNIQUE` (`wx_openid`),
-  KEY `tenant_index` (`tenant_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+-- Create new database
+CREATE USER passport WITH PASSWORD 'passport123';
+CREATE DATABASE passport OWNER passport;
+\q  # 退出
 
-CREATE TABLE `tenant` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `uid` bigint(20) NOT NULL COMMENT '创建(root)用户标识',
-  `tenant_name` varchar(256) COLLATE utf8mb4_bin NOT NULL,
-  `tenant_type` varchar(45) COLLATE utf8mb4_bin NOT NULL,
-  `info` json DEFAULT NULL,
-  `configuration` json DEFAULT NULL COMMENT '租户配置json串',
-  `add_time` datetime NOT NULL,
-  `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `tenant_name_unique` (`tenant_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+psql -U passport -d passport -h 127.0.0.1 -p 5432
+\l              -- List all databases
+\c passport     -- Connect to a database
+\dt             -- List tables in current database
+\q              -- Quit psql
 
-CREATE TABLE `permission` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `tenant_id` int(11) NOT NULL COMMENT '租户ID',
-  `domain` varchar(128) COLLATE utf8mb4_bin NOT NULL COMMENT '服务域',
-  `title` varchar(128) COLLATE utf8mb4_bin NOT NULL,
-  `value` varchar(256) COLLATE utf8mb4_bin NOT NULL,
-  `add_time` datetime NOT NULL,
-  `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `index-unique-title` (`tenant_id`,`domain`,`title`),
-  UNIQUE KEY `index-unique-value` (`value`,`domain`,`tenant_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+-- 用户表
+-- DROP TABLE IF EXISTS public.users;
+CREATE TABLE users
+(
+    uid serial NOT NULL ,
+    tenant_id integer NOT NULL DEFAULT 0,
+    nickname character varying(128) COLLATE pg_catalog."default",
+    cellphone character varying(11) COLLATE pg_catalog."default",
+    email character varying(255) COLLATE pg_catalog."default",
+    wx_openid character varying(64) COLLATE pg_catalog."default",
+    password character varying(512) COLLATE pg_catalog."default" NOT NULL,
+    avatar_url character varying(255) COLLATE pg_catalog."default",
+    gender smallint,
+    addr character varying(1024) COLLATE pg_catalog."default",
+    ext JSONB,
+    create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    login_time TIMESTAMPTZ,
+    CONSTRAINT users_pkey PRIMARY KEY (uid),
+    CONSTRAINT "cellphone_UNIQUE" UNIQUE (cellphone),
+    CONSTRAINT "email_UNIQUE" UNIQUE (email),
+    CONSTRAINT "nickname_UNIQUE" UNIQUE (nickname),
+    CONSTRAINT "wxopenid_UNIQUE" UNIQUE (wx_openid)
+) TABLESPACE pg_default;
+-- ALTER TABLE IF EXISTS public.users OWNER to pcdn;
+-- DROP INDEX IF EXISTS public.tenant_id;
+CREATE INDEX IF NOT EXISTS tenant_id
+    ON public.users USING btree
+    (tenant_id ASC NULLS LAST)
+    WITH (deduplicate_items=True)
+    TABLESPACE pg_default;
+ALTER SEQUENCE users_uid_seq RESTART WITH 10000;
 
-CREATE TABLE `departments` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `parent_id` bigint NOT NULL DEFAULT '0',
-  `uid` int NOT NULL,
-  `tenant_id` int NOT NULL,
-  `add_time` datetime(3) NOT NULL,
-  `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `name` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `config` json DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `index_tenant_name` (`tenant_id`,`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+-- 租户表
+CREATE TABLE tenants (
+  id BIGSERIAL PRIMARY KEY,
+  uid BIGINT NOT NULL DEFAULT 0,
+  parent_id BIGINT NOT NULL DEFAULT 0,
+  tenant_name VARCHAR(255) NOT NULL UNIQUE,
+  tenant_type VARCHAR(45) NOT NULL DEFAULT '',
+  info JSONB,
+  configuration JSONB,
+  create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+-- To set the starting value for the auto-incrementing ID:
+ALTER SEQUENCE tenants_id_seq RESTART WITH 10000;
+
+-- 权限表
+CREATE TABLE permission (
+  id SERIAL PRIMARY KEY,
+  tenant_id INT NOT NULL,
+  domain VARCHAR(128) NOT NULL,
+  title VARCHAR(128) NOT NULL,
+  value VARCHAR(256) NOT NULL,
+  create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (tenant_id, domain, title),
+  UNIQUE (value, domain, tenant_id)
+);
+-- To set the starting value for the auto-incrementing ID:
+ALTER SEQUENCE permission_id_seq RESTART WITH 10000;
+
+-- 部门表
+CREATE TABLE departments (
+  id SERIAL PRIMARY KEY,
+  parent_id BIGINT NOT NULL DEFAULT 0,
+  uid INT NOT NULL,
+  tenant_id INT NOT NULL,
+  create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  name VARCHAR(16) NOT NULL,
+  config JSONB,
+  UNIQUE (tenant_id, name)
+);
+-- To set the starting value for the auto-incrementing ID:
+ALTER SEQUENCE departments_id_seq RESTART WITH 10000;
 
 ```
-

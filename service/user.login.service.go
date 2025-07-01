@@ -24,7 +24,7 @@ func UserLoginByWeixin(req *protos.UserReq) (one *protos.User, e error) {
 
 	userPreTreat(req)
 
-	one, e = dao.UserSelectOne(req)
+	one, e = dao.UserQueryOne(req)
 	if e != nil {
 		common.Logger.Error("db err: ", zap.Error(e), zap.Any("req", req))
 		e = common.ErrService
@@ -65,7 +65,7 @@ func UserLoginByWeixin(req *protos.UserReq) (one *protos.User, e error) {
 		if one.Tenant != nil {
 			one.Tenant.Configuration = nil
 			one.Tenant.Info = nil
-			one.Tenant.AddTime = nil
+			one.Tenant.CreateTime = nil
 			one.Tenant.UpdateTime = nil
 		}
 	}
@@ -145,6 +145,9 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 	one.Ext = nil
 	one.Roles = nil
 	one.Departments = nil
+	if one.Tenant != nil {
+		one.Tenant.Info = nil
+	}
 
 	// tenant
 	if one.TenantID > 0 {
@@ -155,7 +158,7 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 		if one.Tenant != nil {
 			one.Tenant.Configuration = nil
 			one.Tenant.Info = nil
-			one.Tenant.AddTime = nil
+			one.Tenant.CreateTime = nil
 			one.Tenant.UpdateTime = nil
 		}
 	}
@@ -174,7 +177,7 @@ func loginBySmsCode(p *protos.UserReq) (one *protos.User, e error) {
 		return nil, e
 	}
 
-	one, e = dao.UserSelectOne(p)
+	one, e = dao.UserQueryOne(p)
 
 	// 短信登录，用户不存在则自动注册
 	if one == nil {
@@ -194,19 +197,19 @@ func loginBySmsCode(p *protos.UserReq) (one *protos.User, e error) {
 }
 
 func loginByCellphone(p *protos.UserReq) (one *protos.User, e error) {
-	one, e = dao.UserSelectOne(p)
+	one, e = dao.UserQueryOne(p)
 
 	return
 }
 
 func loginByEmail(p *protos.UserReq) (one *protos.User, e error) {
-	one, e = dao.UserSelectOne(p)
+	one, e = dao.UserQueryOne(p)
 
 	return
 }
 
 func loginByNickname(p *protos.UserReq) (one *protos.User, e error) {
-	one, e = dao.UserSelectOne(p)
+	one, e = dao.UserQueryOne(p)
 
 	return
 }

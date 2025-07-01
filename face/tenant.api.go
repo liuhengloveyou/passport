@@ -52,22 +52,6 @@ func TenantAdd(w http.ResponseWriter, r *http.Request) {
 
 	logger.Sugar().Info("user add ok:", uid)
 	gocommon.HttpErr(w, http.StatusOK, 0, uid)
-
-	return
-}
-
-func TenantGetRole(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
-	if sessionUser.TenantID <= 0 {
-		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
-		logger.Sugar().Error("GetRole TenantID ERR")
-		return
-	}
-
-	roles := service.TenantGetRole(sessionUser.TenantID)
-	gocommon.HttpErr(w, http.StatusOK, 0, roles)
-
-	return
 }
 
 func TenantRoleAdd(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +76,6 @@ func TenantRoleAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
-	return
 }
 
 func TenantRoleDel(w http.ResponseWriter, r *http.Request) {

@@ -72,9 +72,11 @@ func listDepartment(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 	id, _ := strconv.ParseUint(r.FormValue("id"), 10, 64)
+	page, _ := strconv.ParseUint(r.FormValue("page"), 10, 64)
+	pageSize, _ := strconv.ParseUint(r.FormValue("page_size"), 10, 64)
 	logger.Sugar().Infof("listDepartment id: %v\n", id)
 
-	list, err := service.DepartmentFind(id, sessionUser.TenantID)
+	list, err := service.DepartmentFind(id, sessionUser.TenantID, page, pageSize)
 	if err != nil {
 		logger.Sugar().Errorf("listDepartment service ERR: %v\n", err)
 		gocommon.HttpErr(w, http.StatusOK, -1, err)

@@ -59,7 +59,7 @@ func TenantUserDel(uid, currTenantID uint64) (r int64, e error) {
 
 func TenantUserGet(tenantID, page, pageSize uint64, nickname string, uids []uint64, hasTotal bool) (rst protos.PageResponse, e error) {
 	var rr []protos.User
-	rr, e = dao.UserSelectByTenant(tenantID, page, pageSize, nickname, uids)
+	rr, e = dao.UserQueryByTenant(tenantID, page, pageSize, nickname, uids)
 	if e != nil {
 		common.Logger.Sugar().Error("TenantUserGet db ERR: %v", e)
 		e = common.ErrService
@@ -72,7 +72,7 @@ func TenantUserGet(tenantID, page, pageSize uint64, nickname string, uids []uint
 	rst.List = rr
 
 	// 部门字典
-	departments, err := DepartmentFind(0, tenantID)
+	departments, err := DepartmentFind(0, tenantID, 0, 0)
 	if err != nil {
 		common.Logger.Sugar().Error("TenantUserGet DepartmentFind ERR: %v", e)
 		e = common.ErrService
@@ -142,7 +142,7 @@ func TenantUpdateUserExt(uid, currTenantID uint64, k string, v interface{}) erro
 		return common.ErrParam
 	}
 
-	userInfo, e := dao.UserSelectByID(uid)
+	userInfo, e := dao.UserQueryByID(uid)
 	if e != nil {
 		common.Logger.Sugar().Errorf("TenantUpdateUserExt db ERR: %v", e)
 		return common.ErrNull

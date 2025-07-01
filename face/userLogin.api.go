@@ -1,7 +1,6 @@
 package face
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -39,7 +38,6 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 		logger.Sugar().Warnf("userLogin 用户不存在: %v\n", user)
 		return
 	}
-	fmt.Printf("userLogin: %#v\n", one)
 
 	r.Header.Del("Cookie") // 删除老的会话信息
 	session, err := sessionStore.New(r, common.ServConfig.SessionKey)
@@ -67,7 +65,7 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 		w.Header().Del("Set-Cookie")
 	}
 
-	logger.Sugar().Infof("user login ok: %v sess: %#v \n", user, session)
+	logger.Info("user login ok: ", zap.Any("user", one), zap.Any("session", session))
 	// for k, v := range session.Values {
 	// 	logger.Sugar().Infof("user login ok: %#v: %#v \n", k, v)
 	// }

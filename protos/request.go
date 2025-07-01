@@ -69,3 +69,10 @@ type SmsReq struct {
 	Cellphone string `json:"cellphone" validate:"phone,len=11"`
 	AliveSec  int64  `json:"aliveSec" validate:"min=0,max=100"`
 }
+
+type NewTenantReq struct {
+	TenantName string `json:"tenantName"  validate:"omitempty,min=2,max=64"`
+	TenantType string `json:"tenantType"  validate:"omitempty,min=2,max=64"`
+	Cellphone  string `json:"cellphone" validate:"required,phone,len=11"`
+	Password   string `json:"password" validate:"required,min=6,max=64"`
+}

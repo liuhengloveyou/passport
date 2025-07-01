@@ -5,7 +5,7 @@ log_dir: "./logs"
 log_level: "debug"
 
 redis: ""
-mysql: "root:lhisroot@tcp(127.0.0.1:3306)/passport?charset=utf8mb4&parseTime=True&loc=Local"
+pg_urn: "host=localhost user=passport password=passport123 dbname=passport port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 
 session_key: "go-session"
 session_store_type: "mem" # cookie

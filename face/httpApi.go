@@ -256,10 +256,26 @@ func init() {
 		},
 
 		// 管理接口
-		"admin/tenantList": {
-			Handler:    TenantList,
-			NeedLogin:  true,
-			NeedAccess: true,
+		// 只有root租户可以用
+		"admin/user/list": {
+			Handler:   AdminUserList,
+			NeedLogin: true,
+		},
+		"admin/tenant/new": {
+			Handler:   AdminTenantNew,
+			NeedLogin: true,
+		},
+		"admin/tenant/list": {
+			Handler:   AdminTenantList,
+			NeedLogin: true,
+		},
+		"admin/tenant/query": {
+			Handler:   AdminTenantQuery,
+			NeedLogin: true,
+		},
+		"admin/tenant/setParent": {
+			Handler:   AdminSetParent,
+			NeedLogin: true,
 		},
 		"admin/updateTenantConfiguration": {
 			Handler:    UpdateTenantConfiguration,
@@ -311,7 +327,7 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 	}
 
 	// common.InitWithOption 后面
-	if e := accessctl.InitAccessControl("rbac_with_domains_model.conf", common.ServConfig.MysqlURN); e != nil {
+	if e := accessctl.InitAccessControl("rbac_with_domains_model.conf", common.ServConfig.PostgreURN); e != nil {
 		fmt.Println("InitAccessControl ERR: ", e)
 	}
 
@@ -509,8 +525,8 @@ func AccessFilter(r *http.Request) bool {
 
 	// 管理接口只有指定的租户可用
 	if strings.HasPrefix(obj, "admin/") {
-		if sessUser.TenantID != common.ServConfig.AdminTenantID {
-			logger.Sugar().Warnf("only admin; obj: %v; %v; sess: %v\n", obj, common.ServConfig.AdminTenantID, sessUser)
+		if sessUser.TenantID != common.ServConfig.RootTenantID {
+			logger.Sugar().Warnf("only root; obj: %v; %v; sess: %v\n", obj, common.ServConfig.RootTenantID, sessUser)
 			return false
 		}
 	}

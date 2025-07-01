@@ -7,19 +7,17 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/url"
 	"time"
-
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/jmoiron/sqlx"
-	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
-	"github.com/redis/go-redis/v9"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/sms"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
+	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 const (
@@ -32,8 +30,8 @@ var (
 	passportconfile = flag.String("passport", "./passport.conf.yaml", "配置文件路径")
 	ServConfig      protos.OptionStruct
 
-	DB          *sqlx.DB
 	Logger      *zap.Logger
+	DBPool      *pgxpool.Pool
 	RedisClient *redis.Client
 )
 
@@ -82,9 +80,9 @@ func InitWithOption(option *protos.OptionStruct) (e error) {
 		}
 	}
 
-	if option.MysqlURN != "" && DB == nil {
-		ServConfig.MysqlURN = option.MysqlURN
-		if e = InitMysql(option.MysqlURN); e != nil {
+	if option.PostgreURN != "" && DBPool == nil {
+		ServConfig.PostgreURN = option.PostgreURN
+		if e = InitDB(option.PostgreURN); e != nil {
 			return e
 		}
 	}
@@ -105,7 +103,7 @@ func InitWithOption(option *protos.OptionStruct) (e error) {
 
 	ServConfig.SessionStoreType = option.SessionStoreType
 	ServConfig.ApiConf = option.ApiConf
-	ServConfig.AdminTenantID = option.AdminTenantID
+	ServConfig.RootTenantID = option.RootTenantID
 
 	return nil
 }
@@ -137,17 +135,16 @@ func InitLog(logDir, logLevel string) error {
 	return nil
 }
 
-func InitMysql(urn string) (err error) {
-	if DB, err = sqlx.Connect("mysql", fmt.Sprintf("%s&loc=%s", urn, url.QueryEscape("Asia/Shanghai"))); err != nil {
+func InitDB(urn string) (err error) {
+	DBPool, err = pgxpool.New(context.Background(), urn)
+	if err != nil {
 		return err
 	}
-	DB.SetMaxOpenConns(2000)
-	DB.SetMaxIdleConns(1000)
-	if err = DB.Ping(); err != nil {
+
+	if err = DBPool.Ping(context.Background()); err != nil {
 		panic(err)
 	}
 
-	fmt.Println("passport mysql inited.")
 	return nil
 }
 

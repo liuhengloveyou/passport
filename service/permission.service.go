@@ -6,9 +6,8 @@ import (
 	"github.com/liuhengloveyou/passport/protos"
 )
 
-
 func PermissionCreate(model *protos.PermissionStruct) (int64, error) {
-	return dao.PermissionCreate(common.DB, model)
+	return dao.PermissionCreate(model)
 }
 
 func PermissionDelete(id, tenantID uint64) error {
@@ -16,7 +15,7 @@ func PermissionDelete(id, tenantID uint64) error {
 		common.Logger.Sugar().Errorf("PermissionDelete id ERR: %v\n", id)
 		return common.ErrParam
 	}
-	row, err := dao.PermissionDelete(common.DB, id, tenantID)
+	row, err := dao.PermissionDelete(id, tenantID)
 	if err != nil {
 		common.Logger.Sugar().Errorf("dao.PermissionDelete ERR: %v\n", err)
 		return common.ErrService
@@ -29,7 +28,7 @@ func PermissionDelete(id, tenantID uint64) error {
 }
 
 func PermissionList(tenantID uint64, domain string) (rr []protos.PermissionStruct, err error) {
-	if rr, err = dao.PermissionList(common.DB, tenantID, domain); err != nil {
+	if rr, err = dao.PermissionList(tenantID, domain); err != nil {
 		common.Logger.Sugar().Errorf("dao.PermissionList ERR: %v\n", err)
 		return nil, common.ErrService
 	}

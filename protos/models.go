@@ -3,6 +3,7 @@ package protos
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	null "gopkg.in/guregu/null.v4/zero"
@@ -34,7 +35,7 @@ type User struct {
 	Province *null.String `json:"province,omitempty" db:"province"`
 	City     *null.String `json:"city,omitempty" db:"city"`
 
-	AddTime    *time.Time `json:"addTime,omitempty" validate:"-" db:"add_time"`
+	CreateTime *time.Time `json:"createTime,omitempty" validate:"-" db:"create_time"`
 	UpdateTime *time.Time `json:"updateTime,omitempty" validate:"-" db:"update_time"`
 	DeleteTime *time.Time `json:"deleteTime,omitempty" validate:"-" db:"delete_time"`
 	LoginTime  *time.Time `json:"loginTime,omitempty" validate:"-" db:"login_time"`
@@ -96,11 +97,12 @@ func (t UserLiteArr) Value() (driver.Value, error) {
 type Tenant struct {
 	ID            uint64               `json:"id" validate:"-" db:"id"`
 	UID           uint64               `json:"uid,omitempty" validate:"-" db:"uid"`
+	ParentID      uint64               `json:"parentId,omitempty" validate:"-" db:"parent_id"`
 	TenantName    string               `json:"tenantName" db:"tenant_name" validate:"omitempty,min=2,max=64"`
 	TenantType    string               `json:"tenantType" db:"tenant_type" validate:"omitempty,min=2,max=64"`
-	AddTime       *time.Time           `json:"addTime,omitempty" validate:"-" db:"add_time"`
+	CreateTime    *time.Time           `json:"createTime,omitempty" validate:"-" db:"create_time"`
 	UpdateTime    *time.Time           `json:"updateTime,omitempty" validate:"-" db:"update_time"`
-	Info          MapStruct            `json:"info,omitempty" db:"info"`
+	Info          *TenantInfo          `json:"info,omitempty" db:"info"`
 	Configuration *TenantConfiguration `json:"configuration,omitempty" db:"configuration"`
 }
 
@@ -110,19 +112,59 @@ type TenantConfiguration struct {
 	More  MapStruct    `json:"more"`
 }
 
+func (t TenantConfiguration) Value() (driver.Value, error) {
+	return json.Marshal(t)
+}
+
 func (t *TenantConfiguration) Scan(src interface{}) error {
 	if src == nil {
 		return nil
 	}
-	if len(src.([]byte)) <= 2 {
+
+	var b []byte
+	switch v := src.(type) {
+	case []byte:
+		if len(v) <= 2 {
+			return nil
+		}
+		b = v
+	case string:
+		if len(v) <= 2 {
+			return nil
+		}
+		b = []byte(v)
+	default:
+		return fmt.Errorf("cannot scan %T into TenantConfiguration", src)
+	}
+
+	return json.Unmarshal(b, t)
+}
+
+// 租户配置字段
+type TenantInfo struct {
+	AdminCellphone string `json:"adminCellphone"` // 管理员手机号列表
+}
+
+func (t TenantInfo) Value() (driver.Value, error) {
+	return json.Marshal(t)
+}
+
+func (t *TenantInfo) Scan(value interface{}) error {
+	if value == nil {
 		return nil
 	}
 
-	b, _ := src.([]byte)
-	return json.Unmarshal(b, t)
-}
-func (t TenantConfiguration) Value() (driver.Value, error) {
-	return json.Marshal(t)
+	var bytes []byte
+	switch v := value.(type) {
+	case []byte:
+		bytes = v
+	case string:
+		bytes = []byte(v) // 将 string 转换为 []byte
+	default:
+		return fmt.Errorf("cannot scan %T into TenantInfo", value)
+	}
+
+	return json.Unmarshal(bytes, t)
 }
 
 // 角色
@@ -140,7 +182,7 @@ type PermissionStruct struct {
 	Domain     string     `json:"domain,omitempty" validate:"required,min=2,max=128" db:"domain"`
 	Title      string     `json:"title" validate:"required,min=2,max=128" db:"title"`
 	Value      string     `json:"value" validate:"required,min=2,max=256" db:"value"`
-	AddTime    *time.Time `json:"addTime,omitempty" validate:"-" db:"add_time"`
+	CreateTime *time.Time `json:"createTime,omitempty" validate:"-" db:"create_time"`
 	UpdateTime *time.Time `json:"updateTime,omitempty" validate:"-" db:"update_time"`
 }
 
@@ -157,8 +199,8 @@ type Department struct {
 	ParentID   uint64     `json:"parentId" validate:"-" db:"parent_id"`
 	UserId     uint64     `json:"uid" validate:"omitempty,min=1" db:"uid" gorm:"column:uid;type:INT;not null;"`
 	TenantID   uint64     `json:"tenantId,omitempty" validate:"-" db:"tenant_id"`
-	AddTime    *time.Time `json:"addTime,omitempty" validate:"-" db:"add_time"` // 创建时间
-	UpdateTime *time.Time `json:"updateTime" validate:"-" db:"update_time"`     // 最后更新时间
+	CreateTime *time.Time `json:"createTime,omitempty" validate:"-" db:"create_time"` // 创建时间
+	UpdateTime *time.Time `json:"updateTime" validate:"-" db:"update_time"`           // 最后更新时间
 	Name       string     `json:"name" validate:"required,max=10" db:"name"`
 	Config     MapStruct  `json:"config,omitempty" validate:"-" db:"config"` // 记录用户的扩展信息
 }

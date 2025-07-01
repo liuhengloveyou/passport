@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+
 	"github.com/liuhengloveyou/passport/protos"
 
 	. "github.com/liuhengloveyou/passport/common"
@@ -18,7 +19,7 @@ func AuthPWDService(uid uint64, pwd string) (auth bool, e error) {
 	}
 
 	var rr []protos.User
-	if rr, e = dao.UserSelect(&protos.UserReq{UID: uid}, 1, 1); e != nil {
+	if rr, e = dao.UserQuery(&protos.UserReq{UID: uid}, 1, 1); e != nil {
 		return false, e
 	}
 

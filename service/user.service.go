@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-sql-driver/mysql"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/liuhengloveyou/passport/protos"
 	"github.com/liuhengloveyou/passport/sms"
 	"go.uber.org/zap"
@@ -64,9 +64,8 @@ func AddUserService(p *protos.UserReq) (id uint64, e error) {
 	uid, err := dao.UserInsert(p)
 	if err != nil {
 		common.Logger.Sugar().Errorf("dao.UserInsert ERR: %v\n", err)
-		merr, ok := err.(*mysql.MySQLError)
-		if ok && merr.Number == 1062 {
-			return 0, common.ErrMysql1062
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" { // 唯一约束冲突
+			return 0, common.ErrPgDupKey
 		}
 		return 0, common.ErrService
 	}
@@ -79,8 +78,51 @@ func GetUserInfo(uid uint64) (r *protos.User, e error) {
 		return nil, common.ErrParam
 	}
 
-	r, e = dao.UserSelectByID(uid)
+	r, e = dao.UserQueryByID(uid)
+	if e != nil {
+		return nil, e
+	}
+	if r == nil {
+		return nil, common.ErrUserNotFound
+	}
 	r.Password = ""
+
+	return
+}
+
+func AdminUserList(tenantID, page, pageSize uint64, hasTotal bool, nickname string) (rst protos.PageResponse, e error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 100
+	}
+	if pageSize > 1000 {
+		pageSize = 1000
+	}
+
+	var rr []protos.User
+	var uids []uint64
+	rr, e = dao.UserQueryByTenant(tenantID, page, pageSize, nickname, uids)
+	if e != nil {
+		common.Logger.Sugar().Error("AdminUserList db ERR: ", e)
+		e = common.ErrService
+		return
+	}
+	if len(rr) == 0 {
+		e = common.ErrNull
+		return
+	}
+	rst.List = rr
+
+	if hasTotal {
+		rst.Total, e = dao.UserCountByTenant(tenantID, nickname, uids)
+		if e != nil {
+			common.Logger.Sugar().Error("AdminUserList count ERR: ", e)
+			e = common.ErrService
+			return
+		}
+	}
 
 	return
 }
@@ -90,7 +132,7 @@ func SelectUsersLite(m *protos.UserReq) (rr []protos.UserLite, e error) {
 		return nil, common.ErrParam
 	}
 
-	rr, e = dao.UserSearchLite(m, m.PageNo, m.PageSize)
+	rr, e = dao.UserLiteQuery(m, m.PageNo, m.PageSize)
 
 	return
 }
@@ -203,7 +245,7 @@ func GetUserInfoService(uid, tenantId uint64) (r *protos.User, e error) {
 		UID: uid,
 	}
 
-	if r, e = dao.UserSelectOne(model); e != nil {
+	if r, e = dao.UserQueryOne(model); e != nil {
 		common.Logger.Sugar().Errorf("GetUserInfoService DB ERR: %v\n", e)
 		return
 	}
@@ -245,13 +287,13 @@ func GetBusinessUserInfoService(uid uint64, models interface{}) (e error) {
 		UID: uid,
 	}
 
-	e = dao.BusinessSelect(model, models, 1, 1)
+	e = dao.BusinessQuery(model, models, 1, 1)
 
 	return
 }
 
 func duplicatePhone(phone string) (has bool) {
-	rr, err := dao.UserSelect(&protos.UserReq{Cellphone: phone}, 1, 1)
+	rr, err := dao.UserQuery(&protos.UserReq{Cellphone: phone}, 1, 1)
 	if err != nil {
 		return false
 	}
@@ -266,7 +308,7 @@ func duplicatePhone(phone string) (has bool) {
 }
 
 func duplicateEmail(email string) (has bool) {
-	rr, err := dao.UserSelect(&protos.UserReq{Email: email}, 1, 1)
+	rr, err := dao.UserQuery(&protos.UserReq{Email: email}, 1, 1)
 	if err != nil {
 		return false
 	}
@@ -281,7 +323,7 @@ func duplicateEmail(email string) (has bool) {
 }
 
 func duplicateNickname(nickname string) (has bool) {
-	rr, err := dao.UserSelect(&protos.UserReq{Nickname: nickname}, 1, 100)
+	rr, err := dao.UserQuery(&protos.UserReq{Nickname: nickname}, 1, 100)
 	if err != nil {
 		return false
 	}
@@ -297,7 +339,7 @@ func duplicateNickname(nickname string) (has bool) {
 }
 
 func duplicateWxOpenid(openid string) (has bool) {
-	rr, err := dao.UserSelect(&protos.UserReq{WxOpenId: openid}, 1, 100)
+	rr, err := dao.UserQuery(&protos.UserReq{WxOpenId: openid}, 1, 100)
 	if err != nil {
 		return false
 	}

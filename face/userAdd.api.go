@@ -5,11 +5,10 @@ import (
 
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/service"
 	"github.com/liuhengloveyou/passport/sms"
 
-	"github.com/liuhengloveyou/passport/service"
-
-	"github.com/go-sql-driver/mysql"
+	"github.com/jackc/pgx/v5/pgconn"
 	gocommon "github.com/liuhengloveyou/go-common"
 )
 
@@ -44,11 +43,9 @@ func userAdd(w http.ResponseWriter, r *http.Request) {
 	uid, err := service.AddUserService(user)
 	if err != nil {
 		logger.Sugar().Error("userAdd service.AddUser ERR: ", err)
-		if merr, ok := err.(*mysql.MySQLError); ok {
-			if merr.Number == 1062 {
-				gocommon.HttpJsonErr(w, http.StatusOK, common.ErrMysql1062)
-				return
-			}
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" { // 唯一约束冲突
+			gocommon.HttpJsonErr(w, http.StatusOK, common.ErrPgDupKey)
+			return
 		}
 
 		gocommon.HttpJsonErr(w, http.StatusOK, err)

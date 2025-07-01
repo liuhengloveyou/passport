@@ -2,7 +2,6 @@ package accessctl
 
 import (
 	casbin "github.com/casbin/casbin/v2"
-	_ "github.com/go-sql-driver/mysql"
 )
 
 var (
@@ -18,10 +17,6 @@ func addPolicy(sub, domain, obj, act string) (err error) {
 		return
 	}
 
-	// if err = enforcer.SavePolicy(); err != nil {
-	// 	return
-	// }
-
 	return
 }
 
@@ -29,10 +24,6 @@ func removePolicy(sub, domain, obj, act string) (err error) {
 	if _, err = enforcer.RemovePolicy(sub, domain, obj, act); err != nil {
 		return
 	}
-
-	// if err = enforcer.SavePolicy(); err != nil {
-	// 	return
-	// }
 
 	return
 }
@@ -51,10 +42,6 @@ func addRoleForUserInDomain(user, role, domain string) error {
 		return err
 	}
 
-	// if err = enforcer.SavePolicy(); err != nil {
-	// 	return err
-	// }
-
 	return nil
 }
 
@@ -63,22 +50,13 @@ func deleteRolesForUserInDomain(user, domain string) (err error) {
 		return
 	}
 
-	// if err = enforcer.SavePolicy(); err != nil {
-	// 	return
-	// }
-
 	return
-
 }
 
 func deleteRoleForUserInDomain(user, role, domain string) (err error) {
 	if _, err = enforcer.DeleteRoleForUserInDomain(user, role, domain); err != nil {
 		return
 	}
-
-	// if err = enforcer.SavePolicy(); err != nil {
-	// 	return
-	// }
 
 	return
 }

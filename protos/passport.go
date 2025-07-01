@@ -1,17 +1,17 @@
 package protos
 
 type OptionStruct struct {
-	ServID    string `yaml:"serv_id"`
-	PidFile   string `yaml:"pid_file"`
-	Face      string `yaml:"face"`
-	Addr      string `yaml:"addr"`      // 启动http的端口
-	LogDir    string `yaml:"log_dir"`   // 日志目录
-	LogLevel  string `yaml:"log_level"` // 日志级别
-	RedisAddr string `yaml:"redis"`
-	MysqlURN  string `yaml:"mysql"`
-	AvatarDir string `yaml:"avatar_dir"`
+	ServID     string `yaml:"serv_id"`
+	PidFile    string `yaml:"pid_file"`
+	Face       string `yaml:"face"`
+	Addr       string `yaml:"addr"`      // 启动http的端口
+	LogDir     string `yaml:"log_dir"`   // 日志目录
+	LogLevel   string `yaml:"log_level"` // 日志级别
+	RedisAddr  string `yaml:"redis"`
+	PostgreURN string `yaml:"pg_urn"`
+	AvatarDir  string `yaml:"avatar_dir"`
 
-	AdminTenantID uint64 `yaml:"admin_tenant_id"` // admin接口只有一个租户有权限
+	RootTenantID uint64 `yaml:"root_tenant_id"` // admin接口只有一个租户有权限
 
 	Domain           string `json:"domain"`
 	SessionKey       string `yaml:"session_key"`

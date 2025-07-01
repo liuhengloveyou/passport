@@ -1,101 +1,97 @@
 package dao
 
 import (
-	"database/sql"
-
-	. "github.com/liuhengloveyou/passport/common"
-
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/jackc/pgx/v5"
 )
 
 type DAOInterface interface {
 	Validate() error
-	Insert(tx *sql.Tx) (int64, error)
-	Update(tx *sql.Tx) (int64, error)
-	Delete(tx *sql.Tx) (int64, error)
-	Select(tx *sql.Tx, pageNo, pageSize uint) (interface{}, error)
+	Insert(tx *pgx.Tx) (int64, error)
+	Update(tx *pgx.Tx) (int64, error)
+	Delete(tx *pgx.Tx) (int64, error)
+	Select(tx *pgx.Tx, pageNo, pageSize uint) (interface{}, error)
 }
 
-func Insert(tx *sql.Tx, model DAOInterface) (rows int64, e error) {
-	var _tx *sql.Tx
+// func Insert(tx *pgx.Tx, model DAOInterface) (rows int64, e error) {
+// 	var _tx *pgx.Tx
 
-	if tx != nil {
-		_tx = tx
-	} else {
-		if _tx, e = DB.Begin(); e != nil {
-			return -1, e
-		}
-	}
+// 	if tx != nil {
+// 		_tx = tx
+// 	} else {
+// 		if _tx, e = common.DBPool.Begin(); e != nil {
+// 			return -1, e
+// 		}
+// 	}
 
-	rows, e = model.Insert(tx)
-	if e != nil {
-		_tx.Rollback()
-	} else {
-		_tx.Commit()
-	}
+// 	rows, e = model.Insert(tx)
+// 	if e != nil {
+// 		_tx.Rollback()
+// 	} else {
+// 		_tx.Commit()
+// 	}
 
-	return
-}
+// 	return
+// }
 
-func Delete(tx *sql.Tx, model DAOInterface) (rows int64, e error) {
-	var _tx *sql.Tx
+// func Delete(tx *pgx.Tx, model DAOInterface) (rows int64, e error) {
+// 	var _tx *pgx.Tx
 
-	if tx != nil {
-		_tx = tx
-	} else {
-		if _tx, e = DB.Begin(); e != nil {
-			return -1, e
-		}
-	}
+// 	if tx != nil {
+// 		_tx = tx
+// 	} else {
+// 		if _tx, e = DB.Begin(); e != nil {
+// 			return -1, e
+// 		}
+// 	}
 
-	rows, e = model.Delete(tx)
-	if e != nil {
-		_tx.Rollback()
-	} else {
-		_tx.Commit()
-	}
+// 	rows, e = model.Delete(tx)
+// 	if e != nil {
+// 		_tx.Rollback()
+// 	} else {
+// 		_tx.Commit()
+// 	}
 
-	return
-}
+// 	return
+// }
 
-func Update(tx *sql.Tx, model DAOInterface) (rows int64, e error) {
-	var _tx *sql.Tx
+// func Update(tx *pgx.Tx, model DAOInterface) (rows int64, e error) {
+// 	var _tx *pgx.Tx
 
-	if tx != nil {
-		_tx = tx
-	} else {
-		if _tx, e = DB.Begin(); e != nil {
-			return -1, e
-		}
-	}
+// 	if tx != nil {
+// 		_tx = tx
+// 	} else {
+// 		if _tx, e = DB.Begin(); e != nil {
+// 			return -1, e
+// 		}
+// 	}
 
-	rows, e = model.Update(_tx)
-	if e != nil {
-		_tx.Rollback()
-	} else {
-		_tx.Commit()
-	}
+// 	rows, e = model.Update(_tx)
+// 	if e != nil {
+// 		_tx.Rollback()
+// 	} else {
+// 		_tx.Commit()
+// 	}
 
-	return
-}
+// 	return
+// }
 
-func Select(tx *sql.Tx, pageNo, pageSize uint, model DAOInterface) (rst interface{}, e error) {
-	var _tx *sql.Tx
+// func Select(tx *pgx.Tx, pageNo, pageSize uint, model DAOInterface) (rst interface{}, e error) {
+// 	var _tx *pgx.Tx
 
-	if tx != nil {
-		_tx = tx
-	} else {
-		if _tx, e = DB.Begin(); e != nil {
-			return -1, e
-		}
-	}
+// 	if tx != nil {
+// 		_tx = tx
+// 	} else {
+// 		if _tx, e = DB.Begin(); e != nil {
+// 			return -1, e
+// 		}
+// 	}
 
-	rst, e = model.Select(tx, pageNo, pageSize)
-	if e != nil {
-		_tx.Rollback()
-	} else {
-		_tx.Commit()
-	}
+// 	rst, e = model.Select(tx, pageNo, pageSize)
+// 	if e != nil {
+// 		_tx.Rollback()
+// 	} else {
+// 		_tx.Commit()
+// 	}
 
-	return
-}
+// 	return
+// }
