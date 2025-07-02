@@ -34,4 +34,8 @@ var (
 	ErrTenantAdminPasswordNull  = errors.NewError(-2006, "管理员密码为空")
 
 	ErrWxService = errors.NewError(-3000, "微信接口返回错误")
+
+	ErrTenantSetParent   = errors.NewError(-14000, "设置租户父级失败")
+	ErrTenantCircularRef = errors.NewError(-14001, "循环设置租户父级")
+	ErrTenantRoot        = errors.NewError(-14002, "不能给Root租户设置父级")
 )

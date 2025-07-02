@@ -938,35 +938,28 @@ psql -U passport -d passport -h 127.0.0.1 -p 5432
 
 -- 用户表
 -- DROP TABLE IF EXISTS public.users;
-CREATE TABLE users
+CREATE TABLE users1
 (
-    uid serial NOT NULL ,
-    tenant_id integer NOT NULL DEFAULT 0,
-    nickname character varying(128) COLLATE pg_catalog."default",
-    cellphone character varying(11) COLLATE pg_catalog."default",
-    email character varying(255) COLLATE pg_catalog."default",
-    wx_openid character varying(64) COLLATE pg_catalog."default",
-    password character varying(512) COLLATE pg_catalog."default" NOT NULL,
-    avatar_url character varying(255) COLLATE pg_catalog."default",
-    gender smallint,
-    addr character varying(1024) COLLATE pg_catalog."default",
-    ext JSONB,
-    create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    login_time TIMESTAMPTZ,
-    CONSTRAINT users_pkey PRIMARY KEY (uid),
-    CONSTRAINT "cellphone_UNIQUE" UNIQUE (cellphone),
-    CONSTRAINT "email_UNIQUE" UNIQUE (email),
-    CONSTRAINT "nickname_UNIQUE" UNIQUE (nickname),
-    CONSTRAINT "wxopenid_UNIQUE" UNIQUE (wx_openid)
-) TABLESPACE pg_default;
+  uid BIGSERIAL PRIMARY KEY,
+  tenant_id BIGINT NOT NULL DEFAULT 0,
+  nickname VARCHAR(64) UNIQUE,
+  cellphone VARCHAR(11) UNIQUE,
+  email VARCHAR(255) UNIQUE,
+  wx_openid VARCHAR(64) UNIQUE,
+  password VARCHAR(512) NOT NULL,
+  avatar_url VARCHAR(255),
+  gender SMALLINT,
+  addr VARCHAR(1024),
+  province VARCHAR(64),
+  city VARCHAR(64),
+  ext JSONB,
+  create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  login_time TIMESTAMPTZ
+);
 -- ALTER TABLE IF EXISTS public.users OWNER to pcdn;
 -- DROP INDEX IF EXISTS public.tenant_id;
-CREATE INDEX IF NOT EXISTS tenant_id
-    ON public.users USING btree
-    (tenant_id ASC NULLS LAST)
-    WITH (deduplicate_items=True)
-    TABLESPACE pg_default;
+CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users(tenant_id) WITH (deduplicate_items=True);
 ALTER SEQUENCE users_uid_seq RESTART WITH 10000;
 
 -- 租户表
@@ -983,10 +976,12 @@ CREATE TABLE tenants (
 );
 -- To set the starting value for the auto-incrementing ID:
 ALTER SEQUENCE tenants_id_seq RESTART WITH 10000;
+CREATE INDEX IF NOT EXISTS idx_tenants_parent_id ON tenants(parent_id);
+CREATE INDEX IF NOT EXISTS idx_tenants_tenant_name ON tenants(tenant_name);
 
 -- 权限表
 CREATE TABLE permission (
-  id SERIAL PRIMARY KEY,
+  id BIGSERIAL PRIMARY KEY,
   tenant_id INT NOT NULL,
   domain VARCHAR(128) NOT NULL,
   title VARCHAR(128) NOT NULL,
@@ -998,13 +993,15 @@ CREATE TABLE permission (
 );
 -- To set the starting value for the auto-incrementing ID:
 ALTER SEQUENCE permission_id_seq RESTART WITH 10000;
+CREATE INDEX IF NOT EXISTS idx_permission_tenant_id ON permission(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_permission_domain ON permission(domain);
 
 -- 部门表
 CREATE TABLE departments (
   id SERIAL PRIMARY KEY,
-  parent_id BIGINT NOT NULL DEFAULT 0,
   uid INT NOT NULL,
   tenant_id INT NOT NULL,
+  parent_id BIGINT NOT NULL DEFAULT 0,
   create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   name VARCHAR(16) NOT NULL,
@@ -1013,5 +1010,28 @@ CREATE TABLE departments (
 );
 -- To set the starting value for the auto-incrementing ID:
 ALTER SEQUENCE departments_id_seq RESTART WITH 10000;
+CREATE INDEX IF NOT EXISTS idx_departments_tenant_id ON departments(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_departments_parent_id ON departments(parent_id);
+CREATE INDEX IF NOT EXISTS idx_departments_uid ON departments(uid);
+
+-- 用户闭包表
+CREATE TABLE IF NOT EXISTS user_closure (
+	ancestor_id BIGINT NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+	descendant_id BIGINT NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+	depth INT NOT NULL CHECK (depth >= 0),
+	PRIMARY KEY (ancestor_id, descendant_id)
+);
+CREATE INDEX IF NOT EXISTS idx_user_closure_ancestor ON user_closure(ancestor_id);
+CREATE INDEX IF NOT EXISTS idx_user_closure_descendant ON user_closure(descendant_id);
+
+-- 租户闭包表
+CREATE TABLE IF NOT EXISTS tenant_closure (
+  ancestor_id BIGINT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+	descendant_id BIGINT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+	depth INT NOT NULL CHECK (depth >= 0),
+	PRIMARY KEY (ancestor_id, descendant_id)
+);
+CREATE INDEX IF NOT EXISTS idx_tenant_closure_tenant_id ON tenant_closure(ancestor_id);
+CREATE INDEX IF NOT EXISTS idx_tenant_closure_ancestor_id ON tenant_closure(descendant_id);
 
 ```

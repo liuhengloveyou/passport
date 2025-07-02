@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
 	"xorm.io/builder"
@@ -12,7 +13,8 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-func UserInsert(p *protos.UserReq) (uid int64, e error) {
+// UserInsert 插入用户数据，支持可选的事务参数
+func UserInsert(p *protos.UserReq, tx *pgx.Tx) (uid int64, e error) {
 	table := "users"
 	data := make(map[string]interface{})
 
@@ -20,6 +22,13 @@ func UserInsert(p *protos.UserReq) (uid int64, e error) {
 	data["password"] = p.Password
 	data["create_time"] = time.Now()
 	data["update_time"] = time.Now()
+
+	// 处理租户ID
+	if p.TenantID > 0 {
+		data["tenant_id"] = p.TenantID
+	}
+	// 注意：不要设置UID字段，让数据库自动生成
+	// 如果p.UID有值，会导致主键冲突错误
 
 	// 可选字段
 	if p.Cellphone != "" {
@@ -45,9 +54,17 @@ func UserInsert(p *protos.UserReq) (uid int64, e error) {
 		return -1, err
 	}
 
-	// 使用 QueryRow 执行带有 RETURNING 子句的 INSERT 语句
-	err = common.DBPool.QueryRow(context.Background(), sql, vals...).Scan(&uid)
-	common.Logger.Sugar().Debugf("db.QueryRow: uid=%v err=%v\n", uid, err)
+	// 根据是否传入事务参数选择执行方式
+	if tx != nil {
+		// 在事务中执行
+		err = (*tx).QueryRow(context.Background(), sql, vals...).Scan(&uid)
+		common.Logger.Sugar().Debugf("tx.QueryRow: uid=%v err=%v\n", uid, err)
+	} else {
+		// 使用连接池执行
+		err = common.DBPool.QueryRow(context.Background(), sql, vals...).Scan(&uid)
+		common.Logger.Sugar().Debugf("db.QueryRow: uid=%v err=%v\n", uid, err)
+	}
+
 	if err != nil {
 		return -1, err
 	}

@@ -229,6 +229,12 @@ func init() {
 			NeedLogin: true,
 		},
 
+		// 多级租户
+		"tenant/tree/list": {
+			Handler:   TenantTreeList,
+			NeedLogin: true,
+		},
+
 		// 部门
 		"tenant/department/add": {
 			Handler:    addDepartment,
@@ -257,16 +263,12 @@ func init() {
 
 		// 管理接口
 		// 只有root租户可以用
-		"admin/user/list": {
-			Handler:   AdminUserList,
-			NeedLogin: true,
-		},
 		"admin/tenant/new": {
 			Handler:   AdminTenantNew,
 			NeedLogin: true,
 		},
-		"admin/tenant/list": {
-			Handler:   AdminTenantList,
+		"admin/user/list": {
+			Handler:   AdminUserList,
 			NeedLogin: true,
 		},
 		"admin/tenant/query": {

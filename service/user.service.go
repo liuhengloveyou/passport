@@ -61,7 +61,7 @@ func AddUserService(p *protos.UserReq) (id uint64, e error) {
 
 	p.Password = common.EncryPWD(p.Password)
 
-	uid, err := dao.UserInsert(p)
+	uid, err := dao.UserInsert(p, nil)
 	if err != nil {
 		common.Logger.Sugar().Errorf("dao.UserInsert ERR: %v\n", err)
 		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" { // 唯一约束冲突
@@ -155,22 +155,8 @@ func UpdateUserService(p *protos.UserReq) (rows int64, e error) {
 		}
 	}
 
-	if p.Cellphone != "" {
-		if duplicatePhone(p.Cellphone) {
-			return -1, fmt.Errorf("电话号码重复")
-		}
-	}
-
-	if p.Email != "" {
-		if duplicateEmail(p.Email) {
-			return -1, fmt.Errorf("邮箱重复")
-		}
-	}
-
-	if p.Nickname != "" {
-		if duplicateNickname(p.Nickname) {
-			return -1, fmt.Errorf("昵称重复")
-		}
+	if err := userCheckDuplicates(p); err != nil {
+		return -1, err
 	}
 
 	return dao.UserUpdate(p)
@@ -354,6 +340,42 @@ func duplicateWxOpenid(openid string) (has bool) {
 
 }
 
+// 示例：批量检查重复性
+func userCheckDuplicates(p *protos.UserReq) error {
+	// 检查重复数据
+	if p.Cellphone != "" {
+		if duplicatePhone(p.Cellphone) {
+			return common.ErrPhoneDup
+		}
+		if p.Nickname == "" {
+			p.Nickname = p.Cellphone
+		}
+	}
+
+	if p.Email != "" {
+		if duplicateEmail(p.Email) {
+			return common.ErrEmailDup
+		}
+		if p.Nickname == "" {
+			p.Nickname = p.Email
+		}
+	}
+
+	if p.Nickname != "" {
+		if duplicateNickname(p.Nickname) {
+			return common.ErrNickDup
+		}
+	}
+
+	if len(p.WxOpenId) > 0 {
+		if duplicateWxOpenid(p.WxOpenId) {
+			return common.ErrWxOpenidDup
+		}
+	}
+
+	return nil
+}
+
 // 格式预处理
 func userPreTreat(p *protos.UserReq) error {
 	if p.Cellphone != "" {
@@ -368,9 +390,8 @@ func userPreTreat(p *protos.UserReq) error {
 		p.Nickname = strings.TrimSpace(strings.TrimSpace(p.Nickname))
 	}
 	if p.AvatarURL != "" {
-		if strings.HasPrefix(p.AvatarURL, ".") {
-			p.AvatarURL = p.AvatarURL[1:]
-		}
+		p.AvatarURL = strings.TrimPrefix(p.AvatarURL, ".")
+		p.AvatarURL = p.AvatarURL[1:]
 	}
 
 	p.SmsCode = strings.TrimSpace(p.SmsCode)

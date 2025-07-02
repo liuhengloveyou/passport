@@ -181,7 +181,7 @@ func loginBySmsCode(p *protos.UserReq) (one *protos.User, e error) {
 
 	// 短信登录，用户不存在则自动注册
 	if one == nil {
-		id, e := dao.UserInsert(p)
+		id, e := dao.UserInsert(p, nil)
 		if e != nil {
 			common.Logger.Error("loginBySmsCode.UserInsert ERR: ", zap.Error(e))
 			return nil, e

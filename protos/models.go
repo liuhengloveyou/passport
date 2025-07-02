@@ -104,6 +104,8 @@ type Tenant struct {
 	UpdateTime    *time.Time           `json:"updateTime,omitempty" validate:"-" db:"update_time"`
 	Info          *TenantInfo          `json:"info,omitempty" db:"info"`
 	Configuration *TenantConfiguration `json:"configuration,omitempty" db:"configuration"`
+
+	Depth int `json:"depth,omitempty" validate:"-" db:"-"`
 }
 
 // 租户配置字段
@@ -138,6 +140,14 @@ func (t *TenantConfiguration) Scan(src interface{}) error {
 	}
 
 	return json.Unmarshal(b, t)
+}
+
+// t_tenant_closure 租户闭包表
+type TenantClosure struct {
+	ID           uint64 `json:"id" db:"id"`
+	AncestorID   uint64 `json:"ancestorId" db:"ancestor_id"`     // 主先
+	DescendantID uint64 `json:"descendantId" db:"descendant_id"` // 后代
+	Distance     int    `json:"distance" db:"distance"`          // 级数
 }
 
 // 租户配置字段

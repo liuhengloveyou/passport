@@ -18,8 +18,8 @@ var (
 	CommitID  string
 	GitTag    string
 
-	showVer = flag.Bool("version", false, "show version")
-
+	showVer    = flag.Bool("version", false, "show version")
+	initEnv    = flag.Bool("init", false, "init env")
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile `file`")
 	memprofile = flag.String("memprofile", "", "write memory profile to `file`")
 )
@@ -31,6 +31,10 @@ func main() {
 	if *showVer {
 		fmt.Printf("%s\t%s\t%s\n", GitTag, CommitID, BuildTime)
 		os.Exit(0)
+	}
+	if *initEnv {
+		common.InitDBTable(common.DBPool)
+		return
 	}
 
 	gocommon.SingleInstane(common.ServConfig.PidFile)
