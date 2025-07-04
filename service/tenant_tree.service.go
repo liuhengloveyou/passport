@@ -8,16 +8,16 @@ import (
 )
 
 func TenantTreeList(sessionUser *protos.User, ancestorID, page, pageSize uint64, hasTotal bool) (rst protos.PageResponse, e error) {
-	// 只能查询自己的子层级
-	if sessionUser.TenantID != common.ServConfig.RootTenantID {
 
-		isDescendant, err := dao.TenantClosureIsDescendant(sessionUser.TenantID, ancestorID)
+	if sessionUser.TenantID != common.ServConfig.RootTenantID {
+		// 只能查询自己的子层级
+		depth, err := dao.TenantClosureIsDescendant(sessionUser.TenantID, ancestorID)
 		if err != nil {
 			common.Logger.Sugar().Error("TenantTreeList check descendant ERR: ", err)
 			e = common.ErrService
 			return
 		}
-		if !isDescendant {
+		if depth < 0 {
 			common.Logger.Sugar().Warnf("TenantTreeList access denied: tenant %d cannot access parent %d", sessionUser.TenantID, ancestorID)
 			e = common.ErrNoAuth
 			return

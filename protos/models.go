@@ -97,9 +97,8 @@ func (t UserLiteArr) Value() (driver.Value, error) {
 type Tenant struct {
 	ID            uint64               `json:"id" validate:"-" db:"id"`
 	UID           uint64               `json:"uid,omitempty" validate:"-" db:"uid"`
-	ParentID      uint64               `json:"parentId,omitempty" validate:"-" db:"parent_id"`
 	TenantName    string               `json:"tenantName" db:"tenant_name" validate:"omitempty,min=2,max=64"`
-	TenantType    string               `json:"tenantType" db:"tenant_type" validate:"omitempty,min=2,max=64"`
+	TenantType    string               `json:"tenantType" db:"tenant_type" validate:"omitempty,min=1,max=64"`
 	CreateTime    *time.Time           `json:"createTime,omitempty" validate:"-" db:"create_time"`
 	UpdateTime    *time.Time           `json:"updateTime,omitempty" validate:"-" db:"update_time"`
 	Info          *TenantInfo          `json:"info,omitempty" db:"info"`

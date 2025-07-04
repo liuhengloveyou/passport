@@ -211,7 +211,6 @@ func InitDBTable(db *pgxpool.Pool) error {
 		CREATE TABLE IF NOT EXISTS tenants (
 			id BIGSERIAL PRIMARY KEY,
 			uid BIGINT NOT NULL DEFAULT 0,
-			parent_id BIGINT NOT NULL DEFAULT 0,
 			tenant_name VARCHAR(255) NOT NULL UNIQUE,
 			tenant_type VARCHAR(45) NOT NULL DEFAULT '',
 			info JSONB,

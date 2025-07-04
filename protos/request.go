@@ -72,7 +72,16 @@ type SmsReq struct {
 
 type NewTenantReq struct {
 	TenantName string `json:"tenantName"  validate:"omitempty,min=2,max=64"`
-	TenantType string `json:"tenantType"  validate:"omitempty,min=2,max=64"`
+	TenantType string `json:"tenantType"  validate:"omitempty,min=1,max=64"`
 	Cellphone  string `json:"cellphone" validate:"required,phone,len=11"`
 	Password   string `json:"password" validate:"required,min=6,max=64"`
+
+	Info          *TenantInfo          `json:"info,omitempty" db:"info"`
+	Configuration *TenantConfiguration `json:"configuration,omitempty" db:"configuration"`
+}
+
+type UpdateTenantConfigReq struct {
+	TenantID       uint64               `json:"tenant_id" validate:"required,min=1"`
+	LastUpdateTime string               `json:"last_update_time" validate:"required"`
+	Configuration  *TenantConfiguration `json:"configuration" validate:"required"`
 }

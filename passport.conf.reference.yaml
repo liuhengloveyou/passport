@@ -11,7 +11,8 @@ session_key: "go-session"
 session_store_type: "mem" # cookie
 session_expire: 0 # -1: 删除；0: 本会话; >0...
 
-admin_tenant_id: 1 # 管理接口只有指定的租户可用
+# 管理接口只有指定的租户可用
+root_tenant_id: 10002
 
 # sms配置
 # sms供应商名，为空不启用sms相关功能。可选：tencentcloud / ...

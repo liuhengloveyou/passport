@@ -30,7 +30,8 @@ redis: ""
 session_store_type: "mem" # cookie
 session_expire: 0 # -1: 删除；0: 本会话; >0...
 
-admin_tenant_id: 1 # 管理接口只有指定的租户可用
+# 管理接口只有指定的租户可用
+root_tenant_id: 10002
 
 # sms配置
 # sms供应商名，为空不启用sms相关功能。可选：tencentcloud / ...
@@ -966,7 +967,6 @@ ALTER SEQUENCE users_uid_seq RESTART WITH 10000;
 CREATE TABLE tenants (
   id BIGSERIAL PRIMARY KEY,
   uid BIGINT NOT NULL DEFAULT 0,
-  parent_id BIGINT NOT NULL DEFAULT 0,
   tenant_name VARCHAR(255) NOT NULL UNIQUE,
   tenant_type VARCHAR(45) NOT NULL DEFAULT '',
   info JSONB,

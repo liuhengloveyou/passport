@@ -6,6 +6,7 @@ import (
 
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/protos"
+	"go.uber.org/zap"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
@@ -13,8 +14,8 @@ import (
 
 func TenantInsert(tx pgx.Tx, m *protos.Tenant) (tenantID uint64, e error) {
 	// 使用 RETURNING id 子句获取新插入记录的 ID
-	err := tx.QueryRow(context.Background(), "INSERT INTO tenants (uid, parent_id, tenant_name, tenant_type, info, configuration, create_time) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
-		m.UID, m.ParentID, m.TenantName, m.TenantType, m.Info, m.Configuration, time.Now()).Scan(&tenantID)
+	err := tx.QueryRow(context.Background(), "INSERT INTO tenants (uid, tenant_name, tenant_type, info, configuration, create_time) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+		m.UID, m.TenantName, m.TenantType, m.Info, m.Configuration, time.Now()).Scan(&tenantID)
 
 	if err != nil {
 		// PostgreSQL 错误处理
@@ -45,8 +46,8 @@ func TenantGetByID(tenantId uint64) (m *protos.Tenant, e error) {
 	}
 
 	// 使用squirrel构建SQL，明确指定字段顺序
-	sql, args, err := sq.Select("id", "uid", "parent_id", "tenant_name", "tenant_type", "info", "configuration", "create_time", "update_time").From(table).Where(where).PlaceholderFormat(sq.Dollar).ToSql()
-	common.Logger.Sugar().Debugf("%v %v %v\n", sql, args, err)
+	sql, args, err := sq.Select("id", "uid", "tenant_name", "tenant_type", "info", "configuration", "create_time", "update_time").From(table).Where(where).PlaceholderFormat(sq.Dollar).ToSql()
+	common.Logger.Sugar().Debugf("%v %v %v", sql, args, err)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +67,6 @@ func TenantGetByID(tenantId uint64) (m *protos.Tenant, e error) {
 		err = rows.Scan(
 			&t.ID,
 			&t.UID,
-			&t.ParentID,
 			&t.TenantName,
 			&t.TenantType,
 			&t.Info,
@@ -173,14 +173,9 @@ func TenantCountByAncestorID(ancestorID uint64) (r uint64, e error) {
 	return uint64(count), nil
 }
 
-func TenantList(parentID, page, pageSize uint64) (rr []protos.Tenant, e error) {
+func TenantList(page, pageSize uint64) (rr []protos.Tenant, e error) {
 	// 创建查询构建器
-	query := sq.Select("id", "uid", "parent_id", "tenant_name", "tenant_type", "info", "configuration", "create_time", "update_time").From("tenants").PlaceholderFormat(sq.Dollar)
-
-	// 只有当parentID不为0时，才添加到where条件中
-	if parentID != 0 {
-		query = query.Where(sq.Eq{"parent_id": parentID})
-	}
+	query := sq.Select("id", "uid", "tenant_name", "tenant_type", "info", "configuration", "create_time", "update_time").From("tenants").PlaceholderFormat(sq.Dollar)
 
 	// 添加分页和排序
 	query = query.Offset((page - 1) * pageSize).Limit(pageSize).OrderBy("id")
@@ -203,7 +198,7 @@ func TenantList(parentID, page, pageSize uint64) (rr []protos.Tenant, e error) {
 	rr = []protos.Tenant{}
 	for rows.Next() {
 		var tenant protos.Tenant
-		err = rows.Scan(&tenant.ID, &tenant.UID, &tenant.ParentID, &tenant.TenantName, &tenant.TenantType, &tenant.Info, &tenant.Configuration, &tenant.CreateTime, &tenant.UpdateTime)
+		err = rows.Scan(&tenant.ID, &tenant.UID, &tenant.TenantName, &tenant.TenantType, &tenant.Info, &tenant.Configuration, &tenant.CreateTime, &tenant.UpdateTime)
 		if err != nil {
 			common.Logger.Sugar().Errorf("Failed to scan row: %v", err)
 			return nil, err
@@ -222,14 +217,14 @@ func TenantList(parentID, page, pageSize uint64) (rr []protos.Tenant, e error) {
 // TenantListByDescendants 查询指定租户的后代租户列表
 func TenantListByAncestorID(ancestorID, page, pageSize uint64) (rr []protos.Tenant, e error) {
 	// 创建查询构建器，通过tenant_closure表查询后代租户
-	query := sq.Select("t.id", "t.uid", "t.parent_id", "t.tenant_name", "t.tenant_type", "t.info", "t.configuration", "t.create_time", "t.update_time", "tc.depth").
+	query := sq.Select("t.id", "t.uid", "t.tenant_name", "t.tenant_type", "t.info", "t.configuration", "t.create_time", "t.update_time", "tc.depth").
 		From("tenants t").
 		Join("tenant_closure tc ON t.id = tc.descendant_id").
 		Where(sq.Eq{"tc.ancestor_id": ancestorID}).
 		PlaceholderFormat(sq.Dollar)
 
 	// 添加分页和排序
-	query = query.Offset((page - 1) * pageSize).Limit(pageSize).OrderBy("t.id desc")
+	query = query.Offset((page - 1) * pageSize).Limit(pageSize).OrderBy("t.id")
 
 	// 生成SQL
 	sql, args, err := query.ToSql()
@@ -249,7 +244,7 @@ func TenantListByAncestorID(ancestorID, page, pageSize uint64) (rr []protos.Tena
 	rr = []protos.Tenant{}
 	for rows.Next() {
 		var tenant protos.Tenant
-		err = rows.Scan(&tenant.ID, &tenant.UID, &tenant.ParentID, &tenant.TenantName, &tenant.TenantType, &tenant.Info, &tenant.Configuration, &tenant.CreateTime, &tenant.UpdateTime, &tenant.Depth)
+		err = rows.Scan(&tenant.ID, &tenant.UID, &tenant.TenantName, &tenant.TenantType, &tenant.Info, &tenant.Configuration, &tenant.CreateTime, &tenant.UpdateTime, &tenant.Depth)
 		if err != nil {
 			common.Logger.Sugar().Errorf("Failed to scan row: %v", err)
 			return nil, err
@@ -268,7 +263,7 @@ func TenantListByAncestorID(ancestorID, page, pageSize uint64) (rr []protos.Tena
 // TenantQuery 根据条件查询租户列表
 func TenantQuery(tenantName, cellphone string, page, pageSize uint64) (rr []protos.Tenant, e error) {
 	// 创建查询构建器
-	query := sq.Select("t.id", "t.uid", "t.parent_id", "t.tenant_name", "t.tenant_type", "t.info", "t.configuration", "t.create_time", "t.update_time").From("tenants t").PlaceholderFormat(sq.Dollar)
+	query := sq.Select("t.id", "t.uid", "t.tenant_name", "t.tenant_type", "t.info", "t.configuration", "t.create_time", "t.update_time").From("tenants t").PlaceholderFormat(sq.Dollar)
 
 	// 添加查询条件
 	if tenantName != "" {
@@ -302,7 +297,7 @@ func TenantQuery(tenantName, cellphone string, page, pageSize uint64) (rr []prot
 	rr = []protos.Tenant{}
 	for rows.Next() {
 		var tenant protos.Tenant
-		err = rows.Scan(&tenant.ID, &tenant.UID, &tenant.ParentID, &tenant.TenantName, &tenant.TenantType, &tenant.Info, &tenant.Configuration, &tenant.CreateTime, &tenant.UpdateTime)
+		err = rows.Scan(&tenant.ID, &tenant.UID, &tenant.TenantName, &tenant.TenantType, &tenant.Info, &tenant.Configuration, &tenant.CreateTime, &tenant.UpdateTime)
 		if err != nil {
 			common.Logger.Sugar().Errorf("Failed to scan row: %v", err)
 			return nil, err
@@ -319,32 +314,33 @@ func TenantQuery(tenantName, cellphone string, page, pageSize uint64) (rr []prot
 }
 
 func TenantUpdateConfiguration(m *protos.Tenant) error {
-	_, err := common.DBPool.Exec(context.Background(), "UPDATE tenants SET configuration = $1 WHERE (id = $2) AND (update_time = $3)", m.Configuration, m.ID, m.UpdateTime)
+	common.Logger.Debug("TenantUpdateConfiguration %v", zap.Any("tenant", m))
 
-	return err
-}
-
-// TenantUpdateParentID 更新租户的父租户ID，支持可选事务参数
-func TenantUpdateParentID(tenantID, parentID uint64, tx *pgx.Tx) error {
-	// 使用squirrel构建SQL
-	sql, args, err := sq.Update("tenants").Set("parent_id", parentID).Set("update_time", time.Now()).Where(sq.Eq{"id": tenantID}).PlaceholderFormat(sq.Dollar).ToSql()
-	common.Logger.Sugar().Debugf("%v %v %v\n", sql, args, err)
+	commandTag, err := common.DBPool.Exec(context.Background(), "UPDATE tenants SET configuration = $1, update_time = NOW() WHERE (id = $2) AND (update_time = $3)", m.Configuration, m.ID, m.UpdateTime)
 	if err != nil {
+		common.Logger.Sugar().Errorf("Failed to update tenant configuration: %v", err)
 		return err
 	}
 
-	// 根据是否提供事务参数选择执行方式
-	if tx != nil {
-		// 在事务中执行更新
-		_, err = (*tx).Exec(context.Background(), sql, args...)
-		common.Logger.Sugar().Debugf("tx.exec: %v\n", err)
-	} else {
-		// 直接执行更新
-		_, err = common.DBPool.Exec(context.Background(), sql, args...)
-		common.Logger.Sugar().Debugf("db.exec: %v\n", err)
+	// 检查是否有行被更新
+	if commandTag.RowsAffected() == 0 {
+		// 检查租户是否存在
+		var exists bool
+		err = common.DBPool.QueryRow(context.Background(), "SELECT EXISTS(SELECT 1 FROM tenants WHERE id = $1)", m.ID).Scan(&exists)
+		if err != nil {
+			common.Logger.Sugar().Errorf("Failed to check tenant existence: %v", err)
+			return err
+		}
+
+		if !exists {
+			return common.ErrTenantNotFound
+		}
+
+		// 租户存在但更新时间不匹配
+		return common.ErrModify
 	}
 
-	return err
+	return nil
 }
 
 func UserQueryByTenant(tenantID, page, pageSize uint64, nickname string, uids []uint64) (rr []protos.User, e error) {

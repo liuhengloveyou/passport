@@ -289,6 +289,10 @@ func init() {
 			NeedLogin:  true,
 			NeedAccess: true,
 		},
+		"admin/tenant/update_config": {
+			Handler:   AdminTenantUpdateConfig,
+			NeedLogin: true,
+		},
 
 		// 短信
 		"sms/sendUserAddSmsCode": {
