@@ -939,7 +939,7 @@ psql -U passport -d passport -h 127.0.0.1 -p 5432
 
 -- 用户表
 -- DROP TABLE IF EXISTS public.users;
-CREATE TABLE users1
+CREATE TABLE users
 (
   uid BIGSERIAL PRIMARY KEY,
   tenant_id BIGINT NOT NULL DEFAULT 0,
@@ -976,7 +976,6 @@ CREATE TABLE tenants (
 );
 -- To set the starting value for the auto-incrementing ID:
 ALTER SEQUENCE tenants_id_seq RESTART WITH 10000;
-CREATE INDEX IF NOT EXISTS idx_tenants_parent_id ON tenants(parent_id);
 CREATE INDEX IF NOT EXISTS idx_tenants_tenant_name ON tenants(tenant_name);
 
 -- 权限表
@@ -1034,4 +1033,52 @@ CREATE TABLE IF NOT EXISTS tenant_closure (
 CREATE INDEX IF NOT EXISTS idx_tenant_closure_tenant_id ON tenant_closure(ancestor_id);
 CREATE INDEX IF NOT EXISTS idx_tenant_closure_ancestor_id ON tenant_closure(descendant_id);
 
+```
+
+
+## PostgreSQL
+
+1. 登录 PostgreSQL。以 `postgres` 超级用户进入：
+
+```bash
+sudo -u postgres psql
+```
+
+2. 创建用户（ROLE）
+
+```sql
+CREATE USER lh WITH PASSWORD 'lhisroot';
+```
+
+3. 创建数据库并指定所有者
+
+```sql
+CREATE DATABASE passport OWNER lh;
+```
+
+5. 登录
+
+
+```sql
+\q
+
+psql -U lh -d passport
+```
+6. 常用补充命令
+
+查看数据库列表
+
+```sql
+\l
+```
+查看用户列表
+
+```sql
+\du
+```
+
+删除用户 / 数据库
+```sql
+DROP DATABASE mydb;
+DROP USER myuser;
 ```

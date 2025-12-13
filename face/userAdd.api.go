@@ -54,6 +54,4 @@ func userAdd(w http.ResponseWriter, r *http.Request) {
 
 	logger.Sugar().Info("user add ok:", uid)
 	gocommon.HttpErr(w, http.StatusOK, 0, uid)
-
-	return
 }

@@ -333,8 +333,13 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 	}
 
 	// common.InitWithOption 后面
-	if e := accessctl.InitAccessControl("rbac_with_domains_model.conf", common.ServConfig.PostgreURN); e != nil {
-		fmt.Println("InitAccessControl ERR: ", e)
+	// 初始化访问控制（支持PostgreSQL和SQLite3）
+	if common.ServConfig.DBDriver != "" && common.ServConfig.DBDSN != "" {
+		if e := accessctl.InitAccessControl("rbac_with_domains_model.conf", common.ServConfig.DBDriver, common.ServConfig.DBDSN); e != nil {
+			fmt.Println("InitAccessControl ERR: ", e)
+		}
+	} else {
+		fmt.Println("警告: 未配置数据库连接（db_driver和db_dsn），跳过访问控制初始化")
 	}
 
 	logger = common.Logger

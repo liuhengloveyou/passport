@@ -5,7 +5,11 @@ log_dir: "./logs"
 log_level: "debug"
 
 redis: ""
-pg_urn: "host=localhost user=passport password=passport123 dbname=passport port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+
+# 数据库配置
+db_driver: "postgres"  # 可选: "postgres" 或 "sqlite3"
+db_dsn: "postgres://lh:lhisroot@localhost:5432/passport?sslmode=disable&TimeZone=Asia/Shanghai"
+# SQLite3示例: db_driver: "sqlite3", db_dsn: "./data/passport.db"
 
 session_key: "go-session"
 session_store_type: "mem" # cookie

@@ -1,6 +1,6 @@
 module github.com/liuhengloveyou/passport
 
-go 1.24.3
+go 1.24.11
 
 require (
 	github.com/Blank-Xu/sql-adapter v1.1.2
@@ -52,6 +52,7 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lestrrat-go/strftime v1.1.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mattn/go-sqlite3 v1.14.32 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect

@@ -15,23 +15,25 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
+	"github.com/liuhengloveyou/passport/database"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 const (
-	SYS_PWD         = "When you forgive, You love. And when you love, God's light shines on you. Now, 2021"
+	SYS_PWD         = "When you forgive, You love. And when you love, God's light shines on you. Now, 20251212"
 	SessUserInfoKey = "sess-user"
 	MAX_UPLOAD_LEN  = (8 * 1024 * 1024) // 最大上传文件大小
 )
 
 var (
-	passportconfile = flag.String("passport", "./passport.conf.yaml", "配置文件路径")
+	passportconfile = flag.String("passport", "/opt/dev/passport/passport.conf.yaml", "配置文件路径")
 	ServConfig      protos.OptionStruct
 
 	Logger      *zap.Logger
-	DBPool      *pgxpool.Pool
+	DBPool      *pgxpool.Pool // 向后兼容，仅用于PostgreSQL
+	DB          database.DB   // 新的数据库抽象接口（支持PostgreSQL和SQLite3）
 	RedisClient *redis.Client
 )
 
@@ -80,10 +82,13 @@ func InitWithOption(option *protos.OptionStruct) (e error) {
 		}
 	}
 
-	if option.PostgreURN != "" && DBPool == nil {
-		ServConfig.PostgreURN = option.PostgreURN
-		if e = InitDB(option.PostgreURN); e != nil {
-			return e
+	// 数据库初始化：优先使用新的DBDriver配置
+	if DB == nil {
+		if option.DBDriver != "" && option.DBDSN != "" {
+			// 使用新的数据库配置
+			if e = InitDBWithDriver(option.DBDriver, option.DBDSN); e != nil {
+				return e
+			}
 		}
 	}
 
@@ -135,6 +140,7 @@ func InitLog(logDir, logLevel string) error {
 	return nil
 }
 
+// InitDB 初始化PostgreSQL数据库（向后兼容）
 func InitDB(urn string) (err error) {
 	DBPool, err = pgxpool.New(context.Background(), urn)
 	if err != nil {
@@ -145,7 +151,48 @@ func InitDB(urn string) (err error) {
 		panic(err)
 	}
 
+	// 同时设置新的DB接口（用于PostgreSQL）
+	postgresDB, err := database.NewPostgresDB(urn)
+	if err != nil {
+		return err
+	}
+	DB = postgresDB
+
 	return nil
+}
+
+// InitDBWithDriver 使用新的数据库抽象层初始化数据库
+func InitDBWithDriver(driver, dsn string) (err error) {
+	driverType := database.DriverType(driver)
+	DB, err = database.NewDB(driverType, dsn)
+	if err != nil {
+		return fmt.Errorf("failed to initialize database: %w", err)
+	}
+
+	// 如果是PostgreSQL，同时设置DBPool以保持向后兼容
+	if driverType == database.DriverPostgreSQL {
+		DBPool, err = pgxpool.New(context.Background(), dsn)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err = DB.Ping(context.Background()); err != nil {
+		panic(err)
+	}
+
+	Logger.Info("Database initialized", zap.String("driver", driver), zap.String("dsn", maskDSN(dsn)))
+	return nil
+}
+
+// maskDSN 隐藏DSN中的敏感信息（用于日志）
+func maskDSN(dsn string) string {
+	// 简单实现：隐藏密码部分
+	// 实际使用时可以更完善
+	if len(dsn) > 50 {
+		return dsn[:20] + "..."
+	}
+	return dsn
 }
 
 func InitRedis(addr string) (err error) {

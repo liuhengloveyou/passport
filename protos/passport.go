@@ -1,15 +1,19 @@
 package protos
 
 type OptionStruct struct {
-	ServID     string `yaml:"serv_id"`
-	PidFile    string `yaml:"pid_file"`
-	Face       string `yaml:"face"`
-	Addr       string `yaml:"addr"`      // 启动http的端口
-	LogDir     string `yaml:"log_dir"`   // 日志目录
-	LogLevel   string `yaml:"log_level"` // 日志级别
-	RedisAddr  string `yaml:"redis"`
-	PostgreURN string `yaml:"pg_urn"`
-	AvatarDir  string `yaml:"avatar_dir"`
+	ServID    string `yaml:"serv_id"`
+	PidFile   string `yaml:"pid_file"`
+	Face      string `yaml:"face"`
+	Addr      string `yaml:"addr"`      // 启动http的端口
+	LogDir    string `yaml:"log_dir"`   // 日志目录
+	LogLevel  string `yaml:"log_level"` // 日志级别
+	AvatarDir string `yaml:"avatar_dir"`
+
+	RedisAddr string `yaml:"redis"`
+
+	// 数据库配置（新）
+	DBDriver string `yaml:"db_driver"` // "postgres" 或 "sqlite3"
+	DBDSN    string `yaml:"db_dsn"`    // 数据库连接字符串
 
 	RootTenantID uint64 `yaml:"root_tenant_id"` // admin接口只有一个租户有权限
 

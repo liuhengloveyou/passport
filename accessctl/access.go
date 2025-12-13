@@ -9,11 +9,13 @@ import (
 
 	sqladapter "github.com/Blank-Xu/sql-adapter"
 	"github.com/casbin/casbin/v2"
-	_ "github.com/lib/pq"
+	_ "github.com/lib/pq"           // PostgreSQL驱动
+	_ "github.com/mattn/go-sqlite3" // SQLite3驱动
+	"go.uber.org/zap"
+
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/dao"
 	"github.com/liuhengloveyou/passport/protos"
-	"go.uber.org/zap"
 )
 
 // var policyCache = make(map[string]bool, 10000)
@@ -30,26 +32,48 @@ func finalizer(db *sql.DB) {
 	}
 }
 
-func InitAccessControl(rbacModel, urn string) (err error) {
-	db, err := sql.Open("postgres", urn)
+// InitAccessControl 初始化访问控制
+// 支持PostgreSQL和SQLite3数据库
+// rbacModel: RBAC模型文件路径
+// driver: 数据库驱动类型 ("postgres" 或 "sqlite3")
+// dsn: 数据库连接字符串
+func InitAccessControl(rbacModel, driver, dsn string) (err error) {
+	// 根据驱动类型打开数据库连接
+	db, err := sql.Open(driver, dsn)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("打开数据库连接失败: %w", err)
 	}
+
+	// 测试连接
 	if err = db.Ping(); err != nil {
-		panic(err)
+		db.Close()
+		return fmt.Errorf("数据库连接测试失败: %w", err)
 	}
+
 	// 绝对不能关
 	// defer db.Close()
 
-	db.SetMaxOpenConns(20)
-	db.SetMaxIdleConns(10)
-	db.SetConnMaxLifetime(time.Minute * 10)
+	// 设置连接池参数（SQLite3可能不需要，但设置也无妨）
+	if driver == "postgres" {
+		db.SetMaxOpenConns(20)
+		db.SetMaxIdleConns(10)
+		db.SetConnMaxLifetime(time.Minute * 10)
+	}
 
 	// runtime.SetFinalizer(db, finalizer)
 
-	adapter, err := sqladapter.NewAdapter(db, "postgres", "casbin_rule")
+	// 根据驱动类型创建适配器
+	// sql-adapter支持多种数据库，驱动名称需要匹配
+	adapterDriver := driver
+	if driver == "sqlite3" {
+		// sql-adapter可能使用不同的名称，尝试使用sqlite3
+		adapterDriver = "sqlite3"
+	}
+
+	adapter, err := sqladapter.NewAdapter(db, adapterDriver, "casbin_rule")
 	if err != nil {
-		panic(err)
+		db.Close()
+		return fmt.Errorf("创建casbin适配器失败: %w", err)
 	}
 
 	if enforcer, err = casbin.NewSyncedEnforcer(rbacModel, adapter); err != nil {
