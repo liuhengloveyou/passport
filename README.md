@@ -1082,3 +1082,559 @@ psql -U lh -d passport
 DROP DATABASE mydb;
 DROP USER myuser;
 ```
+
+## PostgreSQL 常用命令完整参考
+
+### 1. 连接数据库
+
+#### 以 postgres 超级用户登录
+```bash
+sudo -u postgres psql
+```
+
+#### 以指定用户登录
+```bash
+psql -U lh -d passport
+psql -U lh -d passport -h localhost -p 5432
+```
+
+#### 不输入密码（使用 .pgpass）
+```bash
+# 创建 ~/.pgpass 文件
+echo "localhost:5432:passport:lh:lhisroot" > ~/.pgpass
+chmod 600 ~/.pgpass
+
+# 然后直接连接
+psql -U lh -d passport
+```
+
+### 2. 用户(ROLE)管理
+
+#### 创建用户
+```sql
+CREATE USER lh WITH PASSWORD 'lhisroot';
+```
+
+#### 创建超级用户
+```sql
+CREATE USER admin WITH PASSWORD 'admin123' SUPERUSER;
+```
+
+#### 修改用户密码
+```sql
+ALTER USER lh WITH PASSWORD 'newpassword';
+```
+
+#### 查看所有用户
+```sql
+\du
+```
+
+或者
+```sql
+SELECT * FROM pg_user;
+SELECT usename, usesuper, usecreatedb FROM pg_user;
+```
+
+#### 删除用户
+```sql
+DROP USER lh;
+
+-- 级联删除（删除用户及其所有对象）
+DROP USER IF EXISTS lh CASCADE;
+```
+
+#### 为用户分配权限
+```sql
+-- 赋予创建数据库权限
+ALTER USER lh CREATEDB;
+
+-- 赋予创建用户权限
+ALTER USER lh CREATEROLE;
+
+-- 赋予超级用户权限
+ALTER USER lh SUPERUSER;
+
+-- 撤销权限
+ALTER USER lh NOCREATEDB;
+```
+
+### 3. 数据库管理
+
+#### 创建数据库
+```sql
+CREATE DATABASE passport OWNER lh;
+```
+
+#### 创建数据库（带编码和模板）
+```sql
+CREATE DATABASE passport
+  OWNER lh
+  ENCODING 'UTF8'
+  TEMPLATE template0;
+```
+
+#### 查看所有数据库
+```sql
+\l
+```
+
+或者
+```sql
+SELECT datname, datacl FROM pg_database;
+SELECT datname, pg_get_userbyid(datdba) as owner FROM pg_database;
+```
+
+#### 查看数据库大小
+```sql
+-- 单个数据库大小
+SELECT pg_size_pretty(pg_database_size('passport'));
+
+-- 所有数据库大小
+SELECT datname, pg_size_pretty(pg_database_size(datname)) FROM pg_database ORDER BY pg_database_size(datname) DESC;
+```
+
+#### 删除数据库
+```sql
+DROP DATABASE passport;
+
+-- 强制删除（断开所有连接）
+DROP DATABASE IF EXISTS passport;
+```
+
+#### 重命名数据库
+```sql
+ALTER DATABASE passport RENAME TO passport_new;
+```
+
+#### 修改数据库所有者
+```sql
+ALTER DATABASE passport OWNER TO lh;
+```
+
+### 4. 表管理
+
+#### 查看所有表
+```sql
+\dt
+```
+
+或者
+```sql
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
+```
+
+#### 查看表的列信息
+```sql
+\d tablename
+```
+
+或者
+```sql
+SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = 'users';
+```
+
+#### 查看表大小
+```sql
+-- 单个表大小
+SELECT pg_size_pretty(pg_total_relation_size('users'));
+
+-- 所有表大小
+SELECT tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename))
+FROM pg_tables
+WHERE schemaname = 'public'
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+```
+
+#### 查看表的索引
+```sql
+\d+ tablename
+```
+
+或者
+```sql
+SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'users';
+```
+
+### 5. 权限管理
+
+#### 授予权限给用户
+```sql
+-- 授予使用 Schema 的权限
+GRANT USAGE ON SCHEMA public TO lh;
+
+-- 授予读权限
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO lh;
+
+-- 授予读写权限
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO lh;
+
+-- 授予所有权限
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO lh;
+
+-- 授予序列权限
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO lh;
+```
+
+#### 撤销权限
+```sql
+REVOKE SELECT ON tablename FROM lh;
+REVOKE ALL PRIVILEGES ON tablename FROM lh;
+```
+
+#### 查看用户权限
+```sql
+-- 查看用户的全局权限
+SELECT grantee, privilege_type FROM information_schema.role_table_grants WHERE table_name='users';
+
+-- 查看用户的 Schema 权限
+SELECT grantee, privilege_type FROM information_schema.schemata WHERE schema_name='public';
+```
+
+### 6. 数据操作
+
+#### 查询数据
+```sql
+SELECT * FROM users LIMIT 10;
+SELECT COUNT(*) FROM users;
+```
+
+#### 插入数据
+```sql
+INSERT INTO users (cellphone, email, password) VALUES ('18510511015', 'test@example.com', 'hash123');
+```
+
+#### 更新数据
+```sql
+UPDATE users SET nickname = 'NewName' WHERE uid = 1;
+```
+
+#### 删除数据
+```sql
+DELETE FROM users WHERE uid > 1000;
+```
+
+#### 查看最后修改的数据
+```sql
+SELECT * FROM users ORDER BY update_time DESC LIMIT 10;
+```
+
+### 7. 备份和恢复
+
+#### 备份单个数据库
+```bash
+pg_dump -U lh passport > passport_backup.sql
+```
+
+#### 备份整个PostgreSQL实例
+```bash
+pg_dumpall -U postgres > all_databases_backup.sql
+```
+
+#### 恢复数据库
+```bash
+psql -U lh passport < passport_backup.sql
+```
+
+#### 备份为自定义格式（压缩）
+```bash
+pg_dump -U lh -Fc passport > passport_backup.dump
+pg_restore -U lh -d passport passport_backup.dump
+```
+
+### 8. 常用系统查询
+
+#### 查看 PostgreSQL 版本
+```sql
+SELECT version();
+```
+
+或者
+```bash
+psql --version
+```
+
+#### 查看当前用户
+```sql
+SELECT current_user;
+```
+
+#### 查看当前数据库
+```sql
+SELECT current_database();
+```
+
+#### 查看所有连接
+```sql
+SELECT pid, usename, application_name, state FROM pg_stat_activity;
+```
+
+#### 查看慢查询日志
+```sql
+SELECT query, calls, total_time, mean_time FROM pg_stat_statements ORDER BY mean_time DESC;
+```
+
+#### 查看所有 Schema
+```sql
+\dn
+```
+
+或者
+```sql
+SELECT schemaname FROM pg_tables GROUP BY schemaname;
+```
+
+### 9. 性能优化
+
+#### 查询执行计划
+```sql
+EXPLAIN SELECT * FROM users WHERE uid = 1;
+
+-- 详细执行计划
+EXPLAIN ANALYZE SELECT * FROM users WHERE uid = 1;
+```
+
+#### 创建索引
+```sql
+CREATE INDEX idx_users_cellphone ON users(cellphone);
+```
+
+#### 查看表的统计信息
+```sql
+SELECT schemaname, tablename, n_live_tup, n_dead_tup, last_vacuum, last_autovacuum
+FROM pg_stat_user_tables;
+```
+
+#### 手动分析表
+```sql
+ANALYZE users;
+```
+
+#### 手动清理表（删除死元组）
+```sql
+VACUUM users;
+VACUUM FULL users;  -- 更激进的清理
+```
+
+### 10. 事务处理
+
+#### 开始事务
+```sql
+BEGIN;
+-- 或
+START TRANSACTION;
+```
+
+#### 提交事务
+```sql
+COMMIT;
+```
+
+#### 回滚事务
+```sql
+ROLLBACK;
+```
+
+#### 查看事务隔离级别
+```sql
+SHOW TRANSACTION ISOLATION LEVEL;
+```
+
+#### 设置事务隔离级别
+```sql
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+```
+
+### 11. 快捷命令
+
+在 psql 中常用快捷命令：
+
+```sql
+\h                          -- 帮助
+\l                          -- 列出所有数据库
+\c passport                 -- 连接到指定数据库
+\du                         -- 列出用户
+\dt                         -- 列出表
+\dn                         -- 列出schema
+\df                         -- 列出函数
+\di                         -- 列出索引
+\dv                         -- 列出视图
+\dp                         -- 列出权限
+\d tablename                -- 显示表的列信息
+\d+ tablename               -- 显示表的详细信息（包括索引）
+\x                          -- 切换扩展显示模式
+\q                          -- 退出
+```
+
+### 12. 实用SQL查询
+
+#### 查看表的行数
+```sql
+SELECT schemaname, tablename, n_live_tup FROM pg_stat_user_tables;
+```
+
+#### 查看表的磁盘使用情况
+```sql
+SELECT
+    schemaname,
+    tablename,
+    pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size
+FROM pg_tables
+WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+```
+
+#### 查看数据库连接情况
+```sql
+SELECT
+    datname,
+    usename,
+    application_name,
+    state,
+    query_start,
+    query
+FROM pg_stat_activity
+WHERE datname = 'passport';
+```
+
+#### 强制断开某个用户的连接
+```sql
+SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE usename = 'lh';
+```
+
+#### 查看表之间的外键关系
+```sql
+SELECT
+    kcu.table_name,
+    kcu.column_name,
+    ccu.table_name AS foreign_table_name,
+    ccu.column_name AS foreign_column_name
+FROM information_schema.table_constraints AS tc
+JOIN information_schema.key_column_usage AS kcu
+    ON tc.constraint_name = kcu.constraint_name
+JOIN information_schema.constraint_column_usage AS ccu
+    ON ccu.constraint_name = tc.constraint_name
+WHERE tc.constraint_type = 'FOREIGN KEY' AND kcu.table_name='users';
+```
+
+### 13. 故障排查
+
+#### 检查数据库连接
+```bash
+pg_isready -h localhost -U lh -d passport
+```
+
+#### 查看 PostgreSQL 配置文件位置
+```sql
+SHOW config_file;
+```
+
+#### 查看日志文件位置
+```sql
+SHOW log_directory;
+```
+
+#### 重新加载配置
+```sql
+SELECT pg_reload_conf();
+```
+
+#### 查看长时间运行的查询
+```sql
+SELECT
+    pid,
+    now() - pg_stat_activity.query_start AS duration,
+    usename,
+    query,
+    state
+FROM pg_stat_activity
+WHERE (now() - pg_stat_activity.query_start) > interval '5 minutes';
+```
+
+### 14. 创建 Passport 测试数据库（完整流程）
+
+```bash
+# 1. 登录 PostgreSQL
+sudo -u postgres psql
+
+# 2. 创建用户
+CREATE USER lh WITH PASSWORD 'lhisroot';
+
+# 3. 创建数据库
+CREATE DATABASE passport OWNER lh;
+CREATE DATABASE passport_test OWNER lh;
+
+# 4. 授予权限
+GRANT ALL PRIVILEGES ON DATABASE passport TO lh;
+GRANT ALL PRIVILEGES ON DATABASE passport_test TO lh;
+
+# 5. 连接到新数据库
+\c passport lh
+
+# 6. 查看连接情况
+SELECT datname, usename FROM pg_stat_activity;
+
+# 7. 退出
+\q
+```
+
+#### 测试连接
+```bash
+psql -U lh -d passport -c "SELECT 1;"
+```
+
+### 15. 导出和导入数据
+
+#### 导出数据为CSV
+```sql
+COPY users TO '/tmp/users.csv' WITH CSV HEADER;
+```
+
+#### 从CSV导入数据
+```sql
+COPY users(cellphone, email, password) FROM '/tmp/users.csv' WITH CSV HEADER;
+```
+
+#### 导出为JSON
+```sql
+COPY (SELECT row_to_json(t) FROM users t) TO '/tmp/users.json';
+```
+
+### 常见问题
+
+#### Q: 忘记用户密码怎么办？
+```sql
+ALTER USER lh WITH PASSWORD 'newpassword';
+```
+
+#### Q: 连接被拒绝怎么办？
+检查 `pg_hba.conf` 配置文件：
+```bash
+sudo nano /etc/postgresql/*/main/pg_hba.conf
+```
+
+确保有类似这样的行：
+```
+local   passport        lh                          md5
+host    passport        lh      127.0.0.1/32        md5
+```
+
+#### Q: 如何清空某个表的所有数据？
+```sql
+DELETE FROM users;
+-- 或
+TRUNCATE TABLE users;  -- 更快，但不能用于有外键的表
+```
+
+#### Q: 如何查看某个表占用的磁盘空间？
+```sql
+SELECT pg_size_pretty(pg_total_relation_size('users'));
+```
+
+#### Q: 如何找出重复数据？
+```sql
+SELECT cellphone, COUNT(*) FROM users GROUP BY cellphone HAVING COUNT(*) > 1;
+```

@@ -9,6 +9,7 @@ import (
 	"github.com/liuhengloveyou/passport/cache"
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/dao"
+	"github.com/liuhengloveyou/passport/database"
 	"github.com/liuhengloveyou/passport/protos"
 )
 
@@ -39,7 +40,7 @@ func AdminTenantNew(sess *protos.User, m *protos.NewTenantReq) (uid, tenantID ui
 
 	// 开始事务
 	ctx := context.Background()
-	tx, e := common.DBPool.Begin(ctx)
+	tx, e := common.DB.Begin(ctx)
 	if e != nil {
 		common.Logger.Sugar().Errorf("AdminTenantNew Begin transaction ERR: %v\n", e)
 		return 0, 0, common.ErrService
@@ -152,7 +153,7 @@ func AdminTenantList(page, pageSize uint64, hasTotal bool) (rst protos.PageRespo
 }
 
 // addUserServiceWithTx 在事务中创建用户
-func addUserServiceWithTx(tx pgx.Tx, p *protos.UserReq) (uid uint64, e error) {
+func addUserServiceWithTx(tx database.Tx, p *protos.UserReq) (uid uint64, e error) {
 	if p.Cellphone == "" && p.Email == "" && p.Nickname == "" {
 		return 0, common.ErrUserNmae
 	}
@@ -173,7 +174,7 @@ func addUserServiceWithTx(tx pgx.Tx, p *protos.UserReq) (uid uint64, e error) {
 	p.Password = common.EncryPWD(p.Password)
 
 	// 调用dao层在事务中插入用户
-	userUID, err := dao.UserInsert(p, &tx)
+	userUID, err := dao.UserInsert(p, tx)
 	if err != nil {
 		common.Logger.Sugar().Errorf("addUserServiceWithTx UserInsert ERR: %v\n", err)
 		return 0, common.ErrService

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/liuhengloveyou/passport/common"
+	"github.com/liuhengloveyou/passport/database"
 	"github.com/liuhengloveyou/passport/protos"
 	"xorm.io/builder"
 
@@ -14,7 +14,7 @@ import (
 )
 
 // UserInsert 插入用户数据，支持可选的事务参数
-func UserInsert(p *protos.UserReq, tx *pgx.Tx) (uid int64, e error) {
+func UserInsert(p *protos.UserReq, tx database.Tx) (uid int64, e error) {
 	table := "users"
 	data := make(map[string]interface{})
 
@@ -47,24 +47,10 @@ func UserInsert(p *protos.UserReq, tx *pgx.Tx) (uid int64, e error) {
 		data["wx_openid"] = p.WxOpenId
 	}
 
-	// 使用 RETURNING 子句获取插入记录的 uid
-	sql, vals, err := sq.Insert(table).SetMap(data).Suffix("RETURNING uid").PlaceholderFormat(sq.Dollar).ToSql()
-	common.Logger.Sugar().Debugf("%v %v %v\n", sql, vals, err)
-	if err != nil {
-		return -1, err
-	}
-
-	// 根据是否传入事务参数选择执行方式
-	if tx != nil {
-		// 在事务中执行
-		err = (*tx).QueryRow(context.Background(), sql, vals...).Scan(&uid)
-		common.Logger.Sugar().Debugf("tx.QueryRow: uid=%v err=%v\n", uid, err)
-	} else {
-		// 使用连接池执行
-		err = common.DBPool.QueryRow(context.Background(), sql, vals...).Scan(&uid)
-		common.Logger.Sugar().Debugf("db.QueryRow: uid=%v err=%v\n", uid, err)
-	}
-
+	// 使用database.InsertWithID来处理不同数据库的插入逻辑
+	ctx := context.Background()
+	uid, err := database.InsertWithID(ctx, common.DB, tx, table, data)
+	common.Logger.Sugar().Debugf("InsertWithID: uid=%v err=%v\n", uid, err)
 	if err != nil {
 		return -1, err
 	}
@@ -103,19 +89,21 @@ func UserUpdate(p *protos.UserReq) (rows int64, e error) {
 		return 0, nil
 	}
 
-	sql, vals, err := sq.Update(table).SetMap(update).Where(where).PlaceholderFormat(sq.Dollar).ToSql()
+	// 获取占位符格式
+	placeholderFormat := database.GetPlaceholderFormat(common.DB.DriverType())
+	sql, vals, err := sq.Update(table).SetMap(update).Where(where).PlaceholderFormat(placeholderFormat).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v\n", sql, vals, err)
 	if err != nil {
 		return -1, err
 	}
 
-	rst, err := common.DBPool.Exec(context.Background(), sql, vals...)
+	rst, err := common.DB.Exec(context.Background(), sql, vals...)
 	common.Logger.Sugar().Debugf("db.exec: %v %v\n", rst, err)
 	if err != nil {
 		return -1, err
 	}
 
-	rows = rst.RowsAffected()
+	rows, _ = rst.RowsAffected()
 
 	return rows, nil
 }
@@ -126,20 +114,21 @@ func UserUpdateExt(uid uint64, ext *protos.MapStruct) (rows int64, e error) {
 		"uid": uid,
 	}
 
-	// 使用squirrel构建SQL
-	sql, vals, err := sq.Update(table).Set("ext", ext).Where(where).PlaceholderFormat(sq.Dollar).ToSql()
+	// 获取占位符格式
+	placeholderFormat := database.GetPlaceholderFormat(common.DB.DriverType())
+	sql, vals, err := sq.Update(table).Set("ext", ext).Where(where).PlaceholderFormat(placeholderFormat).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v\n", sql, vals, err)
 	if err != nil {
 		return -1, err
 	}
 
-	rst, err := common.DBPool.Exec(context.Background(), sql, vals...)
+	rst, err := common.DB.Exec(context.Background(), sql, vals...)
 	common.Logger.Sugar().Debugf("db.exec: %v %v\n", rst, err)
 	if err != nil {
 		return -1, err
 	}
 
-	rows = rst.RowsAffected()
+	rows, _ = rst.RowsAffected()
 
 	return rows, nil
 }
@@ -151,20 +140,21 @@ func UserUpdatePWD(UID uint64, oldPWD, newPWD string) (rows int64, e error) {
 		"password": oldPWD,
 	}
 
-	// 使用squirrel构建SQL
-	sql, vals, err := sq.Update(table).Set("password", newPWD).Where(where).PlaceholderFormat(sq.Dollar).ToSql()
+	// 获取占位符格式
+	placeholderFormat := database.GetPlaceholderFormat(common.DB.DriverType())
+	sql, vals, err := sq.Update(table).Set("password", newPWD).Where(where).PlaceholderFormat(placeholderFormat).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v\n", sql, vals, err)
 	if err != nil {
 		return -1, err
 	}
 
-	rst, err := common.DBPool.Exec(context.Background(), sql, vals...)
+	rst, err := common.DB.Exec(context.Background(), sql, vals...)
 	common.Logger.Sugar().Debugf("db.exec: %v %v\n", rst, err)
 	if err != nil {
 		return -1, err
 	}
 
-	rows = rst.RowsAffected()
+	rows, _ = rst.RowsAffected()
 	return rows, nil
 }
 
@@ -174,20 +164,21 @@ func UserUpdatePWDByCellphone(cellphone, newPWD string) (rows int64, e error) {
 		"cellphone": cellphone,
 	}
 
-	// 使用squirrel构建SQL
-	sql, vals, err := sq.Update(table).Set("password", newPWD).Where(where).PlaceholderFormat(sq.Dollar).ToSql()
+	// 获取占位符格式
+	placeholderFormat := database.GetPlaceholderFormat(common.DB.DriverType())
+	sql, vals, err := sq.Update(table).Set("password", newPWD).Where(where).PlaceholderFormat(placeholderFormat).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v\n", sql, vals, err)
 	if err != nil {
 		return -1, err
 	}
 
-	rst, err := common.DBPool.Exec(context.Background(), sql, vals...)
+	rst, err := common.DB.Exec(context.Background(), sql, vals...)
 	common.Logger.Sugar().Debugf("db.exec: %v %v\n", rst, err)
 	if err != nil {
 		return -1, err
 	}
 
-	rows = rst.RowsAffected()
+	rows, _ = rst.RowsAffected()
 	return rows, nil
 }
 
@@ -203,19 +194,19 @@ func UserUpdateWxOpenIdByCellphone(cellphone, wxOpenId string) (rows int64, e er
 	}
 
 	// 使用squirrel构建SQL
-	sql, vals, err := sq.Update(table).SetMap(update).Where(where).PlaceholderFormat(sq.Dollar).ToSql()
+	sql, vals, err := sq.Update(table).SetMap(update).Where(where).PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v\n", sql, vals, err)
 	if err != nil {
 		return -1, err
 	}
 
-	rst, err := common.DBPool.Exec(context.Background(), sql, vals...)
+	rst, err := common.DB.Exec(context.Background(), sql, vals...)
 	common.Logger.Sugar().Debugf("db.exec: %v %v\n", rst, err)
 	if err != nil {
 		return -1, err
 	}
 
-	rows = rst.RowsAffected()
+	rows, _ = rst.RowsAffected()
 	return rows, nil
 }
 
@@ -236,19 +227,19 @@ func SetUserPWD(uid uint64, tid uint64, pwd string) (r int64, e error) {
 	}
 
 	// 使用squirrel构建SQL
-	sql, vals, err := sq.Update(table).SetMap(update).Where(where).PlaceholderFormat(sq.Dollar).ToSql()
+	sql, vals, err := sq.Update(table).SetMap(update).Where(where).PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v\n", sql, vals, err)
 	if err != nil {
 		return -1, err
 	}
 
-	rst, err := common.DBPool.Exec(context.Background(), sql, vals...)
+	rst, err := common.DB.Exec(context.Background(), sql, vals...)
 	common.Logger.Sugar().Debugf("db.exec: %v %v\n", rst, err)
 	if err != nil {
 		return -1, err
 	}
 
-	r = rst.RowsAffected()
+	r, _ = rst.RowsAffected()
 	return r, nil
 }
 
@@ -265,19 +256,19 @@ func UserUpdateTenantID(UID, tenantID, currTenantID uint64) (rows int64, e error
 	}
 
 	// 使用squirrel构建SQL
-	sql, vals, err := sq.Update(table).SetMap(update).Where(where).PlaceholderFormat(sq.Dollar).ToSql()
+	sql, vals, err := sq.Update(table).SetMap(update).Where(where).PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v\n", sql, vals, err)
 	if err != nil {
 		return -1, err
 	}
 
-	rst, err := common.DBPool.Exec(context.Background(), sql, vals...)
+	rst, err := common.DB.Exec(context.Background(), sql, vals...)
 	common.Logger.Sugar().Debugf("db.exec: %v %v\n", rst, err)
 	if err != nil {
 		return -1, err
 	}
 
-	rows = rst.RowsAffected()
+	rows, _ = rst.RowsAffected()
 	return rows, nil
 }
 
@@ -293,19 +284,19 @@ func UserUpdateLoginTime(UID uint64, t *time.Time) (rows int64, e error) {
 	}
 
 	// 使用squirrel构建SQL
-	sql, vals, err := sq.Update(table).SetMap(update).Where(where).PlaceholderFormat(sq.Dollar).ToSql()
+	sql, vals, err := sq.Update(table).SetMap(update).Where(where).PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v\n", sql, vals, err)
 	if err != nil {
 		return -1, err
 	}
 
-	rst, err := common.DBPool.Exec(context.Background(), sql, vals...)
+	rst, err := common.DB.Exec(context.Background(), sql, vals...)
 	common.Logger.Sugar().Debugf("db.exec: %v %v\n", rst, err)
 	if err != nil {
 		return -1, err
 	}
 
-	rows = rst.RowsAffected()
+	rows, _ = rst.RowsAffected()
 	return rows, nil
 }
 
@@ -319,19 +310,19 @@ func UserDelete(uid uint64, tid uint64) (r int64, e error) {
 	}
 
 	// 使用squirrel构建SQL
-	sql, vals, err := sq.Delete(table).Where(where).PlaceholderFormat(sq.Dollar).ToSql()
+	sql, vals, err := sq.Delete(table).Where(where).PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v\n", sql, vals, err)
 	if err != nil {
 		return -1, err
 	}
 
-	rst, err := common.DBPool.Exec(context.Background(), sql, vals...)
+	rst, err := common.DB.Exec(context.Background(), sql, vals...)
 	common.Logger.Sugar().Debugf("db.exec: %v %v\n", rst, err)
 	if err != nil {
 		return -1, err
 	}
 
-	r = rst.RowsAffected()
+	r, _ = rst.RowsAffected()
 	return r, nil
 }
 
@@ -346,14 +337,14 @@ func UserQueryByID(uid uint64) (r *protos.User, e error) {
 	// 使用squirrel构建SQL，明确指定查询字段
 	sql, args, err := sq.Select("uid", "tenant_id", "cellphone", "email", "nickname", "wx_openid",
 		"password", "avatar_url", "gender", "addr", "ext",
-		"create_time", "update_time", "login_time").From(table).Where(where).PlaceholderFormat(sq.Dollar).ToSql()
+		"create_time", "update_time", "login_time").From(table).Where(where).PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v\n", sql, args, err)
 	if err != nil {
 		return nil, err
 	}
 
 	// 执行查询
-	rows, err := common.DBPool.Query(context.Background(), sql, args...)
+	rows, err := common.DB.Query(context.Background(), sql, args...)
 	if err != nil {
 		common.Logger.Sugar().Errorf("db.Query error: %v\n", err)
 		return nil, err
@@ -425,14 +416,14 @@ func UserQueryOne(p *protos.UserReq) (r *protos.User, e error) {
 	// 使用squirrel构建SQL，明确指定查询字段
 	sql, args, err := sq.Select("uid", "tenant_id", "cellphone", "email", "nickname", "wx_openid",
 		"password", "avatar_url", "gender", "addr", "ext",
-		"create_time", "update_time", "login_time").From(table).Where(eq).Limit(1).PlaceholderFormat(sq.Dollar).ToSql()
+		"create_time", "update_time", "login_time").From(table).Where(eq).Limit(1).PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v\n", sql, args, err)
 	if err != nil {
 		return nil, err
 	}
 
 	// 执行查询
-	rows, err := common.DBPool.Query(context.Background(), sql, args...)
+	rows, err := common.DB.Query(context.Background(), sql, args...)
 	if err != nil {
 		common.Logger.Sugar().Errorf("db.Query error: %v\n", err)
 		return nil, err
@@ -505,14 +496,14 @@ func UserQuery(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.User, e 
 
 	sql, args, err := sq.Select("uid", "tenant_id", "cellphone", "email", "nickname", "wx_openid",
 		"password", "avatar_url", "gender", "addr", "ext",
-		"create_time", "update_time", "login_time").Offset((pageNo - 1) * pageSize).Limit(pageSize).Where(eq).From("users").PlaceholderFormat(sq.Dollar).ToSql()
+		"create_time", "update_time", "login_time").Offset((pageNo - 1) * pageSize).Limit(pageSize).Where(eq).From("users").PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v", sql, args, err)
 	if err != nil {
 		return nil, err
 	}
 
 	// 执行查询
-	rows, err := common.DBPool.Query(context.Background(), sql, args...)
+	rows, err := common.DB.Query(context.Background(), sql, args...)
 	if err != nil {
 		common.Logger.Sugar().Errorf("db.Query error: %v\n", err)
 		return nil, err
@@ -583,14 +574,14 @@ func UserLiteQuery(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.User
 		and = append(and, or)
 	}
 
-	sql, args, err := sq.Select("uid,tenant_id,nickname,avatar_url,wx_openid,ext").Offset((pageNo - 1) * pageSize).Limit(pageSize).Where(and).From("users").PlaceholderFormat(sq.Dollar).ToSql()
+	sql, args, err := sq.Select("uid,tenant_id,nickname,avatar_url,wx_openid,ext").Offset((pageNo - 1) * pageSize).Limit(pageSize).Where(and).From("users").PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v", sql, args, err)
 	if err != nil {
 		return nil, err
 	}
 
 	// 执行查询
-	rows, err := common.DBPool.Query(context.Background(), sql, args...)
+	rows, err := common.DB.Query(context.Background(), sql, args...)
 	if err != nil {
 		common.Logger.Sugar().Errorf("db.Query error: %v\n", err)
 		return nil, err
@@ -643,14 +634,14 @@ func BusinessQuery(p *protos.UserReq, models interface{}, pageNo, pageSize uint6
 	// 使用squirrel构建SQL，明确指定查询字段
 	sql, args, err := sq.Select("uid", "tenant_id", "cellphone", "email", "nickname", "wx_openid",
 		"password", "avatar_url", "gender", "addr", "ext",
-		"create_time", "update_time", "login_time").From(table).Where(where).OrderBy("update_time desc").Offset((pageNo - 1) * pageSize).Limit(pageSize).PlaceholderFormat(sq.Dollar).ToSql()
+		"create_time", "update_time", "login_time").From(table).Where(where).OrderBy("update_time desc").Offset((pageNo - 1) * pageSize).Limit(pageSize).PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v\n", sql, args, err)
 	if err != nil {
 		return err
 	}
 
 	// 执行查询
-	rows, err := common.DBPool.Query(context.Background(), sql, args...)
+	rows, err := common.DB.Query(context.Background(), sql, args...)
 	if err != nil {
 		common.Logger.Sugar().Errorf("db.Query error: %v\n", err)
 		return err

@@ -17,7 +17,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/liuhengloveyou/passport/database"
 	"github.com/liuhengloveyou/passport/protos"
@@ -28,22 +27,6 @@ import (
 func setupTest() {
 	if logger == nil {
 		logger, _ = zap.NewDevelopment()
-	}
-}
-
-// generateUniqueTestData 生成唯一的测试数据
-// 使用时间戳（纳秒）确保每次测试运行时数据都是唯一的
-func generateUniqueTestData() map[string]string {
-	timestamp := time.Now().UnixNano()
-	// 生成11位手机号：1 + 10位数字（从时间戳提取）
-	// 确保是11位：1 + 10位数字
-	phoneSuffix := fmt.Sprintf("%010d", timestamp%10000000000)
-	cellphone := "1" + phoneSuffix
-
-	return map[string]string{
-		"cellphone": cellphone,
-		"email":     fmt.Sprintf("test_%d@example.com", timestamp),
-		"nickname":  fmt.Sprintf("TestUser_%d", timestamp),
 	}
 }
 

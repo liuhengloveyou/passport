@@ -1,7 +1,7 @@
 package accessctl
 
 import (
-	casbin "github.com/casbin/casbin/v2"
+	casbin "github.com/casbin/casbin/v3"
 )
 
 var (

@@ -5,31 +5,52 @@ import (
 	"time"
 
 	"github.com/liuhengloveyou/passport/common"
+	"github.com/liuhengloveyou/passport/database"
 	"github.com/liuhengloveyou/passport/protos"
 	"go.uber.org/zap"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/jackc/pgx/v5"
 )
 
-func TenantInsert(tx pgx.Tx, m *protos.Tenant) (tenantID uint64, e error) {
-	// 使用 RETURNING id 子句获取新插入记录的 ID
-	err := tx.QueryRow(context.Background(), "INSERT INTO tenants (uid, tenant_name, tenant_type, info, configuration, create_time) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
-		m.UID, m.TenantName, m.TenantType, m.Info, m.Configuration, time.Now()).Scan(&tenantID)
+func TenantInsert(tx database.Tx, m *protos.Tenant) (tenantID uint64, e error) {
+	ctx := context.Background()
 
+	// 准备插入数据
+	data := map[string]interface{}{
+		"uid":           m.UID,
+		"tenant_name":   m.TenantName,
+		"tenant_type":   m.TenantType,
+		"info":          m.Info,
+		"configuration": m.Configuration,
+		"create_time":   time.Now(),
+	}
+
+	// 使用database.InsertWithID来处理不同数据库的插入逻辑
+	id, err := database.InsertWithID(ctx, common.DB, tx, "tenants", data)
 	if err != nil {
-		// PostgreSQL 错误处理
 		common.Logger.Sugar().Errorf("Failed to insert tenants: %v", err)
 		return 0, err
 	}
+	tenantID = uint64(id)
 
 	// 更新用户的租户ID
-	rst, e := tx.Exec(context.Background(), "UPDATE users SET tenant_id = $1 WHERE (uid = $2) AND (tenant_id = 0)", tenantID, m.UID)
+	// 构建UPDATE语句，使用正确的占位符
+	placeholderFormat := database.GetPlaceholderFormat(common.DB.DriverType())
+	updateSQL, updateVals, err := sq.Update("users").
+		Set("tenant_id", tenantID).
+		Where(sq.And{sq.Eq{"uid": m.UID}, sq.Eq{"tenant_id": 0}}).
+		PlaceholderFormat(placeholderFormat).
+		ToSql()
+	if err != nil {
+		return 0, err
+	}
+
+	rst, e := tx.Exec(ctx, updateSQL, updateVals...)
 	if e != nil {
 		return 0, e
 	}
 
-	row := rst.RowsAffected()
+	row, _ := rst.RowsAffected()
 	if row != 1 {
 		return 0, common.ErrTenantLimit
 	}
@@ -46,7 +67,7 @@ func TenantGetByID(tenantId uint64) (m *protos.Tenant, e error) {
 	}
 
 	// 使用squirrel构建SQL，明确指定字段顺序
-	sql, args, err := sq.Select("id", "uid", "tenant_name", "tenant_type", "info", "configuration", "create_time", "update_time").From(table).Where(where).PlaceholderFormat(sq.Dollar).ToSql()
+	sql, args, err := sq.Select("id", "uid", "tenant_name", "tenant_type", "info", "configuration", "create_time", "update_time").From(table).Where(where).PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v", sql, args, err)
 	if err != nil {
 		return nil, err
@@ -54,7 +75,7 @@ func TenantGetByID(tenantId uint64) (m *protos.Tenant, e error) {
 
 	// 执行查询
 	var rst []protos.Tenant
-	rows, err := common.DBPool.Query(context.Background(), sql, args...)
+	rows, err := common.DB.Query(context.Background(), sql, args...)
 	if err != nil {
 		common.Logger.Sugar().Errorf("db.Query error: %v\n", err)
 		return nil, err
@@ -97,14 +118,14 @@ func TenantGetByID(tenantId uint64) (m *protos.Tenant, e error) {
 
 func TenantCount() (r uint64, e error) {
 	// 使用squirrel构建SQL
-	sql, args, err := sq.Select("count(id)").From("tenants").PlaceholderFormat(sq.Dollar).ToSql()
+	sql, args, err := sq.Select("count(id)").From("tenants").PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v\n", sql, args, err)
 	if err != nil {
 		return 0, err
 	}
 
 	// 执行查询
-	rows, err := common.DBPool.Query(context.Background(), sql, args...)
+	rows, err := common.DB.Query(context.Background(), sql, args...)
 	if err != nil {
 		common.Logger.Sugar().Errorf("db.Query error: %v\n", err)
 		return 0, err
@@ -136,14 +157,14 @@ func TenantCount() (r uint64, e error) {
 
 func TenantCountByAncestorID(ancestorID uint64) (r uint64, e error) {
 	// 使用squirrel构建SQL
-	sql, args, err := sq.Select("count(id)").From("tenant_closure").Where(sq.Eq{"ancestor_id": ancestorID}).PlaceholderFormat(sq.Dollar).ToSql()
+	sql, args, err := sq.Select("count(id)").From("tenant_closure").Where(sq.Eq{"ancestor_id": ancestorID}).PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v\n", sql, args, err)
 	if err != nil {
 		return 0, err
 	}
 
 	// 执行查询
-	rows, err := common.DBPool.Query(context.Background(), sql, args...)
+	rows, err := common.DB.Query(context.Background(), sql, args...)
 	if err != nil {
 		common.Logger.Sugar().Errorf("db.Query error: %v\n", err)
 		return 0, err
@@ -175,7 +196,7 @@ func TenantCountByAncestorID(ancestorID uint64) (r uint64, e error) {
 
 func TenantList(page, pageSize uint64) (rr []protos.Tenant, e error) {
 	// 创建查询构建器
-	query := sq.Select("id", "uid", "tenant_name", "tenant_type", "info", "configuration", "create_time", "update_time").From("tenants").PlaceholderFormat(sq.Dollar)
+	query := sq.Select("id", "uid", "tenant_name", "tenant_type", "info", "configuration", "create_time", "update_time").From("tenants").PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType()))
 
 	// 添加分页和排序
 	query = query.Offset((page - 1) * pageSize).Limit(pageSize).OrderBy("id")
@@ -188,7 +209,7 @@ func TenantList(page, pageSize uint64) (rr []protos.Tenant, e error) {
 	}
 	common.Logger.Sugar().Debugf("%v %v", sql, args)
 
-	rows, err := common.DBPool.Query(context.Background(), sql, args...)
+	rows, err := common.DB.Query(context.Background(), sql, args...)
 	if err != nil {
 		common.Logger.Sugar().Errorf("Failed to execute query: %v", err)
 		return nil, err
@@ -221,7 +242,7 @@ func TenantListByAncestorID(ancestorID, page, pageSize uint64) (rr []protos.Tena
 		From("tenants t").
 		Join("tenant_closure tc ON t.id = tc.descendant_id").
 		Where(sq.Eq{"tc.ancestor_id": ancestorID}).
-		PlaceholderFormat(sq.Dollar)
+		PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType()))
 
 	// 添加分页和排序
 	query = query.Offset((page - 1) * pageSize).Limit(pageSize).OrderBy("t.id")
@@ -234,7 +255,7 @@ func TenantListByAncestorID(ancestorID, page, pageSize uint64) (rr []protos.Tena
 	}
 	common.Logger.Sugar().Debugf("%v %v", sql, args)
 
-	rows, err := common.DBPool.Query(context.Background(), sql, args...)
+	rows, err := common.DB.Query(context.Background(), sql, args...)
 	if err != nil {
 		common.Logger.Sugar().Errorf("Failed to execute query: %v", err)
 		return nil, err
@@ -263,7 +284,7 @@ func TenantListByAncestorID(ancestorID, page, pageSize uint64) (rr []protos.Tena
 // TenantQuery 根据条件查询租户列表
 func TenantQuery(tenantName, cellphone string, page, pageSize uint64) (rr []protos.Tenant, e error) {
 	// 创建查询构建器
-	query := sq.Select("t.id", "t.uid", "t.tenant_name", "t.tenant_type", "t.info", "t.configuration", "t.create_time", "t.update_time").From("tenants t").PlaceholderFormat(sq.Dollar)
+	query := sq.Select("t.id", "t.uid", "t.tenant_name", "t.tenant_type", "t.info", "t.configuration", "t.create_time", "t.update_time").From("tenants t").PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType()))
 
 	// 添加查询条件
 	if tenantName != "" {
@@ -287,7 +308,7 @@ func TenantQuery(tenantName, cellphone string, page, pageSize uint64) (rr []prot
 	}
 	common.Logger.Sugar().Debugf("%v %v", sql, args)
 
-	rows, err := common.DBPool.Query(context.Background(), sql, args...)
+	rows, err := common.DB.Query(context.Background(), sql, args...)
 	if err != nil {
 		common.Logger.Sugar().Errorf("Failed to execute query: %v", err)
 		return nil, err
@@ -316,17 +337,22 @@ func TenantQuery(tenantName, cellphone string, page, pageSize uint64) (rr []prot
 func TenantUpdateConfiguration(m *protos.Tenant) error {
 	common.Logger.Debug("TenantUpdateConfiguration %v", zap.Any("tenant", m))
 
-	commandTag, err := common.DBPool.Exec(context.Background(), "UPDATE tenants SET configuration = $1, update_time = NOW() WHERE (id = $2) AND (update_time = $3)", m.Configuration, m.ID, m.UpdateTime)
+	commandTag, err := common.DB.Exec(context.Background(), "UPDATE tenants SET configuration = $1, update_time = NOW() WHERE (id = $2) AND (update_time = $3)", m.Configuration, m.ID, m.UpdateTime)
 	if err != nil {
 		common.Logger.Sugar().Errorf("Failed to update tenant configuration: %v", err)
 		return err
 	}
 
 	// 检查是否有行被更新
-	if commandTag.RowsAffected() == 0 {
+	rowsAffected, err := commandTag.RowsAffected()
+	if err != nil {
+		common.Logger.Sugar().Errorf("Failed to get rows affected: %v", err)
+		return err
+	}
+	if rowsAffected == 0 {
 		// 检查租户是否存在
 		var exists bool
-		err = common.DBPool.QueryRow(context.Background(), "SELECT EXISTS(SELECT 1 FROM tenants WHERE id = $1)", m.ID).Scan(&exists)
+		err = common.DB.QueryRow(context.Background(), "SELECT EXISTS(SELECT 1 FROM tenants WHERE id = $1)", m.ID).Scan(&exists)
 		if err != nil {
 			common.Logger.Sugar().Errorf("Failed to check tenant existence: %v", err)
 			return err
@@ -344,7 +370,7 @@ func TenantUpdateConfiguration(m *protos.Tenant) error {
 }
 
 func UserQueryByTenant(tenantID, page, pageSize uint64, nickname string, uids []uint64) (rr []protos.User, e error) {
-	act := sq.Select("uid", "tenant_id", "cellphone", "email", "nickname", "avatar_url", "gender", "addr", "ext", "create_time").From("users").PlaceholderFormat(sq.Dollar).Where(sq.Eq{"tenant_id": tenantID})
+	act := sq.Select("uid", "tenant_id", "cellphone", "email", "nickname", "avatar_url", "gender", "addr", "ext", "create_time").From("users").PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).Where(sq.Eq{"tenant_id": tenantID})
 	if nickname != "" {
 		act = act.Where(sq.Like{"nickname": "%" + nickname + "%"})
 	} else if len(uids) > 0 {
@@ -362,7 +388,7 @@ func UserQueryByTenant(tenantID, page, pageSize uint64, nickname string, uids []
 	}
 	common.Logger.Sugar().Debugf("%v %v", sql, args)
 
-	rows, err := common.DBPool.Query(context.Background(), sql, args...)
+	rows, err := common.DB.Query(context.Background(), sql, args...)
 	if err != nil {
 		common.Logger.Sugar().Errorf("Failed to execute query: %v", err)
 		return nil, err
@@ -389,7 +415,7 @@ func UserQueryByTenant(tenantID, page, pageSize uint64, nickname string, uids []
 }
 
 func UserCountByTenant(tenantID uint64, nickname string, uids []uint64) (r uint64, e error) {
-	act := sq.Select("count(uid) as count").From("users").PlaceholderFormat(sq.Dollar).Where(sq.Eq{"tenant_id": tenantID})
+	act := sq.Select("count(uid) as count").From("users").PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).Where(sq.Eq{"tenant_id": tenantID})
 	if nickname != "" {
 		act = act.Where(sq.Like{"nickname": "%" + nickname + "%"})
 	} else if len(uids) > 0 {
@@ -407,7 +433,7 @@ func UserCountByTenant(tenantID uint64, nickname string, uids []uint64) (r uint6
 	}
 	common.Logger.Sugar().Debugf("%v %v", sql, args)
 
-	rows, err := common.DBPool.Query(context.Background(), sql, args...)
+	rows, err := common.DB.Query(context.Background(), sql, args...)
 	if err != nil {
 		common.Logger.Sugar().Errorf("Failed to execute query: %v", err)
 		return 0, err

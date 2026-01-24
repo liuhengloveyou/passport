@@ -1,9 +1,9 @@
 package weixin
 
 import (
+	"encoding/json"
 	"fmt"
 
-	"github.com/bytedance/sonic"
 	gocommon "github.com/liuhengloveyou/go-common"
 	"go.uber.org/zap"
 
@@ -25,7 +25,7 @@ func GetAccessToken(appId, appSecret string, code string) (accessToken *WeixinMp
 	}
 
 	wxResp := &WeixinMpAccessTokenResponse{}
-	if err = sonic.Unmarshal(body, wxResp); err != nil {
+	if err = json.Unmarshal(body, wxResp); err != nil {
 		common.Logger.Error("weixin.GetAccessToken json ERR: ", zap.String("appid", appId), zap.String("code", code), zap.Error(err))
 		return nil, common.ErrWxService
 	}
@@ -53,7 +53,7 @@ func GetUserInfo(accessToken, openId string) (userInfo *WeixinMpUserInfoResponse
 	}
 
 	wxResp := &WeixinMpUserInfoResponse{}
-	if err = sonic.Unmarshal(body, wxResp); err != nil {
+	if err = json.Unmarshal(body, wxResp); err != nil {
 		common.Logger.Error("weixin.GetUserInfo json ERR: ", zap.String("openId", openId), zap.Error(err))
 		return nil, common.ErrWxService
 	}

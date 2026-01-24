@@ -8,7 +8,7 @@ import (
 	"time"
 
 	sqladapter "github.com/Blank-Xu/sql-adapter"
-	"github.com/casbin/casbin/v2"
+	"github.com/casbin/casbin/v3"
 	_ "github.com/lib/pq"           // PostgreSQL驱动
 	_ "github.com/mattn/go-sqlite3" // SQLite3驱动
 	"go.uber.org/zap"

@@ -195,6 +195,15 @@ func maskDSN(dsn string) string {
 	return dsn
 }
 
+// GetDialect 获取当前数据库的方言
+func GetDialect() database.Dialect {
+	if DB == nil {
+		// 默认返回PostgreSQL方言
+		return database.NewDialect(database.DriverPostgreSQL)
+	}
+	return database.NewDialect(DB.DriverType())
+}
+
 func InitRedis(addr string) (err error) {
 	RedisClient = redis.NewClient(&redis.Options{
 		Addr:     addr,

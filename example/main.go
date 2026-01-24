@@ -38,9 +38,10 @@ func InitAdnRun(addr string) error {
 	})
 
 	options := &passportprotos.OptionStruct{
-		LogDir:     "./logs", // 日志目录
-		LogLevel:   "debug",  // 日志级别
-		PostgreURN: "root:lhisroot@tcp(127.0.0.1:3306)/kuge?charset=utf8mb4&parseTime=true&loc=Local",
+		LogDir:   "./logs",                                                                                       // 日志目录
+		LogLevel: "debug",                                                                                        // 日志级别
+		DBDriver: "mysql",                                                                                        // 数据库驱动
+		DBDSN:    "root:lhisroot@tcp(127.0.0.1:3306)/kuge?charset=utf8mb4&parseTime=true&loc=Local", // 数据库连接字符串
 	}
 	engine.Any("/user", gin.WrapH(passport.InitAndRunHttpApi(options)))
 
@@ -61,9 +62,10 @@ curl -v -X PUT -H "X-API: register" -d \
 */
 func InitHttpApi(addr string) error {
 	options := &passportprotos.OptionStruct{
-		LogDir:     "./logs", // 日志目录
-		LogLevel:   "debug",  // 日志级别
-		PostgreURN: "root:lhisroot@tcp(127.0.0.1:3306)/kuge?charset=utf8mb4&parseTime=true&loc=Local",
+		LogDir:   "./logs",                                                                                       // 日志目录
+		LogLevel: "debug",                                                                                        // 日志级别
+		DBDriver: "mysql",                                                                                        // 数据库驱动
+		DBDSN:    "root:lhisroot@tcp(127.0.0.1:3306)/kuge?charset=utf8mb4&parseTime=true&loc=Local", // 数据库连接字符串
 	}
 	http.Handle("/usercenter", passport.InitAndRunHttpApi(options))
 	// 业务可以挂在这里

@@ -3,11 +3,11 @@ package service
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/liuhengloveyou/passport/accessctl"
 	"github.com/liuhengloveyou/passport/cache"
 	"github.com/liuhengloveyou/passport/common"
 	"github.com/liuhengloveyou/passport/dao"
+	"github.com/liuhengloveyou/passport/database"
 	"github.com/liuhengloveyou/passport/protos"
 )
 
@@ -37,8 +37,8 @@ func TenantAdd(m *protos.Tenant) (tenantID uint64, e error) {
 	}}
 
 	ctx := context.Background()
-	var tx pgx.Tx
-	tx, e = common.DBPool.Begin(ctx)
+	var tx database.Tx
+	tx, e = common.DB.Begin(ctx)
 	defer func() {
 		if e != nil {
 			tx.Rollback(ctx)
