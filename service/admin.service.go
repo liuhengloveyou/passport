@@ -5,12 +5,12 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/liuhengloveyou/passport/accessctl"
-	"github.com/liuhengloveyou/passport/cache"
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/dao"
-	"github.com/liuhengloveyou/passport/database"
-	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/v3/accessctl"
+	"github.com/liuhengloveyou/passport/v3/cache"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/dao"
+	"github.com/liuhengloveyou/passport/v3/database"
+	"github.com/liuhengloveyou/passport/v3/protos"
 )
 
 /*

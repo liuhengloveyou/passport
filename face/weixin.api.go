@@ -5,11 +5,11 @@ import (
 	"strings"
 
 	"github.com/liuhengloveyou/go-errors"
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/protos"
-	"github.com/liuhengloveyou/passport/service"
-	"github.com/liuhengloveyou/passport/sessions"
-	"github.com/liuhengloveyou/passport/weixin"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v3/service"
+	"github.com/liuhengloveyou/passport/v3/sessions"
+	"github.com/liuhengloveyou/passport/v3/weixin"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 	"go.uber.org/zap"

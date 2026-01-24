@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	cache "github.com/liuhengloveyou/passport/cache"
+	cache "github.com/liuhengloveyou/passport/v3/cache"
 
 	"github.com/liuhengloveyou/go-errors"
 )

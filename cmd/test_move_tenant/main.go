@@ -7,8 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/dao"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/dao"
 )
 
 func main() {

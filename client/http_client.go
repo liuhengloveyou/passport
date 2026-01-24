@@ -3,7 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/v3/protos"
 	"net/http"
 
 	validator "github.com/go-playground/validator/v10"

@@ -1,10 +1,10 @@
 package service
 
 import (
-	"github.com/liuhengloveyou/passport/cache"
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/dao"
-	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/v3/cache"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/dao"
+	"github.com/liuhengloveyou/passport/v3/protos"
 )
 
 func TenantTreeList(sessionUser *protos.User, ancestorID, page, pageSize uint64, hasTotal bool) (rst protos.PageResponse, e error) {

@@ -3,10 +3,10 @@ package service
 import (
 	"fmt"
 
-	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/v3/protos"
 
-	. "github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/dao"
+	. "github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/dao"
 )
 
 func AuthPWDService(uid uint64, pwd string) (auth bool, e error) {

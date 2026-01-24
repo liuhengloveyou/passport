@@ -9,9 +9,9 @@ import (
 
 	gocommon "github.com/liuhengloveyou/go-common"
 
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/dao"
-	"github.com/liuhengloveyou/passport/face"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/dao"
+	"github.com/liuhengloveyou/passport/v3/face"
 )
 
 var (

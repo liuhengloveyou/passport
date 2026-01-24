@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/dao"
-	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/dao"
+	"github.com/liuhengloveyou/passport/v3/protos"
 )
 
 func DepartmentCreate(m *protos.Department) (lastInsertId int64, e error) {

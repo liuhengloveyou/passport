@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/database"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/database"
 )
 
 // TenantClosureInsert 插入租户闭包表记录

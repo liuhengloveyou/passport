@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/v3/protos"
 )
 
 // generateUniqueTestData 生成唯一的测试数据

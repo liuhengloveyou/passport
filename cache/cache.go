@@ -3,7 +3,7 @@ package cache
 import (
 	"fmt"
 
-	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/v3/protos"
 )
 
 const (

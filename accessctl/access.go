@@ -13,9 +13,9 @@ import (
 	_ "github.com/mattn/go-sqlite3" // SQLite3驱动
 	"go.uber.org/zap"
 
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/dao"
-	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/dao"
+	"github.com/liuhengloveyou/passport/v3/protos"
 )
 
 // var policyCache = make(map[string]bool, 10000)

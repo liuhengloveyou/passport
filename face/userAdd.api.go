@@ -3,10 +3,10 @@ package face
 import (
 	"net/http"
 
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/protos"
-	"github.com/liuhengloveyou/passport/service"
-	"github.com/liuhengloveyou/passport/sms"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v3/service"
+	"github.com/liuhengloveyou/passport/v3/sms"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	gocommon "github.com/liuhengloveyou/go-common"

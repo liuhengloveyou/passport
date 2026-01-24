@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/protos"
-	"github.com/liuhengloveyou/passport/sms"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v3/sms"
 )
 
 // 发送注册账号短信验证码

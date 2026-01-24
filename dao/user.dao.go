@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/database"
-	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/database"
+	"github.com/liuhengloveyou/passport/v3/protos"
 	"xorm.io/builder"
 
 	sq "github.com/Masterminds/squirrel"

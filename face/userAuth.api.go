@@ -3,8 +3,8 @@ package face
 import (
 	"net/http"
 
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/protos"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 )

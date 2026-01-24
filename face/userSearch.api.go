@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/protos"
-	"github.com/liuhengloveyou/passport/service"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v3/service"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 )

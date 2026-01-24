@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/dao"
-	"github.com/liuhengloveyou/passport/protos"
-	"github.com/liuhengloveyou/passport/sms"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/dao"
+	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v3/sms"
 	"go.uber.org/zap"
 	"gopkg.in/guregu/null.v4/zero"
 

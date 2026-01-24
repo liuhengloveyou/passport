@@ -3,12 +3,12 @@ package face
 import (
 	"net/http"
 
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/protos"
-	"github.com/liuhengloveyou/passport/sessions"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v3/sessions"
 
 	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/passport/service"
+	"github.com/liuhengloveyou/passport/v3/service"
 )
 
 func userModify(w http.ResponseWriter, r *http.Request) {

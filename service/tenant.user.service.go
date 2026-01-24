@@ -1,10 +1,10 @@
 package service
 
 import (
-	"github.com/liuhengloveyou/passport/accessctl"
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/dao"
-	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/v3/accessctl"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/dao"
+	"github.com/liuhengloveyou/passport/v3/protos"
 	"go.uber.org/zap"
 )
 

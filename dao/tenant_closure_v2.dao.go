@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/liuhengloveyou/passport/common"
+	"github.com/liuhengloveyou/passport/v3/common"
 )
 
 // SQL常量定义，提高代码可维护性

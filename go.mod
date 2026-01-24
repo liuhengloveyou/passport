@@ -1,4 +1,4 @@
-module github.com/liuhengloveyou/passport
+module github.com/liuhengloveyou/passport/v3
 
 go 1.25.6
 

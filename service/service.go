@@ -1,6 +1,6 @@
 package service
 
-import "github.com/liuhengloveyou/passport/cache"
+import "github.com/liuhengloveyou/passport/v3/cache"
 
 var deparmentCache *cache.ExpiredMap = nil
 

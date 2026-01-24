@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/passport/common"
+	"github.com/liuhengloveyou/passport/v3/common"
 )
 
 /*

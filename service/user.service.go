@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/liuhengloveyou/passport/protos"
-	"github.com/liuhengloveyou/passport/sms"
+	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v3/sms"
 	"go.uber.org/zap"
 
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/dao"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/dao"
 
 	validator "github.com/go-playground/validator/v10"
 )

@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/database"
-	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/database"
+	"github.com/liuhengloveyou/passport/v3/protos"
 	"go.uber.org/zap"
 )
 

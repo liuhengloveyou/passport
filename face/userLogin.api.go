@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/liuhengloveyou/passport/common"
-	"github.com/liuhengloveyou/passport/protos"
-	"github.com/liuhengloveyou/passport/service"
+	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v3/service"
 	"go.uber.org/zap"
 
 	gocommon "github.com/liuhengloveyou/go-common"

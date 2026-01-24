@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/liuhengloveyou/passport/database"
-	"github.com/liuhengloveyou/passport/protos"
+	"github.com/liuhengloveyou/passport/v3/database"
+	"github.com/liuhengloveyou/passport/v3/protos"
 )
 
 // TestUserAddFunc 测试函数类型

@@ -7,7 +7,7 @@ import (
 	gocommon "github.com/liuhengloveyou/go-common"
 	"go.uber.org/zap"
 
-	"github.com/liuhengloveyou/passport/common"
+	"github.com/liuhengloveyou/passport/v3/common"
 )
 
 func GetAccessToken(appId, appSecret string, code string) (accessToken *WeixinMpAccessTokenResponse, err error) {

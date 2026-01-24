@@ -2,7 +2,7 @@ package sms
 
 import "testing"
 
-// go test -v -run ^TestSendUserAddSms$ github.com/liuhengloveyou/passport/sms/tencentcloud
+// go test -v -run ^TestSendUserAddSms$ github.com/liuhengloveyou/passport/v3/sms/tencentcloud
 func TestSendUserAddSms(t *testing.T) {
 	sms := NewSmsTencentcloud(map[string]interface{}{
 		"secret_id":            "xxx",
