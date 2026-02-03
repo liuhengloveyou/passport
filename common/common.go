@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"log"
 	"time"
+	"os"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v3/sessions"
 	"github.com/liuhengloveyou/passport/v3/sms"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -22,7 +24,7 @@ import (
 )
 
 const (
-	SYS_PWD         = "When you forgive, You love. And when you love, God's light shines on you. Now, 20251212"
+	SYS_PWD         = "When you forgive, You love. And when you love, God's light shines on you. Now, 202601229"
 	SessUserInfoKey = "sess-user"
 	MAX_UPLOAD_LEN  = (8 * 1024 * 1024) // 最大上传文件大小
 )
@@ -43,6 +45,8 @@ func (p *NilWriter) Write(b []byte) (n int, err error) { return 0, nil }
 
 func init() {
 	var e error
+
+	os.Setenv("PASSPORT_LOG_TO_CONSOLE", "true")
 
 	gob.Register(protos.User{})
 	gob.Register(protos.MapStruct{})
@@ -116,7 +120,7 @@ func InitWithOption(option *protos.OptionStruct) (e error) {
 func InitLog(logDir, logLevel string) error {
 	writer, _ := rotatelogs.New(
 		logDir+"/passport.%Y%m%d%H%M",
-		rotatelogs.WithLinkName("log.passport"),
+		rotatelogs.WithLinkName(logDir+"/log.passport"),
 		rotatelogs.WithMaxAge(7*24*time.Hour),
 		rotatelogs.WithRotationTime(time.Hour),
 	)
@@ -129,10 +133,19 @@ func InitLog(logDir, logLevel string) error {
 	encoder := zap.NewProductionEncoderConfig()
 	encoder.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05.000")
 
-	core := zapcore.NewCore(
-		zapcore.NewConsoleEncoder(encoder),
-		zapcore.AddSync(writer),
-		level)
+	var core zapcore.Core
+	// 测试环境下同时输出到终端
+	if os.Getenv("PASSPORT_LOG_TO_CONSOLE") == "true" {
+		core = zapcore.NewTee(
+			zapcore.NewCore(zapcore.NewConsoleEncoder(encoder), zapcore.AddSync(writer), level),
+			zapcore.NewCore(zapcore.NewConsoleEncoder(encoder), zapcore.AddSync(os.Stdout), level),
+		)
+	} else {
+		core = zapcore.NewCore(
+			zapcore.NewConsoleEncoder(encoder),
+			zapcore.AddSync(writer),
+			level)
+	}
 
 	Logger = zap.New(core, zap.AddCaller())
 	Logger.Info("passport initLog OK\n")
@@ -202,6 +215,23 @@ func GetDialect() database.Dialect {
 		return database.NewDialect(database.DriverPostgreSQL)
 	}
 	return database.NewDialect(DB.DriverType())
+}
+
+// NewSessionStore 创建并返回一个新的session store
+// 根据配置决定使用cookie store还是memory store
+func NewSessionStore() interface{} {
+	// 使用和httpApi.go相同的逻辑
+	switch ServConfig.SessionStoreType {
+	case "mem":
+		// TODO: 实现memory store
+		// return sessions.NewMemStore([]byte(SYS_PWD), sessPWD[:])
+		fallthrough
+	default:
+		sessPWD := sha256.Sum256([]byte(SYS_PWD))
+		store := sessions.NewCookieStore([]byte(SYS_PWD), sessPWD[:])
+		store.MaxAge(ServConfig.SessionExpire)
+		return store
+	}
 }
 
 func InitRedis(addr string) (err error) {

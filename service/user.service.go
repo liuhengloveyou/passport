@@ -18,9 +18,11 @@ import (
 
 func AddUserService(p *protos.UserReq) (id uint64, e error) {
 	if p.Cellphone == "" && p.Email == "" && p.Nickname == "" {
+		common.Logger.Error("AddUserService param ERR: 手机号、邮箱、用户名同时为空\n")
 		return 0, common.ErrUserNmae
 	}
 	if p.Password == "" {
+		common.Logger.Error("AddUserService param ERR: 用户密码为空\n")
 		return 0, common.ErrPWDNil
 	}
 
@@ -31,6 +33,7 @@ func AddUserService(p *protos.UserReq) (id uint64, e error) {
 
 	if p.Cellphone != "" {
 		if duplicatePhone(p.Cellphone) {
+			common.Logger.Sugar().Errorf("AddUserService duplicatePhone ERR: %s\n", p.Cellphone)
 			return 0, common.ErrPhoneDup
 		}
 		if p.Nickname == "" {
@@ -40,6 +43,7 @@ func AddUserService(p *protos.UserReq) (id uint64, e error) {
 
 	if p.Email != "" {
 		if duplicateEmail(p.Email) {
+			common.Logger.Sugar().Errorf("AddUserService duplicateEmail ERR: %s\n", p.Email)
 			return 0, common.ErrEmailDup
 		}
 		if p.Nickname == "" {
@@ -55,12 +59,13 @@ func AddUserService(p *protos.UserReq) (id uint64, e error) {
 
 	if len(p.WxOpenId) > 0 {
 		if duplicateWxOpenid(p.WxOpenId) {
+			common.Logger.Sugar().Errorf("AddUserService duplicateWxOpenid ERR: %s\n", p.WxOpenId)
 			return 0, common.ErrWxOpenidDup
 		}
 	}
 
 	p.Password = common.EncryPWD(p.Password)
-
+	common.Logger.Sugar().Infof("AddUserService add user: %#v\n", p)
 	uid, err := dao.UserInsert(p, nil)
 	if err != nil {
 		common.Logger.Sugar().Errorf("dao.UserInsert ERR: %v\n", err)

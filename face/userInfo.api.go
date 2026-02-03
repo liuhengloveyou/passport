@@ -6,15 +6,25 @@ import (
 	"strings"
 
 	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/protos"
 	"github.com/liuhengloveyou/passport/v3/service"
-	"github.com/liuhengloveyou/passport/v3/sessions"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 )
 
 func getMyInfo(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	if r.Context().Value("session") == nil {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("getMyInfo ERR session nil.")
+		return
+	}
+
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetSessionUser failed")
+		return
+	}
+
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
 		logger.Sugar().Error("getMyInfo session ERR")
@@ -37,15 +47,13 @@ func getMyInfo(w http.ResponseWriter, r *http.Request) {
 
 	gocommon.HttpErr(w, http.StatusOK, 0, rst)
 	logger.Sugar().Infof("GetMyInfo OK: %#v %#v\n", sessionUser.UID, rst)
-
-	return
 }
 
 func getInfoByUID(w http.ResponseWriter, r *http.Request) {
-	sessioinUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
-	if sessioinUser.UID <= 0 {
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
 		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
-		logger.Sugar().Error("getInfoByUID ERR uid nil.")
+		logger.Sugar().Error("GetSessionUser failed")
 		return
 	}
 
@@ -64,8 +72,8 @@ func getInfoByUID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if sessioinUser.TenantID > 0 || userInfo.TenantID > 0 {
-		if sessioinUser.TenantID != userInfo.TenantID {
+	if sessionUser.TenantID > 0 || userInfo.TenantID > 0 {
+		if sessionUser.TenantID != userInfo.TenantID {
 			userInfo.Tenant = nil
 			userInfo.TenantID = 0
 		}

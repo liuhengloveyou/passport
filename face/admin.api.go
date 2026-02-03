@@ -9,14 +9,19 @@ import (
 	"github.com/liuhengloveyou/passport/v3/common"
 	"github.com/liuhengloveyou/passport/v3/protos"
 	"github.com/liuhengloveyou/passport/v3/service"
-	"github.com/liuhengloveyou/passport/v3/sessions"
 )
 
 /*
 只有root租户的超级管理员登录，才能通过该接口添加租户和管理员
 */
 func AdminTenantNew(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetSessionUser failed")
+		return
+	}
+
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		return
@@ -78,7 +83,13 @@ func AdminTenantNew(w http.ResponseWriter, r *http.Request) {
 // 支持分页查询
 func AdminTenantList(w http.ResponseWriter, r *http.Request) {
 	// 获取会话用户信息
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetSessionUser failed")
+		return
+	}
+
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		return
@@ -141,7 +152,13 @@ func AdminTenantList(w http.ResponseWriter, r *http.Request) {
 }
 
 func AdminSetParent(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetSessionUser failed")
+		return
+	}
+
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		return
@@ -178,7 +195,13 @@ func AdminSetParent(w http.ResponseWriter, r *http.Request) {
 
 // AdminTenantUpdateConfig 更新租户配置
 func AdminTenantUpdateConfig(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetSessionUser failed")
+		return
+	}
+
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		return

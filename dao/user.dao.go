@@ -50,7 +50,7 @@ func UserInsert(p *protos.UserReq, tx database.Tx) (uid int64, e error) {
 	// 使用database.InsertWithID来处理不同数据库的插入逻辑
 	ctx := context.Background()
 	uid, err := database.InsertWithID(ctx, common.DB, tx, table, data)
-	common.Logger.Sugar().Debugf("InsertWithID: uid=%v err=%v\n", uid, err)
+	common.Logger.Sugar().Debugf("UserInsert InsertWithID: uid=%v err=%v\n", uid, err)
 	if err != nil {
 		return -1, err
 	}

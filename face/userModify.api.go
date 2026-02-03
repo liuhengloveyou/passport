@@ -5,7 +5,6 @@ import (
 
 	"github.com/liuhengloveyou/passport/v3/common"
 	"github.com/liuhengloveyou/passport/v3/protos"
-	"github.com/liuhengloveyou/passport/v3/sessions"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 	"github.com/liuhengloveyou/passport/v3/service"
@@ -71,7 +70,13 @@ func userModify(w http.ResponseWriter, r *http.Request) {
 }
 
 func modifyPWD(w http.ResponseWriter, r *http.Request) {
-	uid := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User).UID
+	sess, auth := AuthFilter(r)
+	if !auth {
+		gocommon.HttpErr(w, http.StatusForbidden, -1, "末登录用户")
+		return
+	}
+
+	uid := sess.Values[common.SessUserInfoKey].(protos.User).UID
 
 	req := protos.ModifyPwdReq{}
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
@@ -80,10 +85,10 @@ func modifyPWD(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Sugar().Infof("modifyPWD body: %v %v\n", uid, req)
+	logger.Sugar().Infof("modifyPWD request for uid: %d", uid)
 
 	if _, err := service.UpdateUserPWD(uid, req.OldPwd, req.NewPwd); err != nil {
-		logger.Sugar().Errorf("modifyPWD %d %v %s\n", uid, req, err.Error())
+		logger.Sugar().Errorf("modifyPWD failed for uid %d: %s", uid, err.Error())
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}

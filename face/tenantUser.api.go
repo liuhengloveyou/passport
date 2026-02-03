@@ -8,14 +8,18 @@ import (
 	"github.com/liuhengloveyou/passport/v3/common"
 	"github.com/liuhengloveyou/passport/v3/protos"
 	"github.com/liuhengloveyou/passport/v3/service"
-	"github.com/liuhengloveyou/passport/v3/sessions"
 	"go.uber.org/zap"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 )
 
 func TenantUserAdd(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		logger.Sugar().Error("TenantUserAdd TenantID ERR")
@@ -57,7 +61,12 @@ func TenantUserAdd(w http.ResponseWriter, r *http.Request) {
 }
 
 func TenantUserDel(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		logger.Sugar().Error("TenantUserDel session ERR")
@@ -82,8 +91,13 @@ func TenantUserDel(w http.ResponseWriter, r *http.Request) {
 }
 
 func TenantUserGet(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
 	logger.Debug("TenantUserGet session", zap.Any("session", sessionUser))
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		logger.Sugar().Error("TenantUserGet TenantID ERR")
@@ -140,7 +154,12 @@ func TenantUserGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func TenantUserSetDepartment(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		return
@@ -170,7 +189,12 @@ func TenantUserSetDepartment(w http.ResponseWriter, r *http.Request) {
 }
 
 func TenantUserDisableByUID(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		logger.Sugar().Error("TenantID ERR")
@@ -208,7 +232,12 @@ func TenantUserDisableByUID(w http.ResponseWriter, r *http.Request) {
 }
 
 func TenantUserModifyExtInfo(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		logger.Sugar().Error("TenantID ERR")
@@ -233,7 +262,13 @@ func TenantUserModifyExtInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func TenantUserModifyPWDByUID(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetSessionUser failed")
+		return
+	}
+
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		return

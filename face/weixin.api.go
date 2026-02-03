@@ -8,7 +8,6 @@ import (
 	"github.com/liuhengloveyou/passport/v3/common"
 	"github.com/liuhengloveyou/passport/v3/protos"
 	"github.com/liuhengloveyou/passport/v3/service"
-	"github.com/liuhengloveyou/passport/v3/sessions"
 	"github.com/liuhengloveyou/passport/v3/weixin"
 
 	gocommon "github.com/liuhengloveyou/go-common"
@@ -239,12 +238,13 @@ func WxMiniAppLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func WxMiniAppUserInfoUpdate(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
-	//if sessionUser.TenantID <= 0 {
-	//	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
-	//	logger.Sugar().Error("AddRoleForUser TenantID ERR")
-	//	return
-	//}
+	sess, auth := AuthFilter(r)
+	if !auth {
+		gocommon.HttpErr(w, http.StatusForbidden, -1, "末登录用户")
+		return
+	}
+
+	sessionUser := sess.Values[common.SessUserInfoKey].(protos.User)
 
 	var req weixin.WxMiniAppUserInfoUpdateReq
 	if err := readJsonBodyFromRequest(r, &req, 1024); err != nil {
@@ -253,13 +253,14 @@ func WxMiniAppUserInfoUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Sugar().Infof("WxMiniAppUserInfoUpdate: %#v %#v", sessionUser, req)
-	//
-	//if _, err := service.MiniAppService.WxMiniAppUserInfoUpdate(req); err != nil {
-	//	logger.Sugar().Error(*user, err)
-	//	gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
-	//	return
-	//}return
+	logger.Sugar().Infof("WxMiniAppUserInfoUpdate uid: %d", sessionUser.UID)
+
+	// TODO: Implement service call
+	// if _, err := service.MiniAppService.WxMiniAppUserInfoUpdate(req); err != nil {
+	// 	logger.Sugar().Errorf("WxMiniAppUserInfoUpdate failed: %s", err.Error())
+	// 	gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
+	// 	return
+	// }
 
 	gocommon.HttpErr(w, http.StatusOK, 0, "OK")
 }

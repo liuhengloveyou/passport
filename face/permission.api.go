@@ -1,7 +1,6 @@
 package face
 
 import (
-	"github.com/liuhengloveyou/passport/v3/sessions"
 	"net/http"
 	"strconv"
 
@@ -13,7 +12,12 @@ import (
 )
 
 func PermissionCreate(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		logger.Error("PermissionCreate TenantID ERR")
@@ -40,7 +44,12 @@ func PermissionCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func PermissionDelete(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		logger.Error("PermissionDelete TenantID ERR")
@@ -62,7 +71,12 @@ func PermissionDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func PermissionList(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		logger.Error("PermissionList TenantID ERR")

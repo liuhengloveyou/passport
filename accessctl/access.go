@@ -20,18 +20,6 @@ import (
 
 // var policyCache = make(map[string]bool, 10000)
 
-func finalizer(db *sql.DB) {
-	fmt.Println("finalizer: ", db.Stats())
-	if db == nil {
-		return
-	}
-
-	err := db.Close()
-	if err != nil {
-		panic(err)
-	}
-}
-
 // InitAccessControl 初始化访问控制
 // 支持PostgreSQL和SQLite3数据库
 // rbacModel: RBAC模型文件路径
@@ -87,7 +75,7 @@ func InitAccessControl(rbacModel, driver, dsn string) (err error) {
 
 	// enforcer.StartAutoLoadPolicy(10 * time.Minute)
 
-	enforcer.AddFunction("MyMatch", func(args ...interface{}) (interface{}, error) {
+	enforcer.AddFunction("MyMatch", func(args ...any) (any, error) {
 		rsub, rdom, _, _ := args[0].(string), args[1].(string), args[2].(string), args[3].(string)
 		// fmt.Println("MyMatch: ", rsub, rdom, robj, ract)
 

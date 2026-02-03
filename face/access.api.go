@@ -10,12 +10,16 @@ import (
 	"github.com/liuhengloveyou/passport/v3/common"
 	"github.com/liuhengloveyou/passport/v3/protos"
 	"github.com/liuhengloveyou/passport/v3/service"
-	"github.com/liuhengloveyou/passport/v3/sessions"
 	"go.uber.org/zap"
 )
 
 func AddRoleForUser(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("AddRoleForUser GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
 		logger.Sugar().Error("AddRoleForUser TenantID ERR")
@@ -50,7 +54,12 @@ func AddRoleForUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func RemoveRoleForUser(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("RemoveRoleForUser GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
 		logger.Sugar().Error("RemoveRoleForUser TenantID ERR")
@@ -87,7 +96,12 @@ func RemoveRoleForUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateRoleForUser(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("updateRoleForUser GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
 		logger.Sugar().Error("updateRoleForUser TenantID ERR")
@@ -130,7 +144,12 @@ func updateRoleForUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetRolesForMe(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetRolesForMe GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
 		logger.Sugar().Error("GetUsersForRole session ERR")
@@ -165,7 +184,12 @@ func GetRolesForMe(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetRolesForUser(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetRolesForUser GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
 		logger.Sugar().Error("GetUsersForRole session ERR")
@@ -206,7 +230,12 @@ func GetRolesForUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUsersForRole(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetUsersForRole GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
 		logger.Sugar().Error("GetUsersForRole session ERR")
@@ -227,7 +256,12 @@ func GetUsersForRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddPolicyToRole(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("AddPolicyToRole GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
 		logger.Sugar().Error("RemoveRoleForUser TenantID ERR")
@@ -251,7 +285,12 @@ func AddPolicyToRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func RemovePolicyFromRole(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("RemovePolicyFromRole GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
 		logger.Sugar().Error("RemoveRoleForUser TenantID ERR")
@@ -276,7 +315,12 @@ func RemovePolicyFromRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetPolicy(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetPolicy GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
 		logger.Sugar().Error("GetPolicy TenantID ERR")
@@ -311,7 +355,12 @@ func GetPolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetPolicyForUser(w http.ResponseWriter, r *http.Request) {
-	sessionUser := r.Context().Value("session").(*sessions.Session).Values[common.SessUserInfoKey].(protos.User)
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetPolicyForUser GetSessionUser failed")
+		return
+	}
 	if sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
 		logger.Sugar().Error("GetPolicyForUser TenantID ERR")

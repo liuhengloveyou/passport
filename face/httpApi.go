@@ -55,6 +55,11 @@ func init() {
 	sessionStore = sessions.NewCookieStore([]byte(common.ServConfig.SessionKey))
 	loginUserCache = sync.Map{}
 
+	// 初始化 logger
+	if common.Logger != nil {
+		logger = common.Logger
+	}
+
 	apis = map[string]Api{
 		"user/register": {
 			Handler: userAdd,
@@ -332,11 +337,16 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 		}
 	}
 
+	// 格式化输出配置信息
+	configJSON, _ := json.MarshalIndent(common.ServConfig, "", "  ")
+	fmt.Printf("InitAndRunHttpApi:\n%s\n", string(configJSON))
+
 	// common.InitWithOption 后面
 	// 初始化访问控制（支持PostgreSQL和SQLite3）
 	if common.ServConfig.DBDriver != "" && common.ServConfig.DBDSN != "" {
 		if e := accessctl.InitAccessControl("rbac_with_domains_model.conf", common.ServConfig.DBDriver, common.ServConfig.DBDSN); e != nil {
 			fmt.Println("InitAccessControl ERR: ", e)
+			panic(e)
 		}
 	} else {
 		fmt.Println("警告: 未配置数据库连接（db_driver和db_dsn），跳过访问控制初始化")

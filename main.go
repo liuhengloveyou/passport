@@ -69,14 +69,8 @@ func main() {
 		f.Close()
 	}
 
-	switch common.ServConfig.Face {
-	case "http":
-		face.InitAndRunHttpApi(&common.ServConfig)
-	case "grpc":
-		//face.GrpcFace()
-	default:
-		fmt.Println("face: [http | grpc]")
-	}
+	face.InitAndRunHttpApi(&common.ServConfig)
+
 }
 
 // initDatabaseEnv 初始化数据库环境
