@@ -20,7 +20,7 @@ var (
 	GitTag    string
 
 	showVer    = flag.Bool("version", false, "show version")
-	initEnv    = flag.Bool("init-env", false, "根据配置文件初始化数据库结构")
+	initEnv    = flag.Bool("init", false, "根据配置文件初始化数据库结构")
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile `file`")
 	memprofile = flag.String("memprofile", "", "write memory profile to `file`")
 )

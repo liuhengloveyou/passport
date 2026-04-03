@@ -302,6 +302,7 @@ func InitDBTable(db *pgxpool.Pool) error {
 			uid BIGINT NOT NULL DEFAULT 0,
 			tenant_name VARCHAR(255) NOT NULL UNIQUE,
 			tenant_type VARCHAR(45) NOT NULL DEFAULT '',
+			parent_id BIGINT NOT NULL DEFAULT 0,
 			info JSONB,
 			configuration JSONB,
 			create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
