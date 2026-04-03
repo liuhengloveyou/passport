@@ -1,19 +1,19 @@
 package face
 
 import (
+	"bytes"
 	"crypto/md5"
+	"encoding/json"
 	"fmt"
-	"os"
-	"testing"
 	"net/http"
 	"net/http/httptest"
-	"bytes"
-	"encoding/json"
+	"os"
+	"testing"
 	"time"
 
-	"github.com/liuhengloveyou/passport/v3/protos"
 	"github.com/liuhengloveyou/passport/v3/accessctl"
 	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v3/protos"
 	"github.com/liuhengloveyou/passport/v3/sessions"
 )
 
@@ -59,7 +59,7 @@ func initTestEnvironment() error {
 		rbacModelPaths := []string{
 			"rbac_with_domains_model.conf",
 			"../rbac_with_domains_model.conf",
-			"/opt/dev/passport/rbac_with_domains_model.conf",
+			"./rbac_with_domains_model.conf",
 		}
 		var rbacModelPath string
 		for _, path := range rbacModelPaths {

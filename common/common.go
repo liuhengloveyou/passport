@@ -7,8 +7,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"time"
 	"os"
+	"time"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 	"github.com/liuhengloveyou/passport/v3/protos"
@@ -30,7 +30,7 @@ const (
 )
 
 var (
-	passportconfile = flag.String("passport", "/opt/dev/passport/passport.conf.yaml", "配置文件路径")
+	passportconfile = flag.String("passport", "./passport.conf.yaml", "配置文件路径")
 	ServConfig      protos.OptionStruct
 
 	Logger      *zap.Logger
@@ -81,6 +81,7 @@ func init() {
 
 func InitWithOption(option *protos.OptionStruct) (e error) {
 	if option.LogDir != "" && Logger == nil {
+		fmt.Println("passport InitLog: ", option.LogDir, option.LogLevel)
 		if err := InitLog(option.LogDir, option.LogLevel); err != nil {
 			return e
 		}
@@ -89,6 +90,7 @@ func InitWithOption(option *protos.OptionStruct) (e error) {
 	// 数据库初始化：优先使用新的DBDriver配置
 	if DB == nil {
 		if option.DBDriver != "" && option.DBDSN != "" {
+			fmt.Println("passport InitDBWithDriver: ", option.DBDriver, option.DBDSN)
 			// 使用新的数据库配置
 			if e = InitDBWithDriver(option.DBDriver, option.DBDSN); e != nil {
 				return e
@@ -97,6 +99,7 @@ func InitWithOption(option *protos.OptionStruct) (e error) {
 	}
 
 	if option.RedisAddr != "" && RedisClient == nil {
+		fmt.Println("passport InitRedis: ", option.RedisAddr)
 		ServConfig.RedisAddr = option.RedisAddr
 		if e = InitRedis(option.RedisAddr); e != nil {
 			return e

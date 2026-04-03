@@ -494,9 +494,7 @@ func UserQuery(p *protos.UserReq, pageNo, pageSize uint64) (rr []protos.User, e 
 		eq["wx_openid"] = p.WxOpenId
 	}
 
-	sql, args, err := sq.Select("uid", "tenant_id", "cellphone", "email", "nickname", "wx_openid",
-		"password", "avatar_url", "gender", "addr", "ext",
-		"create_time", "update_time", "login_time").Offset((pageNo - 1) * pageSize).Limit(pageSize).Where(eq).From("users").PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).ToSql()
+	sql, args, err := sq.Select("uid", "tenant_id", "cellphone", "email", "nickname", "wx_openid", "password", "avatar_url", "gender", "addr", "ext", "create_time", "update_time", "login_time").From("users").Where(eq).Offset((pageNo - 1) * pageSize).Limit(pageSize).PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v", sql, args, err)
 	if err != nil {
 		return nil, err

@@ -927,11 +927,11 @@ ErrTenantAddERR   = errors.NewError(-2004, "添加租户失败")
 psql postgres  # 以当前用户登录默认数据库
 
 -- Create new database
-CREATE USER passport WITH PASSWORD 'passport123';
-CREATE DATABASE passport OWNER passport;
+CREATE USER lh WITH PASSWORD 'lhisroot';
+CREATE DATABASE bar_passport OWNER lh;
 \q  # 退出
 
-psql -U passport -d passport -h 127.0.0.1 -p 5432
+psql -U lh -d bar_passport -h 127.0.0.1 -p 5432
 \l              -- List all databases
 \c passport     -- Connect to a database
 \dt             -- List tables in current database

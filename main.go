@@ -83,9 +83,6 @@ func initDatabaseEnv() error {
 		if configPath == "" {
 			configPath = "./passport.conf.yaml"
 		}
-		if configPath == "" {
-			configPath = "/opt/dev/passport/passport.conf.yaml"
-		}
 
 		fmt.Printf("尝试从配置文件加载: %s\n", configPath)
 		if err := gocommon.LoadYamlConfig(configPath, &common.ServConfig); err != nil {
