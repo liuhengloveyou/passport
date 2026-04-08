@@ -284,6 +284,10 @@ func init() {
 			Handler:   AdminSetParent,
 			NeedLogin: true,
 		},
+		"admin/tenant/delete": {
+			Handler:   AdminTenantDelete,
+			NeedLogin: true,
+		},
 		"admin/updateTenantConfiguration": {
 			Handler:    UpdateTenantConfiguration,
 			NeedLogin:  true,

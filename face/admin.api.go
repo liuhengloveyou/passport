@@ -44,6 +44,7 @@ func AdminTenantNew(w http.ResponseWriter, r *http.Request) {
 	req.TenantName = strings.TrimSpace(req.TenantName)
 	req.TenantType = strings.TrimSpace(req.TenantType)
 	req.Cellphone = strings.TrimSpace(req.Cellphone)
+	req.Nickname = strings.TrimSpace(req.Nickname)
 	req.Password = strings.TrimSpace(req.Password)
 	if req.TenantName == "" {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNameNull)
@@ -60,8 +61,8 @@ func AdminTenantNew(w http.ResponseWriter, r *http.Request) {
 		logger.Sugar().Error("TenantNew param ERR: ", req)
 		return
 	}
-	if req.Cellphone == "" {
-		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantAdminCellphoneNull)
+	if req.Cellphone == "" && req.Nickname == "" {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrUserNmae)
 		logger.Sugar().Error("TenantNew param ERR: ", req)
 		return
 	}
@@ -186,6 +187,44 @@ func AdminSetParent(w http.ResponseWriter, r *http.Request) {
 	// 调用service设置parentID
 	if err := service.AdminTenantSetParent(&sessionUser, tenantID, parentID); err != nil {
 		logger.Sugar().Error("AdminSetParent service ERR: ", err)
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+
+	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
+}
+
+// AdminTenantDelete 删除组织（包含子组织及其账号），仅 root 租户超级管理员可操作。
+func AdminTenantDelete(w http.ResponseWriter, r *http.Request) {
+	sessionUser := GetSessionUser(r)
+	if sessionUser.UID <= 0 {
+		gocommon.HttpErr(w, http.StatusUnauthorized, -1, "")
+		logger.Sugar().Error("GetSessionUser failed")
+		return
+	}
+	if sessionUser.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
+		return
+	}
+	if common.ServConfig.RootTenantID <= 0 || sessionUser.TenantID != common.ServConfig.RootTenantID {
+		logger.Sugar().Error("AdminTenantDelete auth ERR: ", sessionUser.TenantID)
+		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoAuth)
+		return
+	}
+
+	r.ParseForm()
+	tenantID, _ := strconv.ParseUint(r.FormValue("tid"), 10, 64)
+	if tenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+	if tenantID == common.ServConfig.RootTenantID {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
+		return
+	}
+
+	if err := service.AdminTenantDelete(&sessionUser, tenantID); err != nil {
+		logger.Sugar().Error("AdminTenantDelete service ERR: ", err)
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}

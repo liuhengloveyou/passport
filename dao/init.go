@@ -186,7 +186,6 @@ func createTenantsTable(ctx context.Context, db database.DB, dialect database.Di
 		CREATE TABLE IF NOT EXISTS tenants (
 			id %s %s,
 			uid BIGINT NOT NULL DEFAULT 0,
-			parent_id BIGINT NOT NULL DEFAULT 0,
 			tenant_name VARCHAR(255) NOT NULL UNIQUE,
 			tenant_type VARCHAR(45) NOT NULL DEFAULT '',
 			info %s,
@@ -201,7 +200,6 @@ func createTenantsTable(ctx context.Context, db database.DB, dialect database.Di
 
 	// 创建索引
 	indexes := []string{
-		"CREATE INDEX IF NOT EXISTS idx_tenants_parent_id ON tenants(parent_id)",
 		"CREATE INDEX IF NOT EXISTS idx_tenants_tenant_name ON tenants(tenant_name)",
 	}
 	for _, idxSQL := range indexes {

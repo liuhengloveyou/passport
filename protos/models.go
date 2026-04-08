@@ -97,6 +97,7 @@ func (t UserLiteArr) Value() (driver.Value, error) {
 type Tenant struct {
 	ID            uint64               `json:"id" validate:"-" db:"id"`
 	UID           uint64               `json:"uid,omitempty" validate:"-" db:"uid"`
+	ParentID      uint64               `json:"parentId,omitempty" validate:"-" db:"parent_id"`
 	TenantName    string               `json:"tenantName" db:"tenant_name" validate:"omitempty,min=2,max=64"`
 	TenantType    string               `json:"tenantType" db:"tenant_type" validate:"omitempty,min=1,max=64"`
 	CreateTime    *time.Time           `json:"createTime,omitempty" validate:"-" db:"create_time"`
@@ -220,11 +221,23 @@ func (t *MapStruct) Scan(src interface{}) error {
 	if src == nil {
 		return nil
 	}
-	if len(src.([]byte)) <= 2 {
-		return nil
+
+	var b []byte
+	switch v := src.(type) {
+	case []byte:
+		if len(v) <= 2 {
+			return nil
+		}
+		b = v
+	case string:
+		if len(v) <= 2 {
+			return nil
+		}
+		b = []byte(v)
+	default:
+		return fmt.Errorf("cannot scan %T into MapStruct", src)
 	}
 
-	b, _ := src.([]byte)
 	return json.Unmarshal(b, t)
 }
 func (t MapStruct) Value() (driver.Value, error) {

@@ -71,9 +71,11 @@ type SmsReq struct {
 }
 
 type NewTenantReq struct {
+	ParentID   uint64 `json:"parentId" validate:"omitempty,min=1"`
 	TenantName string `json:"tenantName"  validate:"omitempty,min=2,max=64"`
 	TenantType string `json:"tenantType"  validate:"omitempty,min=1,max=64"`
-	Cellphone  string `json:"cellphone" validate:"required,phone,len=11"`
+	Cellphone  string `json:"cellphone" validate:"omitempty,phone,len=11"`
+	Nickname   string `json:"nickname" validate:"omitempty,min=2,max=32"`
 	Password   string `json:"password" validate:"required,min=6,max=64"`
 
 	Info          *TenantInfo          `json:"info,omitempty" db:"info"`

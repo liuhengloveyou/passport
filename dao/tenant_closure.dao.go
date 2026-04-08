@@ -21,15 +21,27 @@ func TenantClosureInsert(tx database.Tx, ancestorId, descendantId uint64) error 
 		ph1, ph2, ph3 = "?", "?", "?"
 	}
 
+	insertPrefix := "INSERT INTO tenant_closure"
+	insertSuffix := ""
+	switch driverType {
+	case "postgres":
+		insertSuffix = " ON CONFLICT (ancestor_id, descendant_id) DO NOTHING"
+	case "sqlite":
+		insertPrefix = "INSERT OR IGNORE INTO tenant_closure"
+	default:
+		// mysql/mariadb 等数据库使用 INSERT IGNORE 保证幂等
+		insertPrefix = "INSERT IGNORE INTO tenant_closure"
+	}
+
 	// 插入自己到自己的记录（距离为0）
-	_, err := tx.Exec(ctx, "INSERT INTO tenant_closure (ancestor_id, descendant_id, depth) VALUES ("+ph1+", "+ph2+", "+ph3+")", descendantId, descendantId, 0)
+	_, err := tx.Exec(ctx, insertPrefix+" (ancestor_id, descendant_id, depth) VALUES ("+ph1+", "+ph2+", "+ph3+")"+insertSuffix, descendantId, descendantId, 0)
 	if err != nil {
 		common.Logger.Sugar().Errorf("TenantClosureInsert self record ERR: %v\n", err)
 		return err
 	}
 
 	// 插入父到子的记录
-	_, err = tx.Exec(ctx, "INSERT INTO tenant_closure (ancestor_id, descendant_id, depth) VALUES ("+ph1+", "+ph2+", "+ph3+")", ancestorId, descendantId, 1)
+	_, err = tx.Exec(ctx, insertPrefix+" (ancestor_id, descendant_id, depth) VALUES ("+ph1+", "+ph2+", "+ph3+")"+insertSuffix, ancestorId, descendantId, 1)
 	if err != nil {
 		common.Logger.Sugar().Errorf("TenantClosureInsert parent to child record ERR: %v\n", err)
 		return err
@@ -37,10 +49,10 @@ func TenantClosureInsert(tx database.Tx, ancestorId, descendantId uint64) error 
 
 	// 如果有父租户，插入从所有祖先到当前租户的记录
 	insertSQL := `
-		INSERT INTO tenant_closure (ancestor_id, descendant_id, depth)
+		` + insertPrefix + ` (ancestor_id, descendant_id, depth)
 		SELECT ancestor_id, ` + ph1 + `, depth + 1
 		FROM tenant_closure
-		WHERE descendant_id = ` + ph2
+		WHERE descendant_id = ` + ph2 + insertSuffix
 	_, err = tx.Exec(ctx, insertSQL, descendantId, ancestorId)
 	if err != nil {
 		common.Logger.Sugar().Errorf("TenantClosureInsert ancestor records ERR: %v\n", err)

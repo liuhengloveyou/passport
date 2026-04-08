@@ -302,13 +302,11 @@ func InitDBTable(db *pgxpool.Pool) error {
 			uid BIGINT NOT NULL DEFAULT 0,
 			tenant_name VARCHAR(255) NOT NULL UNIQUE,
 			tenant_type VARCHAR(45) NOT NULL DEFAULT '',
-			parent_id BIGINT NOT NULL DEFAULT 0,
 			info JSONB,
 			configuration JSONB,
 			create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
-		CREATE INDEX IF NOT EXISTS idx_tenants_parent_id ON tenants(parent_id);
 		CREATE INDEX IF NOT EXISTS idx_tenants_tenant_name ON tenants(tenant_name);
 		-- 替换原来的 ALTER SEQUENCE tenants_id_seq RESTART WITH 10000;
 		DO $$

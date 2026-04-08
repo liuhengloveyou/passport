@@ -59,7 +59,7 @@ func TenantInsert(tx database.Tx, m *protos.Tenant) (tenantID uint64, e error) {
 }
 
 func TenantGetByID(tenantId uint64) (m *protos.Tenant, e error) {
-	table := "tenants"
+	table := "tenants t"
 
 	// 构建 WHERE 条件
 	where := sq.Eq{
@@ -67,7 +67,21 @@ func TenantGetByID(tenantId uint64) (m *protos.Tenant, e error) {
 	}
 
 	// 使用squirrel构建SQL，明确指定字段顺序
-	sql, args, err := sq.Select("id", "uid", "tenant_name", "tenant_type", "info", "configuration", "create_time", "update_time").From(table).Where(where).PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).ToSql()
+	sql, args, err := sq.Select(
+		"t.id",
+		"t.uid",
+		"COALESCE(tp.ancestor_id, 0) AS parent_id",
+		"t.tenant_name",
+		"t.tenant_type",
+		"t.info",
+		"t.configuration",
+		"t.create_time",
+		"t.update_time",
+	).
+		From(table).
+		LeftJoin("tenant_closure tp ON tp.descendant_id = t.id AND tp.depth = 1").
+		Where(where).
+		PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v", sql, args, err)
 	if err != nil {
 		return nil, err
@@ -88,6 +102,7 @@ func TenantGetByID(tenantId uint64) (m *protos.Tenant, e error) {
 		err = rows.Scan(
 			&t.ID,
 			&t.UID,
+			&t.ParentID,
 			&t.TenantName,
 			&t.TenantType,
 			&t.Info,
@@ -196,7 +211,20 @@ func TenantCountByAncestorID(ancestorID uint64) (r uint64, e error) {
 
 func TenantList(page, pageSize uint64) (rr []protos.Tenant, e error) {
 	// 创建查询构建器
-	query := sq.Select("id", "uid", "tenant_name", "tenant_type", "info", "configuration", "create_time", "update_time").From("tenants").PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType()))
+	query := sq.Select(
+		"t.id",
+		"t.uid",
+		"COALESCE(tp.ancestor_id, 0) AS parent_id",
+		"t.tenant_name",
+		"t.tenant_type",
+		"t.info",
+		"t.configuration",
+		"t.create_time",
+		"t.update_time",
+	).
+		From("tenants t").
+		LeftJoin("tenant_closure tp ON tp.descendant_id = t.id AND tp.depth = 1").
+		PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType()))
 
 	// 添加分页和排序
 	query = query.Offset((page - 1) * pageSize).Limit(pageSize).OrderBy("id")
@@ -219,7 +247,7 @@ func TenantList(page, pageSize uint64) (rr []protos.Tenant, e error) {
 	rr = []protos.Tenant{}
 	for rows.Next() {
 		var tenant protos.Tenant
-		err = rows.Scan(&tenant.ID, &tenant.UID, &tenant.TenantName, &tenant.TenantType, &tenant.Info, &tenant.Configuration, &tenant.CreateTime, &tenant.UpdateTime)
+		err = rows.Scan(&tenant.ID, &tenant.UID, &tenant.ParentID, &tenant.TenantName, &tenant.TenantType, &tenant.Info, &tenant.Configuration, &tenant.CreateTime, &tenant.UpdateTime)
 		if err != nil {
 			common.Logger.Sugar().Errorf("Failed to scan row: %v", err)
 			return nil, err
@@ -238,9 +266,21 @@ func TenantList(page, pageSize uint64) (rr []protos.Tenant, e error) {
 // TenantListByDescendants 查询指定租户的后代租户列表
 func TenantListByAncestorID(ancestorID, page, pageSize uint64) (rr []protos.Tenant, e error) {
 	// 创建查询构建器，通过tenant_closure表查询后代租户
-	query := sq.Select("t.id", "t.uid", "t.tenant_name", "t.tenant_type", "t.info", "t.configuration", "t.create_time", "t.update_time", "tc.depth").
+	query := sq.Select(
+		"t.id",
+		"t.uid",
+		"COALESCE(tp.ancestor_id, 0) AS parent_id",
+		"t.tenant_name",
+		"t.tenant_type",
+		"t.info",
+		"t.configuration",
+		"t.create_time",
+		"t.update_time",
+		"tc.depth",
+	).
 		From("tenants t").
 		Join("tenant_closure tc ON t.id = tc.descendant_id").
+		LeftJoin("tenant_closure tp ON tp.descendant_id = t.id AND tp.depth = 1").
 		Where(sq.Eq{"tc.ancestor_id": ancestorID}).
 		PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType()))
 
@@ -265,7 +305,7 @@ func TenantListByAncestorID(ancestorID, page, pageSize uint64) (rr []protos.Tena
 	rr = []protos.Tenant{}
 	for rows.Next() {
 		var tenant protos.Tenant
-		err = rows.Scan(&tenant.ID, &tenant.UID, &tenant.TenantName, &tenant.TenantType, &tenant.Info, &tenant.Configuration, &tenant.CreateTime, &tenant.UpdateTime, &tenant.Depth)
+		err = rows.Scan(&tenant.ID, &tenant.UID, &tenant.ParentID, &tenant.TenantName, &tenant.TenantType, &tenant.Info, &tenant.Configuration, &tenant.CreateTime, &tenant.UpdateTime, &tenant.Depth)
 		if err != nil {
 			common.Logger.Sugar().Errorf("Failed to scan row: %v", err)
 			return nil, err
@@ -284,7 +324,20 @@ func TenantListByAncestorID(ancestorID, page, pageSize uint64) (rr []protos.Tena
 // TenantQuery 根据条件查询租户列表
 func TenantQuery(tenantName, cellphone string, page, pageSize uint64) (rr []protos.Tenant, e error) {
 	// 创建查询构建器
-	query := sq.Select("t.id", "t.uid", "t.tenant_name", "t.tenant_type", "t.info", "t.configuration", "t.create_time", "t.update_time").From("tenants t").PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType()))
+	query := sq.Select(
+		"t.id",
+		"t.uid",
+		"COALESCE(tp.ancestor_id, 0) AS parent_id",
+		"t.tenant_name",
+		"t.tenant_type",
+		"t.info",
+		"t.configuration",
+		"t.create_time",
+		"t.update_time",
+	).
+		From("tenants t").
+		LeftJoin("tenant_closure tp ON tp.descendant_id = t.id AND tp.depth = 1").
+		PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType()))
 
 	// 添加查询条件
 	if tenantName != "" {
@@ -318,7 +371,7 @@ func TenantQuery(tenantName, cellphone string, page, pageSize uint64) (rr []prot
 	rr = []protos.Tenant{}
 	for rows.Next() {
 		var tenant protos.Tenant
-		err = rows.Scan(&tenant.ID, &tenant.UID, &tenant.TenantName, &tenant.TenantType, &tenant.Info, &tenant.Configuration, &tenant.CreateTime, &tenant.UpdateTime)
+		err = rows.Scan(&tenant.ID, &tenant.UID, &tenant.ParentID, &tenant.TenantName, &tenant.TenantType, &tenant.Info, &tenant.Configuration, &tenant.CreateTime, &tenant.UpdateTime)
 		if err != nil {
 			common.Logger.Sugar().Errorf("Failed to scan row: %v", err)
 			return nil, err

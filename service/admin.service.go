@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"sort"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 	"github.com/liuhengloveyou/passport/v3/accessctl"
 	"github.com/liuhengloveyou/passport/v3/cache"
@@ -31,11 +33,24 @@ func AdminTenantNew(sess *protos.User, m *protos.NewTenantReq) (uid, tenantID ui
 	if m.TenantType == "" {
 		return 0, 0, common.ErrTenantTypeNull
 	}
-	if m.Cellphone == "" {
-		return 0, 0, common.ErrTenantAdminCellphoneNull
+	if m.Cellphone == "" && m.Nickname == "" {
+		return 0, 0, common.ErrUserNmae
 	}
 	if m.Password == "" {
 		return 0, 0, common.ErrTenantAdminPasswordNull
+	}
+
+	ancestorID := sess.TenantID
+	if m.ParentID > 0 {
+		depth, err := dao.TenantClosureIsDescendant(sess.TenantID, m.ParentID)
+		if err != nil {
+			common.Logger.Sugar().Errorf("AdminTenantNew check parent descendant ERR: %v\n", err)
+			return 0, 0, common.ErrService
+		}
+		if depth < 0 {
+			return 0, 0, common.ErrNoAuth
+		}
+		ancestorID = m.ParentID
 	}
 
 	// 开始事务
@@ -57,6 +72,7 @@ func AdminTenantNew(sess *protos.User, m *protos.NewTenantReq) (uid, tenantID ui
 	adminUser := &protos.UserReq{
 		TenantID:  0,
 		Cellphone: m.Cellphone,
+		Nickname:  m.Nickname,
 		Password:  m.Password,
 		Roles:     []string{"root"},
 	}
@@ -77,6 +93,7 @@ func AdminTenantNew(sess *protos.User, m *protos.NewTenantReq) (uid, tenantID ui
 	// 创建租户
 	tenant := &protos.Tenant{
 		UID:           adminUID,
+		ParentID:      ancestorID,
 		TenantName:    m.TenantName,
 		TenantType:    m.TenantType,
 		Info:          m.Info,
@@ -86,7 +103,7 @@ func AdminTenantNew(sess *protos.User, m *protos.NewTenantReq) (uid, tenantID ui
 		tenant.Info = &protos.TenantInfo{
 			AdminCellphone: m.Cellphone,
 		}
-	} else if tenant.Info.AdminCellphone == "" {
+	} else if tenant.Info.AdminCellphone == "" && m.Cellphone != "" {
 		tenant.Info.AdminCellphone = m.Cellphone
 	}
 
@@ -112,7 +129,7 @@ func AdminTenantNew(sess *protos.User, m *protos.NewTenantReq) (uid, tenantID ui
 	}
 
 	// 在事务中插入租户闭包表记录
-	if e = dao.TenantClosureInsert(tx, sess.TenantID, tenantID); e != nil {
+	if e = dao.TenantClosureInsert(tx, ancestorID, tenantID); e != nil {
 		common.Logger.Sugar().Errorf("AdminTenantNew insertTenantClosure ERR: %v\n", e)
 		return 0, 0, common.ErrService
 	}
@@ -338,4 +355,146 @@ func AdminTenantUpdateConfig(sessUser *protos.User, req *protos.UpdateTenantConf
 	common.Logger.Sugar().Infof("AdminTenantUpdateConfig: user %d updated tenant %d configuration", sessUser.UID, req.TenantID)
 
 	return nil
+}
+
+// AdminTenantDelete 删除租户（含全部子租户）以及这些租户下的所有账号。
+func AdminTenantDelete(sessUser *protos.User, tenantID uint64) error {
+	if sessUser == nil || sessUser.UID <= 0 || sessUser.TenantID <= 0 || tenantID <= 0 {
+		return common.ErrParam
+	}
+	if common.ServConfig.RootTenantID <= 0 || sessUser.TenantID != common.ServConfig.RootTenantID {
+		return common.ErrNoAuth
+	}
+	if tenantID == common.ServConfig.RootTenantID {
+		return common.ErrNoAuth
+	}
+
+	// 先检查租户是否存在
+	targetTenant, err := dao.TenantGetByID(tenantID)
+	if err != nil {
+		common.Logger.Sugar().Errorf("AdminTenantDelete TenantGetByID ERR: %v\n", err)
+		return common.ErrService
+	}
+	if targetTenant == nil {
+		return common.ErrTenantNotFound
+	}
+
+	// 取整棵子树（包含自己），并按深度降序删除
+	subtree, err := collectTenantSubtree(tenantID)
+	if err != nil {
+		common.Logger.Sugar().Errorf("AdminTenantDelete collectTenantSubtree ERR: %v\n", err)
+		return common.ErrService
+	}
+	sort.Slice(subtree, func(i, j int) bool {
+		return subtree[i].Depth > subtree[j].Depth
+	})
+
+	for _, tenant := range subtree {
+		if e := deleteUsersByTenant(tenant.ID); e != nil {
+			common.Logger.Sugar().Errorf("AdminTenantDelete deleteUsersByTenant ERR: %v\n", e)
+			return common.ErrService
+		}
+		if e := deleteTenantRelatedData(tenant.ID); e != nil {
+			common.Logger.Sugar().Errorf("AdminTenantDelete deleteTenantRelatedData ERR: %v\n", e)
+			return common.ErrService
+		}
+		if e := deleteTenantRecord(tenant.ID); e != nil {
+			common.Logger.Sugar().Errorf("AdminTenantDelete deleteTenantRecord ERR: %v\n", e)
+			return common.ErrService
+		}
+
+		cache.DelTenantCache(tenant.ID)
+	}
+
+	return nil
+}
+
+func collectTenantSubtree(ancestorID uint64) ([]protos.Tenant, error) {
+	out := make([]protos.Tenant, 0, 16)
+	page := uint64(1)
+	pageSize := uint64(500)
+
+	for {
+		list, err := dao.TenantListByAncestorID(ancestorID, page, pageSize)
+		if err != nil {
+			return nil, err
+		}
+		if len(list) == 0 {
+			break
+		}
+		out = append(out, list...)
+		if uint64(len(list)) < pageSize {
+			break
+		}
+		page++
+	}
+
+	return out, nil
+}
+
+func deleteUsersByTenant(tenantID uint64) error {
+	page := uint64(1)
+	pageSize := uint64(500)
+
+	for {
+		users, err := dao.UserQueryByTenant(tenantID, page, pageSize, "", nil)
+		if err != nil {
+			return err
+		}
+		if len(users) == 0 {
+			break
+		}
+		for _, user := range users {
+			if _, err = TenantUserDel(user.UID, tenantID); err != nil {
+				return err
+			}
+		}
+		if uint64(len(users)) < pageSize {
+			break
+		}
+	}
+
+	return nil
+}
+
+func deleteTenantRelatedData(tenantID uint64) error {
+	placeholder := database.GetPlaceholderFormat(common.DB.DriverType())
+	ctx := context.Background()
+
+	delDepSQL, delDepArgs, err := sq.Delete("departments").
+		Where(sq.Eq{"tenant_id": tenantID}).
+		PlaceholderFormat(placeholder).
+		ToSql()
+	if err != nil {
+		return err
+	}
+	if _, err = common.DB.Exec(ctx, delDepSQL, delDepArgs...); err != nil {
+		return err
+	}
+
+	delPermissionSQL, delPermissionArgs, err := sq.Delete("permission").
+		Where(sq.Eq{"tenant_id": tenantID}).
+		PlaceholderFormat(placeholder).
+		ToSql()
+	if err != nil {
+		return err
+	}
+	if _, err = common.DB.Exec(ctx, delPermissionSQL, delPermissionArgs...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deleteTenantRecord(tenantID uint64) error {
+	placeholder := database.GetPlaceholderFormat(common.DB.DriverType())
+	delSQL, delArgs, err := sq.Delete("tenants").
+		Where(sq.Eq{"id": tenantID}).
+		PlaceholderFormat(placeholder).
+		ToSql()
+	if err != nil {
+		return err
+	}
+	_, err = common.DB.Exec(context.Background(), delSQL, delArgs...)
+	return err
 }
