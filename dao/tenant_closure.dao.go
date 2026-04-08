@@ -3,7 +3,9 @@ package dao
 import (
 	"context"
 	"database/sql"
+	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/liuhengloveyou/passport/v3/common"
 	"github.com/liuhengloveyou/passport/v3/database"
 )
@@ -80,7 +82,7 @@ func TenantClosureIsDescendant(ancestorID, descendantID uint64) (int, error) {
 		ancestorID, descendantID).Scan(&depth)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
 			return -1, nil
 		}
 		common.Logger.Sugar().Errorf("TenantClosureIsDescendant ERR: %v %v %v\n", ancestorID, descendantID, err)

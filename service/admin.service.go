@@ -225,7 +225,7 @@ func AdminTenantSetParent(sessUser *protos.User, descendantId, ancestorId uint64
 	}
 
 	// 删除缓存
-	evictTenantCache(descendantId, ancestorId)
+	defer evictTenantCache(descendantId, ancestorId)
 
 	// 检查tenant是否存在
 	tenant, err := dao.TenantGetByID(descendantId)
@@ -279,13 +279,13 @@ func AdminTenantSetParent(sessUser *protos.User, descendantId, ancestorId uint64
 		var count int
 		err = tx.QueryRow(context.Background(),
 			"SELECT COUNT(*) FROM tenant_closure WHERE ancestor_id = $1 AND descendant_id = $2",
-			ancestorId, descendantId).Scan(&count)
+			descendantId, ancestorId).Scan(&count)
 		if err != nil {
 			common.Logger.Sugar().Errorf("AdminTenantSetParent check cycle ERR: %v\n", err)
 			return common.ErrService
 		}
 		if count > 0 {
-			common.Logger.Sugar().Errorf("AdminTenantSetParent cycle detected: ancestor %d is descendant of %d", ancestorId, descendantId)
+			common.Logger.Sugar().Errorf("AdminTenantSetParent cycle detected: new parent %d is descendant of %d", ancestorId, descendantId)
 			return common.ErrTenantCircularRef
 		}
 	}

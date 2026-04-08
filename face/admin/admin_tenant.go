@@ -15,15 +15,52 @@ import (
 	"go.uber.org/zap"
 )
 
+func authorizeAdminTenant(sessionUser protos.User, action string, targetTenantID uint64) error {
+	if sessionUser.UID <= 0 || sessionUser.TenantID <= 0 || sessionUser.TenantID != common.ServConfig.RootTenantID {
+		core.Logger().Error(action+" auth ERR: ", zap.Uint64("uid", sessionUser.UID), zap.Uint64("tenantID", sessionUser.TenantID))
+		return common.ErrNoAuth
+	}
+
+	myTenant, err := service.AdminTenantTake(sessionUser.TenantID)
+	if err != nil {
+		core.Logger().Error(action+" get tenant ERR: ", zap.Uint64("tenantID", sessionUser.TenantID), zap.Error(err))
+		return err
+	}
+
+	isRootAdmin := myTenant.UID == sessionUser.UID
+	if !isRootAdmin {
+		roles := accessctl.GetRoleForUserInDomain(sessionUser.UID, sessionUser.TenantID)
+		core.Logger().Debug(action+" roles: ", zap.Uint64("uid", sessionUser.UID), zap.Uint64("tenantID", sessionUser.TenantID), zap.Any("roles", roles))
+		for _, role := range roles {
+			if role == "root" {
+				isRootAdmin = true
+				break
+			}
+		}
+	}
+	if !isRootAdmin {
+		core.Logger().Error(action+" role auth ERR: ",
+			zap.Uint64("uid", sessionUser.UID),
+			zap.Uint64("tenantID", sessionUser.TenantID),
+			zap.Uint64("targetTenantID", targetTenantID),
+		)
+		return common.ErrNoAuth
+	}
+
+	return nil
+}
+
 // AdminTenantNew 创建新租户及其初始账号。
 func AdminTenantNew(w http.ResponseWriter, r *http.Request) {
 	sessionUser := core.GetSessionUser(r)
-	if sessionUser.UID <= 0 || sessionUser.TenantID <= 0 || sessionUser.TenantID != common.ServConfig.RootTenantID {
-		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoAuth)
+	if err := authorizeAdminTenant(sessionUser, "AdminTenantNew", 0); err != nil {
+		core.Logger().Error("AdminTenantNew auth ERR: ", zap.Uint64("uid", sessionUser.UID), zap.Uint64("tenantID", sessionUser.TenantID), zap.Error(err))
+		gocommon.HttpJsonErr(w, http.StatusUnauthorized, err)
 		return
 	}
 	req := &protos.NewTenantReq{}
 	if err := core.ReadJSONBodyFromRequest(r, req, 1024); err != nil {
+		core.Logger().Error("AdminTenantNew read JSON body ERR: ", zap.Error(err))
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
@@ -46,8 +83,8 @@ func AdminTenantNew(w http.ResponseWriter, r *http.Request) {
 // AdminTenantQuery 分页查询租户列表。
 func AdminTenantQuery(w http.ResponseWriter, r *http.Request) {
 	sessionUser := core.GetSessionUser(r)
-	if sessionUser.UID <= 0 || sessionUser.TenantID != common.ServConfig.RootTenantID {
-		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoAuth)
+	if err := authorizeAdminTenant(sessionUser, "AdminTenantQuery", 0); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusUnauthorized, err)
 		return
 	}
 	tenantName := r.FormValue("name")
@@ -75,66 +112,39 @@ func AdminTenantQuery(w http.ResponseWriter, r *http.Request) {
 // AdminSetParent 设置租户父节点关系。
 func AdminSetParent(w http.ResponseWriter, r *http.Request) {
 	sessionUser := core.GetSessionUser(r)
-	if sessionUser.UID <= 0 || sessionUser.TenantID != common.ServConfig.RootTenantID {
-		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoAuth)
-		return
-	}
 	tenantID, _ := strconv.ParseUint(r.FormValue("tid"), 10, 64)
 	parentID, _ := strconv.ParseUint(r.FormValue("pid"), 10, 64)
 	if tenantID <= 0 || parentID <= 0 {
+		core.Logger().Error("AdminSetParent param ERR: ", zap.Uint64("tenantID", tenantID), zap.Uint64("parentID", parentID))
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
+	if err := authorizeAdminTenant(sessionUser, "AdminSetParent", tenantID); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusUnauthorized, err)
+		return
+	}
+
 	if err := service.AdminTenantSetParent(&sessionUser, tenantID, parentID); err != nil {
+		core.Logger().Error("AdminSetParent ERR: ", zap.Uint64("tenantID", tenantID), zap.Uint64("parentID", parentID), zap.Error(err))
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
+
+	core.Logger().Sugar().Infof("AdminSetParent: success, tenantID: %d, parentID: %d", tenantID, parentID)
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
 }
 
 // AdminTenantDelete 删除指定租户（不允许删除根租户）。
 func AdminTenantDelete(w http.ResponseWriter, r *http.Request) {
 	sessionUser := core.GetSessionUser(r)
-	if sessionUser.UID <= 0 || sessionUser.TenantID <= 0 || sessionUser.TenantID != common.ServConfig.RootTenantID {
-		core.Logger().Error("AdminTenantDelete auth ERR: ", zap.Uint64("uid", sessionUser.UID), zap.Uint64("tenantID", sessionUser.TenantID))
-		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoAuth)
-		return
-	}
-
-	// 要删除的租户ID
 	tenantID, _ := strconv.ParseUint(r.FormValue("tid"), 10, 64)
 	if tenantID <= 0 || tenantID == common.ServConfig.RootTenantID {
 		core.Logger().Error("AdminTenantDelete param ERR: ", zap.Uint64("tenantID", tenantID))
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
-
-	myTenant, err := service.AdminTenantTake(sessionUser.TenantID)
-	if err != nil {
-		core.Logger().Error("AdminTenantDelete get tenant ERR: ", zap.Uint64("tenantID", tenantID), zap.Error(err))
-		gocommon.HttpJsonErr(w, http.StatusOK, err)
-		return
-	}
-
-	// 若当前用户是该租户创建者（tenant.UID），直接视为该租户 root。
-	isRootAdmin := myTenant.UID == sessionUser.UID
-	if !isRootAdmin {
-		roles := accessctl.GetRoleForUserInDomain(sessionUser.UID, sessionUser.TenantID)
-		core.Logger().Debug("AdminTenantDelete roles: ", zap.Uint64("uid", sessionUser.UID), zap.Uint64("tenantID", sessionUser.TenantID), zap.Any("roles", roles))
-		for _, role := range roles {
-			if role == "root" {
-				isRootAdmin = true
-				break
-			}
-		}
-	}
-	if !isRootAdmin {
-		core.Logger().Error("AdminTenantDelete role auth ERR: ",
-			zap.Uint64("uid", sessionUser.UID),
-			zap.Uint64("tenantID", sessionUser.TenantID),
-			zap.Uint64("targetTenantID", tenantID),
-		)
-		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoAuth)
+	if err := authorizeAdminTenant(sessionUser, "AdminTenantDelete", tenantID); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusUnauthorized, err)
 		return
 	}
 
@@ -152,6 +162,7 @@ func AdminTenantDelete(w http.ResponseWriter, r *http.Request) {
 
 // AdminUpdateTenantConfiguration 按租户 ID 更新配置数据。
 func AdminUpdateTenantConfiguration(w http.ResponseWriter, r *http.Request) {
+	sessionUser := core.GetSessionUser(r)
 	var req map[string]interface{}
 	if err := core.ReadJSONBodyFromRequest(r, &req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
@@ -161,6 +172,10 @@ func AdminUpdateTenantConfiguration(w http.ResponseWriter, r *http.Request) {
 	data, ok2 := req["data"].(map[string]interface{})
 	if !ok || !ok2 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+	if err := authorizeAdminTenant(sessionUser, "AdminUpdateTenantConfiguration", uint64(tenantID)); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusUnauthorized, err)
 		return
 	}
 	if err := service.TenantUpdateConfiguration(uint64(tenantID), data); err != nil {
@@ -173,10 +188,6 @@ func AdminUpdateTenantConfiguration(w http.ResponseWriter, r *http.Request) {
 // AdminTenantUpdateConfig 更新租户完整配置并校验更新时间。
 func AdminTenantUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	sessionUser := core.GetSessionUser(r)
-	if sessionUser.UID <= 0 || sessionUser.TenantID != common.ServConfig.RootTenantID {
-		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoAuth)
-		return
-	}
 	req := &protos.UpdateTenantConfigReq{}
 	if err := core.ReadJSONBodyFromRequest(r, req, 10240); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
@@ -184,6 +195,10 @@ func AdminTenantUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.TenantID <= 0 || req.Configuration == nil || req.LastUpdateTime == "" {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+	if err := authorizeAdminTenant(sessionUser, "AdminTenantUpdateConfig", req.TenantID); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusUnauthorized, err)
 		return
 	}
 	if err := service.AdminTenantUpdateConfig(&sessionUser, req); err != nil {
