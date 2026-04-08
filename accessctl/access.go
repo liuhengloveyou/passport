@@ -138,6 +138,7 @@ func GetRoleForUserInDomain(uid, tenantID uint64) (roles []string) {
 		common.Logger.Sugar().Errorf("GetRoleForUserInDomain userInfo ERR: %d %d %v\n", uid, tenantID, userInfo)
 		return
 	}
+	userInfo.Password = ""
 
 	common.Logger.Debug("GetRoleForUserInDomain: ", zap.Uint64("uid", uid), zap.Uint64("tid", tenantID), zap.Any("user", userInfo), zap.Error(err))
 

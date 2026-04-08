@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	gocommon "github.com/liuhengloveyou/go-common"
+	"github.com/liuhengloveyou/passport/v3/accessctl"
 	"github.com/liuhengloveyou/passport/v3/common"
 	"github.com/liuhengloveyou/passport/v3/face/core"
 	"github.com/liuhengloveyou/passport/v3/protos"
@@ -94,16 +95,46 @@ func AdminSetParent(w http.ResponseWriter, r *http.Request) {
 // AdminTenantDelete 删除指定租户（不允许删除根租户）。
 func AdminTenantDelete(w http.ResponseWriter, r *http.Request) {
 	sessionUser := core.GetSessionUser(r)
-	if sessionUser.UID <= 0 || sessionUser.TenantID != common.ServConfig.RootTenantID {
+	if sessionUser.UID <= 0 || sessionUser.TenantID <= 0 || sessionUser.TenantID != common.ServConfig.RootTenantID {
 		core.Logger().Error("AdminTenantDelete auth ERR: ", zap.Uint64("uid", sessionUser.UID), zap.Uint64("tenantID", sessionUser.TenantID))
 		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoAuth)
 		return
 	}
 
+	// 要删除的租户ID
 	tenantID, _ := strconv.ParseUint(r.FormValue("tid"), 10, 64)
 	if tenantID <= 0 || tenantID == common.ServConfig.RootTenantID {
 		core.Logger().Error("AdminTenantDelete param ERR: ", zap.Uint64("tenantID", tenantID))
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+
+	myTenant, err := service.AdminTenantTake(sessionUser.TenantID)
+	if err != nil {
+		core.Logger().Error("AdminTenantDelete get tenant ERR: ", zap.Uint64("tenantID", tenantID), zap.Error(err))
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+
+	// 若当前用户是该租户创建者（tenant.UID），直接视为该租户 root。
+	isRootAdmin := myTenant.UID == sessionUser.UID
+	if !isRootAdmin {
+		roles := accessctl.GetRoleForUserInDomain(sessionUser.UID, sessionUser.TenantID)
+		core.Logger().Debug("AdminTenantDelete roles: ", zap.Uint64("uid", sessionUser.UID), zap.Uint64("tenantID", sessionUser.TenantID), zap.Any("roles", roles))
+		for _, role := range roles {
+			if role == "root" {
+				isRootAdmin = true
+				break
+			}
+		}
+	}
+	if !isRootAdmin {
+		core.Logger().Error("AdminTenantDelete role auth ERR: ",
+			zap.Uint64("uid", sessionUser.UID),
+			zap.Uint64("tenantID", sessionUser.TenantID),
+			zap.Uint64("targetTenantID", tenantID),
+		)
+		gocommon.HttpJsonErr(w, http.StatusUnauthorized, common.ErrNoAuth)
 		return
 	}
 

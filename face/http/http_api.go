@@ -96,7 +96,7 @@ func init() {
 		"admin/user/list":                 {Handler: faceAdmin.UserList, NeedLogin: true, NeedAccess: true},
 		"admin/tenant/query":              {Handler: faceAdmin.AdminTenantQuery, NeedLogin: true, NeedAccess: true},
 		"admin/tenant/setParent":          {Handler: faceAdmin.AdminSetParent, NeedLogin: true, NeedAccess: true},
-		"admin/tenant/delete":             {Handler: faceAdmin.AdminTenantDelete, NeedLogin: true, NeedAccess: true},
+		"admin/tenant/delete":             {Handler: faceAdmin.AdminTenantDelete, NeedLogin: true, NeedAccess: false},
 		"admin/updateTenantConfiguration": {Handler: faceAdmin.AdminUpdateTenantConfiguration, NeedLogin: true, NeedAccess: true},
 		"admin/modifyUserPassword":        {Handler: faceAdmin.ModifyUserPassword, NeedLogin: true, NeedAccess: true},
 		"admin/tenant/update_config":      {Handler: faceAdmin.AdminTenantUpdateConfig, NeedLogin: true, NeedAccess: true},
@@ -188,9 +188,11 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpErr(w, http.StatusMethodNotAllowed, -1, "?API")
 		return
 	}
+	logger.Sugar().Infof("passport http api: %v %v %v\n", r.Method, apiName, r.URL)
+
 	apiHandler, ok := apis[apiName]
 	if !ok {
-		logger.Warn("no found api", zap.String("apiName", apiName))
+		logger.Warn("passport no found api", zap.String("apiName", apiName))
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
@@ -198,9 +200,11 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if apiHandler.NeedLogin {
 		sess, auth := core.AuthFilter(r)
 		if !auth && sess == nil {
+			logger.Sugar().Errorf("passport http api no login: %v %v %v\n", r.Method, apiName, r.URL)
 			gocommon.HttpErr(w, http.StatusUnauthorized, -1, "请登录")
 			return
 		} else if !auth && sess != nil {
+			logger.Sugar().Infof("passport http api no access: %v %v %v\n", r.Method, apiName, r.URL)
 			gocommon.HttpErr(w, http.StatusForbidden, -1, "您没有权限")
 			return
 		}
@@ -209,10 +213,14 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if apiHandler.NeedAccess {
 		if !AccessFilter(r) {
+			logger.Sugar().Errorf("passport http api no access: %v %v %v\n", r.Method, apiName, r.URL)
 			gocommon.HttpErr(w, http.StatusForbidden, -1, "您没有权限")
 			return
 		}
 	}
+
+	logger.Sugar().Debugf("passport http api access: %v %v %v\n", r.Method, apiName, r.URL)
+
 	apiHandler.Handler(w, r)
 }
 
