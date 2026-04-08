@@ -11,7 +11,7 @@ import (
 
 	"github.com/liuhengloveyou/passport/v3/common"
 	"github.com/liuhengloveyou/passport/v3/dao"
-	"github.com/liuhengloveyou/passport/v3/face"
+	facehttp "github.com/liuhengloveyou/passport/v3/face/http"
 )
 
 var (
@@ -69,7 +69,7 @@ func main() {
 		f.Close()
 	}
 
-	face.InitAndRunHttpApi(&common.ServConfig)
+	facehttp.InitAndRunHttpApi(&common.ServConfig)
 
 }
 

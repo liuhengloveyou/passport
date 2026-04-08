@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	passport "github.com/liuhengloveyou/passport/v3/face"
+	passport "github.com/liuhengloveyou/passport/v3/face/http"
 	passportprotos "github.com/liuhengloveyou/passport/v3/protos"
 )
 

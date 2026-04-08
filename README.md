@@ -4,6 +4,24 @@
 
 用户基础信息维护、登录、权限验证、会话管理。
 
+## 目录结构（API 分组）
+
+从 v3 当前版本开始，`face` 已按业务域拆分为多 package：
+
+- `face/http`：HTTP 入口、路由分发、鉴权/权限过滤
+- `face/core`：跨模块共享能力（会话、用户上下文、请求体解析、日志）
+- `face/user`：用户相关 API（注册/登录/信息/修改）
+- `face/tenant`：租户/租户成员/部门/租户树 API
+- `face/access`：RBAC 角色、策略、权限字典 API
+- `face/admin`：平台管理 API
+- `face/sms`：短信相关 API
+- `face/wx`：微信相关 API
+
+兼容性说明：
+
+- 旧入口 `face.InitAndRunHttpApi` 仍可使用，内部已转发到 `face/http`。
+- `face/api_compat.go` 保留了旧函数名到新 package 的兼容转发，便于平滑迁移。
+
 
 
 ## 开始使用
@@ -66,8 +84,8 @@ import (
 	"net/http"
 	"time"
 
-	passport "github.com/liuhengloveyou/passport/face"
-	passportprotos "github.com/liuhengloveyou/passport/protos"
+	passport "github.com/liuhengloveyou/passport/v3/face/http"
+	passportprotos "github.com/liuhengloveyou/passport/v3/protos"
 )
 
 func main() {
@@ -116,8 +134,8 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	passport "github.com/liuhengloveyou/passport/face"
-	passportprotos "github.com/liuhengloveyou/passport/protos"
+	passport "github.com/liuhengloveyou/passport/v3/face/http"
+	passportprotos "github.com/liuhengloveyou/passport/v3/protos"
 )
 
 var engine *gin.Engine

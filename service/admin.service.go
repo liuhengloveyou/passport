@@ -2,13 +2,11 @@ package service
 
 import (
 	"context"
-	"sort"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 	"github.com/liuhengloveyou/passport/v3/accessctl"
-	"github.com/liuhengloveyou/passport/v3/cache"
 	"github.com/liuhengloveyou/passport/v3/common"
 	"github.com/liuhengloveyou/passport/v3/dao"
 	"github.com/liuhengloveyou/passport/v3/database"
@@ -19,6 +17,10 @@ import (
 rootTenant操作，同时添加用户和租户，
 */
 func AdminTenantNew(sess *protos.User, m *protos.NewTenantReq) (uid, tenantID uint64, e error) {
+	defer func() {
+		evictTenantCache(tenantID)
+	}()
+
 	if sess == nil {
 		return 0, 0, common.ErrService
 	}
@@ -223,8 +225,7 @@ func AdminTenantSetParent(sessUser *protos.User, descendantId, ancestorId uint64
 	}
 
 	// 删除缓存
-	cache.DelTenantCache(descendantId)
-	cache.DelTenantCache(ancestorId)
+	evictTenantCache(descendantId, ancestorId)
 
 	// 检查tenant是否存在
 	tenant, err := dao.TenantGetByID(descendantId)
@@ -303,6 +304,8 @@ func AdminTenantSetParent(sessUser *protos.User, descendantId, ancestorId uint64
 
 // AdminTenantUpdateConfig 更新租户配置
 func AdminTenantUpdateConfig(sessUser *protos.User, req *protos.UpdateTenantConfigReq) error {
+	defer evictTenantCache(req.TenantID)
+
 	// 权限检查：只有root租户的超级管理员或者租户自己的管理员才能更新配置
 	if sessUser.TenantID != common.ServConfig.RootTenantID && sessUser.TenantID != req.TenantID {
 		common.Logger.Sugar().Error("AdminTenantUpdateConfig auth ERR: ", sessUser.TenantID, req.TenantID)
@@ -320,9 +323,6 @@ func AdminTenantUpdateConfig(sessUser *protos.User, req *protos.UpdateTenantConf
 		common.Logger.Sugar().Errorf("解析更新时间失败: %v", err)
 		return common.ErrParam
 	}
-
-	// 删除缓存
-	cache.DelTenantCache(req.TenantID)
 
 	// 检查tenant是否存在
 	tenant, err := dao.TenantGetByID(req.TenantID)
@@ -357,54 +357,59 @@ func AdminTenantUpdateConfig(sessUser *protos.User, req *protos.UpdateTenantConf
 	return nil
 }
 
-// AdminTenantDelete 删除租户（含全部子租户）以及这些租户下的所有账号。
+// AdminTenantDelete 删除指定租户本身，并将其直接子租户挂到当前会话租户下。
 func AdminTenantDelete(sessUser *protos.User, tenantID uint64) error {
 	if sessUser == nil || sessUser.UID <= 0 || sessUser.TenantID <= 0 || tenantID <= 0 {
+		common.Logger.Sugar().Error("AdminTenantDelete param ERR: ", sessUser.UID, sessUser.TenantID, tenantID)
 		return common.ErrParam
 	}
 	if common.ServConfig.RootTenantID <= 0 || sessUser.TenantID != common.ServConfig.RootTenantID {
+		common.Logger.Sugar().Error("AdminTenantDelete auth ERR: ", sessUser.UID, sessUser.TenantID)
 		return common.ErrNoAuth
 	}
 	if tenantID == common.ServConfig.RootTenantID {
+		common.Logger.Sugar().Error("AdminTenantDelete root tenant ERR: ", tenantID)
 		return common.ErrNoAuth
 	}
 
-	// 先检查租户是否存在
-	targetTenant, err := dao.TenantGetByID(tenantID)
-	if err != nil {
-		common.Logger.Sugar().Errorf("AdminTenantDelete TenantGetByID ERR: %v\n", err)
-		return common.ErrService
-	}
-	if targetTenant == nil {
-		return common.ErrTenantNotFound
+	// 先检查租户是否存在（通过 service 层接口）
+	if _, err := TenantGetByIDService(tenantID); err != nil {
+		common.Logger.Sugar().Errorf("AdminTenantDelete TenantGetByIDService ERR: %v\n", err)
+		return err
 	}
 
-	// 取整棵子树（包含自己），并按深度降序删除
+	// 查询该租户的后代节点，用于识别直接子租户（depth=1）。
 	subtree, err := collectTenantSubtree(tenantID)
 	if err != nil {
 		common.Logger.Sugar().Errorf("AdminTenantDelete collectTenantSubtree ERR: %v\n", err)
 		return common.ErrService
 	}
-	sort.Slice(subtree, func(i, j int) bool {
-		return subtree[i].Depth > subtree[j].Depth
-	})
 
-	for _, tenant := range subtree {
-		if e := deleteUsersByTenant(tenant.ID); e != nil {
-			common.Logger.Sugar().Errorf("AdminTenantDelete deleteUsersByTenant ERR: %v\n", e)
+	// 把目标租户的直接子租户重新挂到当前会话租户下。
+	for _, child := range subtree {
+		if child.Depth != 1 || child.ID == tenantID {
+			continue
+		}
+		if err := AdminTenantSetParent(sessUser, child.ID, sessUser.TenantID); err != nil {
+			common.Logger.Sugar().Errorf("AdminTenantDelete reparent child ERR: child=%d parent=%d err=%v\n", child.ID, sessUser.TenantID, err)
 			return common.ErrService
 		}
-		if e := deleteTenantRelatedData(tenant.ID); e != nil {
-			common.Logger.Sugar().Errorf("AdminTenantDelete deleteTenantRelatedData ERR: %v\n", e)
-			return common.ErrService
-		}
-		if e := deleteTenantRecord(tenant.ID); e != nil {
-			common.Logger.Sugar().Errorf("AdminTenantDelete deleteTenantRecord ERR: %v\n", e)
-			return common.ErrService
-		}
-
-		cache.DelTenantCache(tenant.ID)
 	}
+
+	// 仅删除目标租户自身数据。
+	if e := deleteUsersByTenant(tenantID); e != nil {
+		common.Logger.Sugar().Errorf("AdminTenantDelete deleteUsersByTenant ERR: %v\n", e)
+		return common.ErrService
+	}
+	if e := deleteTenantRelatedData(tenantID); e != nil {
+		common.Logger.Sugar().Errorf("AdminTenantDelete deleteTenantRelatedData ERR: %v\n", e)
+		return common.ErrService
+	}
+	if e := deleteTenantRecord(tenantID); e != nil {
+		common.Logger.Sugar().Errorf("AdminTenantDelete deleteTenantRecord ERR: %v\n", e)
+		return common.ErrService
+	}
+	evictTenantCache(tenantID)
 
 	return nil
 }

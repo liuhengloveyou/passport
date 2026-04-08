@@ -1,155 +1,131 @@
 package cache
 
 import (
-	"container/list"
 	"sync"
 	"time"
 )
 
 type data struct {
-	key       interface{}
-	val       interface{}
-	expiredAt int64
+	val       any
+	expiredAt int64 // 过期时间戳,秒级时间戳
 }
 
 type ExpiredMap struct {
-	m        map[interface{}]*data
-	timeList *list.List
-	lck      *sync.Mutex
+	m   map[string]*data // 键值映射
+	lck sync.RWMutex
 }
 
+// NewExpiredMap 创建一个带过期能力的内存键值映射。
 func NewExpiredMap() *ExpiredMap {
-	e := ExpiredMap{
-		m:        make(map[interface{}]*data),
-		timeList: list.New(),
-		lck:      new(sync.Mutex),
-	}
-
-	go e.run()
-
-	return &e
-}
-
-func (e *ExpiredMap) run() {
-	for {
-		time.Sleep(time.Second)
-
-		now := time.Now().Unix()
-		for {
-			ele := e.timeList.Front()
-
-			if ele == nil || ele.Value == nil {
-				break
-			}
-			if ele.Value.(*data).expiredAt >= now {
-				break
-			}
-
-			e.lck.Lock()
-			e.timeList.Remove(ele)
-			delete(e.m, ele.Value.(*data).key)
-			e.lck.Unlock()
-		}
+	return &ExpiredMap{
+		m: make(map[string]*data),
 	}
 }
 
-func (e *ExpiredMap) Set(key, value interface{}, aliveSecond int64) {
+// Set 写入缓存值并设置过期时间，支持相对TTL秒数或绝对过期时间戳。
+func (e *ExpiredMap) Set(key string, value any, aliveSecond int64) {
 	if aliveSecond <= 0 {
 		return
 	}
 
-	e.lck.Lock()
-	defer e.lck.Unlock()
-
-	tmpData := &data{
-		key:       key,
-		val:       value,
-		expiredAt: aliveSecond,
+	now := time.Now().Unix()
+	expiredAt := aliveSecond
+	// 兼容两种传参：
+	// 1) 相对TTL（秒）: 3600
+	// 2) 绝对过期时间戳: time.Now().Unix()+3600
+	if aliveSecond <= now {
+		expiredAt = now + aliveSecond
 	}
-	e.timeList.PushBack(tmpData)
-	e.m[key] = tmpData
+
+	e.lck.Lock()
+	e.m[key] = &data{
+		val:       value,
+		expiredAt: expiredAt,
+	}
+	e.lck.Unlock()
 }
 
-func (e *ExpiredMap) Get(key interface{}) (found bool, value interface{}) {
-	e.lck.Lock()
-	defer e.lck.Unlock()
-
-	if found = e.checkDeleteKey(key); !found {
+// Get 读取缓存值；若已过期会惰性删除并返回未命中。
+func (e *ExpiredMap) Get(key string) (found bool, value any) {
+	e.lck.RLock()
+	val, found := e.m[key]
+	e.lck.RUnlock()
+	if !found {
 		return
 	}
+	if val.expiredAt <= time.Now().Unix() {
+		e.Delete(key)
+		return false, nil
+	}
 
-	value = e.m[key].val
-
-	return
+	return true, val.val
 }
 
-func (e *ExpiredMap) Delete(key interface{}) {
+// Delete 删除指定key的缓存项。
+func (e *ExpiredMap) Delete(key string) {
 	e.lck.Lock()
 	delete(e.m, key)
 	e.lck.Unlock()
 }
 
+// Length 返回当前缓存项数量（包含尚未访问到的过期项）。
 func (e *ExpiredMap) Length() int {
-	e.lck.Lock()
-	defer e.lck.Unlock()
+	e.lck.RLock()
+	defer e.lck.RUnlock()
 
 	return len(e.m)
 }
 
-func (e *ExpiredMap) TTL(key interface{}) int64 {
-	e.lck.Lock()
-	defer e.lck.Unlock()
-
-	if !e.checkDeleteKey(key) {
+// TTL 返回指定key剩余秒数；不存在或已过期时返回-1。
+func (e *ExpiredMap) TTL(key string) int64 {
+	e.lck.RLock()
+	val, found := e.m[key]
+	e.lck.RUnlock()
+	if !found {
+		return -1
+	}
+	ttl := val.expiredAt - time.Now().Unix()
+	if ttl < 0 {
+		e.Delete(key)
 		return -1
 	}
 
-	return e.m[key].expiredAt - time.Now().Unix()
+	return ttl
 }
 
+// Clear 清空全部缓存项。
 func (e *ExpiredMap) Clear() {
 	e.lck.Lock()
 	defer e.lck.Unlock()
 
-	e.m = make(map[interface{}]*data)
-	e.timeList = list.New()
+	e.m = make(map[string]*data)
 }
 
-func (e *ExpiredMap) DoForEach(handler func(interface{}, interface{})) {
+// DoForEach 遍历缓存项，对过期项执行惰性删除。
+func (e *ExpiredMap) DoForEach(handler func(string, any)) {
 	e.lck.Lock()
 	defer e.lck.Unlock()
 	for k, v := range e.m {
-		if !e.checkDeleteKey(k) {
+		if v.expiredAt <= time.Now().Unix() {
+			delete(e.m, k)
 			continue
 		}
-		handler(k, v)
+		handler(k, v.val)
 	}
 }
 
-func (e *ExpiredMap) DoForEachWithBreak(handler func(interface{}, interface{}) bool) {
+// DoForEachWithBreak 遍历缓存项，handler返回true时中断。
+func (e *ExpiredMap) DoForEachWithBreak(handler func(string, any) bool) {
 	e.lck.Lock()
 	defer e.lck.Unlock()
 
 	for k, v := range e.m {
-		if !e.checkDeleteKey(k) {
+		if v.expiredAt <= time.Now().Unix() {
+			delete(e.m, k)
 			continue
 		}
-		if handler(k, v) {
+		if handler(k, v.val) {
 			break
 		}
 	}
-}
-
-func (e *ExpiredMap) checkDeleteKey(key interface{}) bool {
-	val, found := e.m[key]
-
-	if found {
-		if val.expiredAt <= time.Now().Unix() {
-			delete(e.m, key)
-			return false
-		}
-		return true
-	}
-
-	return false
 }
