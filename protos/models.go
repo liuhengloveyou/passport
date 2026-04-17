@@ -102,7 +102,7 @@ type Tenant struct {
 	TenantType    string               `json:"tenantType" db:"tenant_type" validate:"omitempty,min=1,max=64"`
 	CreateTime    *time.Time           `json:"createTime,omitempty" validate:"-" db:"create_time"`
 	UpdateTime    *time.Time           `json:"updateTime,omitempty" validate:"-" db:"update_time"`
-	Info          *TenantInfo          `json:"info,omitempty" db:"info"`
+	Info          MapStruct            `json:"info,omitempty" db:"info"`
 	Configuration *TenantConfiguration `json:"configuration,omitempty" db:"configuration"`
 
 	Depth int `json:"depth,omitempty" validate:"-" db:"-"`
@@ -148,33 +148,6 @@ type TenantClosure struct {
 	AncestorID   uint64 `json:"ancestorId" db:"ancestor_id"`     // 主先
 	DescendantID uint64 `json:"descendantId" db:"descendant_id"` // 后代
 	Distance     int    `json:"distance" db:"distance"`          // 级数
-}
-
-// 租户配置字段
-type TenantInfo struct {
-	AdminCellphone string `json:"adminCellphone"` // 管理员手机号列表
-}
-
-func (t TenantInfo) Value() (driver.Value, error) {
-	return json.Marshal(t)
-}
-
-func (t *TenantInfo) Scan(value interface{}) error {
-	if value == nil {
-		return nil
-	}
-
-	var bytes []byte
-	switch v := value.(type) {
-	case []byte:
-		bytes = v
-	case string:
-		bytes = []byte(v) // 将 string 转换为 []byte
-	default:
-		return fmt.Errorf("cannot scan %T into TenantInfo", value)
-	}
-
-	return json.Unmarshal(bytes, t)
 }
 
 // 角色

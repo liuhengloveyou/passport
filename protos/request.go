@@ -78,8 +78,15 @@ type NewTenantReq struct {
 	Nickname   string `json:"nickname" validate:"omitempty,min=2,max=32"`
 	Password   string `json:"password" validate:"required,min=6,max=64"`
 
-	Info          *TenantInfo          `json:"info,omitempty" db:"info"`
+	Info          MapStruct            `json:"info,omitempty" db:"info"`
 	Configuration *TenantConfiguration `json:"configuration,omitempty" db:"configuration"`
+}
+
+type UpdateTenantReq struct {
+	TenantID   uint64    `json:"tenant_id" validate:"required,min=1"`
+	TenantName string    `json:"tenantName" validate:"omitempty,min=2,max=64"`
+	TenantType string    `json:"tenantType" validate:"omitempty,min=1,max=64"`
+	Info       MapStruct `json:"info,omitempty" db:"info"`
 }
 
 type UpdateTenantConfigReq struct {

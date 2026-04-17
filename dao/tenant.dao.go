@@ -422,6 +422,31 @@ func TenantUpdateConfiguration(m *protos.Tenant) error {
 	return nil
 }
 
+func TenantUpdateBase(m *protos.Tenant) error {
+	common.Logger.Debug("TenantUpdateBase %v", zap.Any("tenant", m))
+	commandTag, err := common.DB.Exec(
+		context.Background(),
+		"UPDATE tenants SET tenant_name = $1, tenant_type = $2, info = $3, update_time = NOW() WHERE id = $4",
+		m.TenantName,
+		m.TenantType,
+		m.Info,
+		m.ID,
+	)
+	if err != nil {
+		common.Logger.Sugar().Errorf("Failed to update tenant base: %v", err)
+		return err
+	}
+	rowsAffected, err := commandTag.RowsAffected()
+	if err != nil {
+		common.Logger.Sugar().Errorf("Failed to get rows affected: %v", err)
+		return err
+	}
+	if rowsAffected == 0 {
+		return common.ErrTenantNotFound
+	}
+	return nil
+}
+
 func UserQueryByTenant(tenantID, page, pageSize uint64, nickname string, uids []uint64) (rr []protos.User, e error) {
 	act := sq.Select("uid", "tenant_id", "cellphone", "email", "nickname", "avatar_url", "gender", "addr", "ext", "create_time").From("users").PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).Where(sq.Eq{"tenant_id": tenantID})
 	if nickname != "" {

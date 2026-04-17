@@ -102,11 +102,10 @@ func AdminTenantNew(sess *protos.User, m *protos.NewTenantReq) (uid, tenantID ui
 		Configuration: m.Configuration,
 	}
 	if tenant.Info == nil {
-		tenant.Info = &protos.TenantInfo{
-			AdminCellphone: m.Cellphone,
-		}
-	} else if tenant.Info.AdminCellphone == "" && m.Cellphone != "" {
-		tenant.Info.AdminCellphone = m.Cellphone
+		tenant.Info = make(protos.MapStruct)
+	}
+	if _, ok := tenant.Info["adminCellphone"]; !ok && m.Cellphone != "" {
+		tenant.Info["adminCellphone"] = m.Cellphone
 	}
 
 	if tenant.Configuration == nil {
@@ -353,6 +352,46 @@ func AdminTenantUpdateConfig(sessUser *protos.User, req *protos.UpdateTenantConf
 
 	// 记录操作日志
 	common.Logger.Sugar().Infof("AdminTenantUpdateConfig: user %d updated tenant %d configuration", sessUser.UID, req.TenantID)
+
+	return nil
+}
+
+// AdminTenantUpdate 更新租户基础信息（名称、类型、info）。
+func AdminTenantUpdate(sessUser *protos.User, req *protos.UpdateTenantReq) error {
+	defer evictTenantCache(req.TenantID)
+
+	if sessUser == nil || sessUser.UID <= 0 || sessUser.TenantID <= 0 {
+		return common.ErrNoAuth
+	}
+	if req == nil || req.TenantID <= 0 {
+		return common.ErrParam
+	}
+	if req.TenantName == "" || req.TenantType == "" {
+		return common.ErrParam
+	}
+
+	tenant, err := dao.TenantGetByID(req.TenantID)
+	if err != nil {
+		return common.ErrService
+	}
+	if tenant == nil {
+		return common.ErrTenantNotFound
+	}
+
+	tenant.TenantName = req.TenantName
+	tenant.TenantType = req.TenantType
+	if req.Info != nil {
+		tenant.Info = req.Info
+	} else if tenant.Info == nil {
+		tenant.Info = make(protos.MapStruct)
+	}
+
+	if err := dao.TenantUpdateBase(tenant); err != nil {
+		if err == common.ErrTenantNotFound {
+			return err
+		}
+		return common.ErrService
+	}
 
 	return nil
 }

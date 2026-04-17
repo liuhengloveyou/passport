@@ -94,9 +94,12 @@ func init() {
 		// SAAS平台管理员接口
 		"admin/tenant/new":                {Handler: faceAdmin.AdminTenantNew, NeedLogin: true, NeedAccess: false},
 		"admin/user/list":                 {Handler: faceAdmin.UserList, NeedLogin: true, NeedAccess: false},
+		"admin/user/del":                  {Handler: faceAdmin.UserDel, NeedLogin: true, NeedAccess: false},
+		"admin/user/edit":                 {Handler: faceAdmin.UserEdit, NeedLogin: true, NeedAccess: false},
 		"admin/tenant/query":              {Handler: faceAdmin.AdminTenantQuery, NeedLogin: true, NeedAccess: false},
 		"admin/tenant/setParent":          {Handler: faceAdmin.AdminSetParent, NeedLogin: true, NeedAccess: false},
 		"admin/tenant/delete":             {Handler: faceAdmin.AdminTenantDelete, NeedLogin: true, NeedAccess: false},
+		"admin/tenant/update":             {Handler: faceAdmin.AdminTenantUpdate, NeedLogin: true, NeedAccess: false},
 		"admin/updateTenantConfiguration": {Handler: faceAdmin.AdminUpdateTenantConfiguration, NeedLogin: true, NeedAccess: false},
 		"admin/modifyUserPassword":        {Handler: faceAdmin.ModifyUserPassword, NeedLogin: true, NeedAccess: false},
 		"admin/tenant/update_config":      {Handler: faceAdmin.AdminTenantUpdateConfig, NeedLogin: true, NeedAccess: false},

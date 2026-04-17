@@ -207,3 +207,28 @@ func AdminTenantUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	gocommon.HttpErr(w, http.StatusOK, 0, "OK")
 }
+
+// AdminTenantUpdate 更新组织基础信息（名称、类型、info）。
+func AdminTenantUpdate(w http.ResponseWriter, r *http.Request) {
+	sessionUser := core.GetSessionUser(r)
+	req := &protos.UpdateTenantReq{}
+	if err := core.ReadJSONBodyFromRequest(r, req, 10240); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+	if req.TenantID <= 0 || strings.TrimSpace(req.TenantName) == "" || strings.TrimSpace(req.TenantType) == "" {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+	if err := authorizeAdminTenant(sessionUser, "AdminTenantUpdate", req.TenantID); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusUnauthorized, err)
+		return
+	}
+	req.TenantName = strings.TrimSpace(req.TenantName)
+	req.TenantType = strings.TrimSpace(req.TenantType)
+	if err := service.AdminTenantUpdate(&sessionUser, req); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+	gocommon.HttpErr(w, http.StatusOK, 0, "OK")
+}
