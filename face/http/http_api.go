@@ -3,8 +3,6 @@ package http
 import (
 	"context"
 	"crypto/md5"
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -122,8 +120,8 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 			panic(err)
 		}
 	}
-	configJSON, _ := json.MarshalIndent(common.ServConfig, "", "  ")
-	fmt.Printf("InitAndRunHttpApi:\n%s\n", string(configJSON))
+	// configJSON, _ := json.MarshalIndent(common.ServConfig, "", "  ")
+	// fmt.Printf("InitAndRunHttpApi:\n%s\n", string(configJSON))
 
 	if common.ServConfig.DBDriver != "" && common.ServConfig.DBDSN != "" {
 		if e := accessctl.InitAccessControl("rbac_with_domains_model.conf", common.ServConfig.DBDriver, common.ServConfig.DBDSN); e != nil {

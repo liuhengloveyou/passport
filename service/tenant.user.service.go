@@ -154,10 +154,14 @@ func TenantUpdateUserExt(uid, currTenantID uint64, k string, v interface{}) erro
 	}
 
 	common.Logger.Sugar().Infof("TenantUpdateUserExt: %v %v %v %v", uid, currTenantID, k, v)
-	userInfo.Ext[k] = v
+	if userInfo.Ext == nil {
+		userInfo.Ext = protos.MapStruct{}
+	}
 	if v == nil {
 		common.Logger.Sugar().Warnf("TenantUpdateUserExt delete: %v", k)
 		delete(userInfo.Ext, k)
+	} else {
+		userInfo.Ext[k] = v
 	}
 
 	rows, e := dao.UserUpdateExt(uid, &userInfo.Ext)

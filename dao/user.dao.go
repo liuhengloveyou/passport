@@ -113,10 +113,14 @@ func UserUpdateExt(uid uint64, ext *protos.MapStruct) (rows int64, e error) {
 	where := builder.Eq{
 		"uid": uid,
 	}
+	extValue := protos.MapStruct{}
+	if ext != nil {
+		extValue = *ext
+	}
 
 	// 获取占位符格式
 	placeholderFormat := database.GetPlaceholderFormat(common.DB.DriverType())
-	sql, vals, err := sq.Update(table).Set("ext", ext).Where(where).PlaceholderFormat(placeholderFormat).ToSql()
+	sql, vals, err := sq.Update(table).Set("ext", extValue).Where(where).PlaceholderFormat(placeholderFormat).ToSql()
 	common.Logger.Sugar().Debugf("%v %v %v\n", sql, vals, err)
 	if err != nil {
 		return -1, err
