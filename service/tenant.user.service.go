@@ -8,15 +8,24 @@ import (
 	"go.uber.org/zap"
 )
 
-func TenantUserAdd(uid, currTenantID uint64, depIds []uint64, roles []string, disable int8) (e error) {
+func TenantUserAdd(uid, currTenantID uint64, depIds []uint64, roles []string, disable protos.UserDisableStatus) (e error) {
 	row, e := dao.UserUpdateTenantID(uid, currTenantID, 0)
 	if e != nil {
 		common.Logger.Sugar().Error("TenantUserAdd db ERR: ", e)
 		return common.ErrService
 	}
 	if row != 1 {
-		common.Logger.Sugar().Error("TenantUserAdd UserUpdateTenantID ERR: ", row, e)
-		return common.ErrService
+		// 此时从 tenant_id=0 迁入会影响 0 行，不应判定为失败。
+		userInfo, qErr := dao.UserQueryByID(uid)
+		if qErr != nil || userInfo == nil {
+			common.Logger.Sugar().Error("TenantUserAdd UserUpdateTenantID query ERR: ", row, qErr)
+			return common.ErrService
+		}
+		if userInfo.TenantID != currTenantID {
+			common.Logger.Sugar().Error("TenantUserAdd UserUpdateTenantID tenant mismatch: ", row, userInfo.TenantID, currTenantID)
+			return common.ErrService
+		}
+		common.Logger.Sugar().Warnf("TenantUserAdd UserUpdateTenantID skipped: uid=%d already in tenant=%d", uid, currTenantID)
 	}
 
 	for _, role := range roles {
@@ -109,13 +118,17 @@ func TenantUserGet(tenantID, page, pageSize uint64, nickname string, uids []uint
 	return
 }
 
-func TenantUserDisabledService(uid, currTenantID uint64, disabled int8) (e error) {
+func TenantUserDisabledService(uid, currTenantID uint64, disabled protos.UserDisableStatus) (e error) {
 	if uid <= 0 {
 		common.Logger.Sugar().Errorf("TenantUserDisabledService ERR: %d %v %v", uid, currTenantID, disabled)
 		return common.ErrParam
 	}
+	if !disabled.IsValid() {
+		common.Logger.Sugar().Errorf("TenantUserDisabledService invalid disable status: %d %v %v", uid, currTenantID, disabled)
+		return common.ErrParam
+	}
 
-	return TenantUpdateUserExt(uid, currTenantID, "disabled", disabled)
+	return TenantUpdateUserExt(uid, currTenantID, "disabled", int8(disabled))
 }
 
 func TenantUserSetDepartment(uid, tenantId uint64, departmentIds []uint64) error {

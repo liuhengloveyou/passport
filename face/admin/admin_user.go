@@ -121,11 +121,15 @@ func UserEdit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Disable != nil {
-		if *req.Disable != 0 && *req.Disable != 1 {
+		if !protos.UserDisableStatus(*req.Disable).IsValid() {
 			gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 			return
 		}
-		if err = service.TenantUserDisabledService(req.UID, tenantID, *req.Disable); err != nil {
+		if err = service.TenantUserDisabledService(
+			req.UID,
+			tenantID,
+			protos.UserDisableStatus(*req.Disable),
+		); err != nil {
 			gocommon.HttpJsonErr(w, http.StatusOK, err)
 			return
 		}

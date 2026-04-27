@@ -8,7 +8,6 @@ import (
 	"github.com/liuhengloveyou/passport/v3/common"
 	"github.com/liuhengloveyou/passport/v3/database"
 	"github.com/liuhengloveyou/passport/v3/protos"
-	"xorm.io/builder"
 
 	sq "github.com/Masterminds/squirrel"
 )
@@ -60,7 +59,7 @@ func UserInsert(p *protos.UserReq, tx database.Tx) (uid int64, e error) {
 
 func UserUpdate(p *protos.UserReq) (rows int64, e error) {
 	table := "users"
-	where := builder.Eq{
+	where := sq.Eq{
 		"uid": p.UID,
 	}
 
@@ -110,7 +109,7 @@ func UserUpdate(p *protos.UserReq) (rows int64, e error) {
 
 func UserUpdateExt(uid uint64, ext *protos.MapStruct) (rows int64, e error) {
 	table := "users"
-	where := builder.Eq{
+	where := sq.Eq{
 		"uid": uid,
 	}
 	extValue := protos.MapStruct{}
@@ -139,7 +138,7 @@ func UserUpdateExt(uid uint64, ext *protos.MapStruct) (rows int64, e error) {
 
 func UserUpdatePWD(UID uint64, oldPWD, newPWD string) (rows int64, e error) {
 	table := "users"
-	where := builder.Eq{
+	where := sq.Eq{
 		"uid":      UID,
 		"password": oldPWD,
 	}
@@ -164,7 +163,7 @@ func UserUpdatePWD(UID uint64, oldPWD, newPWD string) (rows int64, e error) {
 
 func UserUpdatePWDByCellphone(cellphone, newPWD string) (rows int64, e error) {
 	table := "users"
-	where := builder.Eq{
+	where := sq.Eq{
 		"cellphone": cellphone,
 	}
 
@@ -188,7 +187,7 @@ func UserUpdatePWDByCellphone(cellphone, newPWD string) (rows int64, e error) {
 
 func UserUpdateWxOpenIdByCellphone(cellphone, wxOpenId string) (rows int64, e error) {
 	table := "users"
-	where := builder.Eq{
+	where := sq.Eq{
 		"cellphone": cellphone,
 	}
 

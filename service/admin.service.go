@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -35,12 +36,19 @@ func AdminTenantNew(sess *protos.User, m *protos.NewTenantReq) (uid, tenantID ui
 	if m.TenantType == "" {
 		return 0, 0, common.ErrTenantTypeNull
 	}
-	if m.Cellphone == "" && m.Nickname == "" {
-		return 0, 0, common.ErrUserNmae
+
+	nick := strings.TrimSpace(m.Nickname)
+	cell := strings.TrimSpace(m.Cellphone)
+	pass := strings.TrimSpace(m.Password)
+	wantAdmin := nick != "" || cell != "" || pass != ""
+	if wantAdmin {
+		if (nick == "" && cell == "") || pass == "" {
+			return 0, 0, common.ErrUserNmae
+		}
 	}
-	if m.Password == "" {
-		return 0, 0, common.ErrTenantAdminPasswordNull
-	}
+	m.Nickname = nick
+	m.Cellphone = cell
+	m.Password = pass
 
 	ancestorID := sess.TenantID
 	if m.ParentID > 0 {
@@ -70,26 +78,27 @@ func AdminTenantNew(sess *protos.User, m *protos.NewTenantReq) (uid, tenantID ui
 		}
 	}()
 
-	// 创建管理员用户
-	adminUser := &protos.UserReq{
-		TenantID:  0,
-		Cellphone: m.Cellphone,
-		Nickname:  m.Nickname,
-		Password:  m.Password,
-		Roles:     []string{"root"},
-	}
-
-	// 在事务中创建管理员用户
 	var adminUID uint64
-	adminUID, e = addUserServiceWithTx(tx, adminUser)
-	if e != nil {
-		common.Logger.Sugar().Errorf("AdminTenantNew addUserServiceWithTx ERR: %v\n", e)
-		return 0, 0, e
-	}
-
-	if adminUID <= 0 {
-		common.Logger.Sugar().Errorf("AdminTenantNew addUserServiceWithTx invalid UID: %v\n", adminUID)
-		return 0, 0, common.ErrService
+	if wantAdmin {
+		adminUser := &protos.UserReq{
+			TenantID:  0,
+			Cellphone: m.Cellphone,
+			Nickname:  m.Nickname,
+			Password:  m.Password,
+			Roles:     []string{"root"},
+		}
+		adminUID, e = addUserServiceWithTx(tx, adminUser)
+		if e != nil {
+			common.Logger.Sugar().Errorf("AdminTenantNew addUserServiceWithTx ERR: %v\n", e)
+			return 0, 0, e
+		}
+		if adminUID <= 0 {
+			common.Logger.Sugar().Errorf("AdminTenantNew addUserServiceWithTx invalid UID: %v\n", adminUID)
+			return 0, 0, common.ErrService
+		}
+	} else {
+		// 无管理员账号场景：租户管理员 uid 置为 0（后续可再绑定管理员）
+		adminUID = 0
 	}
 
 	// 创建租户
@@ -135,10 +144,12 @@ func AdminTenantNew(sess *protos.User, m *protos.NewTenantReq) (uid, tenantID ui
 		return 0, 0, common.ErrService
 	}
 
-	// 设置用户为超级管理员角色
-	if e = accessctl.AddRoleForUserInDomain(adminUID, tenantID, "root"); e != nil {
-		common.Logger.Sugar().Errorf("AdminTenantNew AddRoleForUserInDomain ERR: %v\n", e)
-		return 0, 0, common.ErrService
+	// 仅在创建了管理员账号时，绑定租户内超级管理员角色。
+	if adminUID > 0 {
+		if e = accessctl.AddRoleForUserInDomain(adminUID, tenantID, "root"); e != nil {
+			common.Logger.Sugar().Errorf("AdminTenantNew AddRoleForUserInDomain ERR: %v\n", e)
+			return 0, 0, common.ErrService
+		}
 	}
 
 	return adminUID, tenantID, nil

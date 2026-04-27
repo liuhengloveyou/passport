@@ -36,7 +36,7 @@ func UserLoginByWeixin(req *protos.UserReq) (one *protos.User, e error) {
 	}
 
 	disabled, ok := one.Ext["disabled"].(float64)
-	if ok && int8(disabled) == 1 {
+	if ok && protos.UserDisableStatus(int8(disabled)) == protos.UserDisabled {
 		common.Logger.Sugar().Errorf("login Disabled ERR: [%v] \n", one.Ext)
 		return nil, common.ErrDisable
 	}
@@ -121,7 +121,7 @@ func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
 	}
 
 	disabled, ok := one.Ext["disabled"].(float64)
-	if ok && int8(disabled) == 1 {
+	if ok && protos.UserDisableStatus(int8(disabled)) == protos.UserDisabled {
 		common.Logger.Sugar().Errorf("login Disabled ERR: [%v] \n", one.Ext)
 		return nil, common.ErrDisable
 	}

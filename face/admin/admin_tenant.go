@@ -50,9 +50,15 @@ func authorizeAdminTenant(sessionUser protos.User, action string, targetTenantID
 	return nil
 }
 
-// AdminTenantNew 创建新租户及其初始账号。
+// AdminTenantNew 创建新租户；可同时在租户域内创建初始管理员账号（昵称+密码均提供时），否则仅创建租户并由当前操作者暂为归属。
 func AdminTenantNew(w http.ResponseWriter, r *http.Request) {
 	sessionUser := core.GetSessionUser(r)
+	core.Logger().Info("AdminTenantNew start",
+		zap.String("method", r.Method),
+		zap.String("uri", r.RequestURI),
+		zap.Uint64("operator_uid", sessionUser.UID),
+		zap.Uint64("operator_tenant_id", sessionUser.TenantID),
+	)
 	if err := authorizeAdminTenant(sessionUser, "AdminTenantNew", 0); err != nil {
 		core.Logger().Error("AdminTenantNew auth ERR: ", zap.Uint64("uid", sessionUser.UID), zap.Uint64("tenantID", sessionUser.TenantID), zap.Error(err))
 		gocommon.HttpJsonErr(w, http.StatusUnauthorized, err)
@@ -69,20 +75,69 @@ func AdminTenantNew(w http.ResponseWriter, r *http.Request) {
 	req.Cellphone = strings.TrimSpace(req.Cellphone)
 	req.Nickname = strings.TrimSpace(req.Nickname)
 	req.Password = strings.TrimSpace(req.Password)
-	if req.TenantName == "" || req.TenantType == "" || (req.Cellphone == "" && req.Nickname == "") {
+	wantAdmin := req.Nickname != "" || req.Password != "" || req.Cellphone != ""
+	core.Logger().Info("AdminTenantNew parsed request",
+		zap.Uint64("operator_uid", sessionUser.UID),
+		zap.Uint64("operator_tenant_id", sessionUser.TenantID),
+		zap.String("tenant_name", req.TenantName),
+		zap.String("tenant_type", req.TenantType),
+		zap.Uint64("parent_id", req.ParentID),
+		zap.Bool("want_admin", wantAdmin),
+		zap.Bool("has_cellphone", req.Cellphone != ""),
+		zap.Bool("has_nickname", req.Nickname != ""),
+	)
+	if req.TenantName == "" || req.TenantType == "" {
+		core.Logger().Warn("AdminTenantNew param ERR: tenantName or tenantType empty",
+			zap.Uint64("operator_uid", sessionUser.UID),
+			zap.Uint64("operator_tenant_id", sessionUser.TenantID),
+			zap.String("tenant_name", req.TenantName),
+			zap.String("tenant_type", req.TenantType),
+		)
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
-	if _, _, err := service.AdminTenantNew(&sessionUser, req); err != nil {
+	if wantAdmin && ((req.Nickname == "" && req.Cellphone == "") || req.Password == "") {
+		core.Logger().Warn("AdminTenantNew param ERR: invalid optional admin payload",
+			zap.Uint64("operator_uid", sessionUser.UID),
+			zap.Uint64("operator_tenant_id", sessionUser.TenantID),
+			zap.Bool("has_cellphone", req.Cellphone != ""),
+			zap.Bool("has_nickname", req.Nickname != ""),
+			zap.Bool("has_password", req.Password != ""),
+		)
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+	newUID, newTenantID, err := service.AdminTenantNew(&sessionUser, req)
+	if err != nil {
+		core.Logger().Error("AdminTenantNew service ERR",
+			zap.Uint64("operator_uid", sessionUser.UID),
+			zap.Uint64("operator_tenant_id", sessionUser.TenantID),
+			zap.String("tenant_name", req.TenantName),
+			zap.Uint64("parent_id", req.ParentID),
+			zap.Error(err),
+		)
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
+	core.Logger().Info("AdminTenantNew success",
+		zap.Uint64("operator_uid", sessionUser.UID),
+		zap.Uint64("operator_tenant_id", sessionUser.TenantID),
+		zap.Uint64("new_tenant_id", newTenantID),
+		zap.Uint64("new_admin_uid", newUID),
+		zap.Bool("want_admin", wantAdmin),
+	)
 	gocommon.HttpErr(w, http.StatusOK, 0, "OK")
 }
 
 // AdminTenantQuery 分页查询租户列表。
 func AdminTenantQuery(w http.ResponseWriter, r *http.Request) {
 	sessionUser := core.GetSessionUser(r)
+	core.Logger().Info("AdminTenantQuery start",
+		zap.Uint64("operator_uid", sessionUser.UID),
+		zap.Uint64("operator_tenant_id", sessionUser.TenantID),
+		zap.String("method", r.Method),
+		zap.String("uri", r.RequestURI),
+	)
 	if err := authorizeAdminTenant(sessionUser, "AdminTenantQuery", 0); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusUnauthorized, err)
 		return
@@ -103,9 +158,28 @@ func AdminTenantQuery(w http.ResponseWriter, r *http.Request) {
 	}
 	rr, e := service.AdminTenantQuery(tenantName, cellphone, page, pageSize, hasTotal == 1)
 	if e != nil {
+		core.Logger().Error("AdminTenantQuery ERR",
+			zap.Uint64("operator_uid", sessionUser.UID),
+			zap.Uint64("operator_tenant_id", sessionUser.TenantID),
+			zap.String("tenant_name", tenantName),
+			zap.String("cellphone", cellphone),
+			zap.Uint64("page", page),
+			zap.Uint64("page_size", pageSize),
+			zap.Bool("has_total", hasTotal == 1),
+			zap.Error(e),
+		)
 		gocommon.HttpJsonErr(w, http.StatusOK, e)
 		return
 	}
+	core.Logger().Info("AdminTenantQuery success",
+		zap.Uint64("operator_uid", sessionUser.UID),
+		zap.Uint64("operator_tenant_id", sessionUser.TenantID),
+		zap.String("tenant_name", tenantName),
+		zap.String("cellphone", cellphone),
+		zap.Uint64("page", page),
+		zap.Uint64("page_size", pageSize),
+		zap.Bool("has_total", hasTotal == 1),
+	)
 	gocommon.HttpErr(w, http.StatusOK, 0, rr)
 }
 
@@ -114,6 +188,12 @@ func AdminSetParent(w http.ResponseWriter, r *http.Request) {
 	sessionUser := core.GetSessionUser(r)
 	tenantID, _ := strconv.ParseUint(r.FormValue("tid"), 10, 64)
 	parentID, _ := strconv.ParseUint(r.FormValue("pid"), 10, 64)
+	core.Logger().Info("AdminSetParent start",
+		zap.Uint64("operator_uid", sessionUser.UID),
+		zap.Uint64("operator_tenant_id", sessionUser.TenantID),
+		zap.Uint64("tenant_id", tenantID),
+		zap.Uint64("parent_id", parentID),
+	)
 	if tenantID <= 0 || parentID <= 0 {
 		core.Logger().Error("AdminSetParent param ERR: ", zap.Uint64("tenantID", tenantID), zap.Uint64("parentID", parentID))
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
@@ -138,6 +218,11 @@ func AdminSetParent(w http.ResponseWriter, r *http.Request) {
 func AdminTenantDelete(w http.ResponseWriter, r *http.Request) {
 	sessionUser := core.GetSessionUser(r)
 	tenantID, _ := strconv.ParseUint(r.FormValue("tid"), 10, 64)
+	core.Logger().Info("AdminTenantDelete start",
+		zap.Uint64("operator_uid", sessionUser.UID),
+		zap.Uint64("operator_tenant_id", sessionUser.TenantID),
+		zap.Uint64("tenant_id", tenantID),
+	)
 	if tenantID <= 0 || tenantID == common.ServConfig.RootTenantID {
 		core.Logger().Error("AdminTenantDelete param ERR: ", zap.Uint64("tenantID", tenantID))
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
@@ -189,6 +274,12 @@ func AdminUpdateTenantConfiguration(w http.ResponseWriter, r *http.Request) {
 func AdminTenantUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	sessionUser := core.GetSessionUser(r)
 	req := &protos.UpdateTenantConfigReq{}
+	core.Logger().Info("AdminTenantUpdateConfig start",
+		zap.Uint64("operator_uid", sessionUser.UID),
+		zap.Uint64("operator_tenant_id", sessionUser.TenantID),
+		zap.String("method", r.Method),
+		zap.String("uri", r.RequestURI),
+	)
 	if err := core.ReadJSONBodyFromRequest(r, req, 10240); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
@@ -202,9 +293,20 @@ func AdminTenantUpdateConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := service.AdminTenantUpdateConfig(&sessionUser, req); err != nil {
+		core.Logger().Error("AdminTenantUpdateConfig ERR",
+			zap.Uint64("operator_uid", sessionUser.UID),
+			zap.Uint64("operator_tenant_id", sessionUser.TenantID),
+			zap.Uint64("tenant_id", req.TenantID),
+			zap.Error(err),
+		)
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
+	core.Logger().Info("AdminTenantUpdateConfig success",
+		zap.Uint64("operator_uid", sessionUser.UID),
+		zap.Uint64("operator_tenant_id", sessionUser.TenantID),
+		zap.Uint64("tenant_id", req.TenantID),
+	)
 	gocommon.HttpErr(w, http.StatusOK, 0, "OK")
 }
 
@@ -212,6 +314,12 @@ func AdminTenantUpdateConfig(w http.ResponseWriter, r *http.Request) {
 func AdminTenantUpdate(w http.ResponseWriter, r *http.Request) {
 	sessionUser := core.GetSessionUser(r)
 	req := &protos.UpdateTenantReq{}
+	core.Logger().Info("AdminTenantUpdate start",
+		zap.Uint64("operator_uid", sessionUser.UID),
+		zap.Uint64("operator_tenant_id", sessionUser.TenantID),
+		zap.String("method", r.Method),
+		zap.String("uri", r.RequestURI),
+	)
 	if err := core.ReadJSONBodyFromRequest(r, req, 10240); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
@@ -227,8 +335,21 @@ func AdminTenantUpdate(w http.ResponseWriter, r *http.Request) {
 	req.TenantName = strings.TrimSpace(req.TenantName)
 	req.TenantType = strings.TrimSpace(req.TenantType)
 	if err := service.AdminTenantUpdate(&sessionUser, req); err != nil {
+		core.Logger().Error("AdminTenantUpdate ERR",
+			zap.Uint64("operator_uid", sessionUser.UID),
+			zap.Uint64("operator_tenant_id", sessionUser.TenantID),
+			zap.Uint64("tenant_id", req.TenantID),
+			zap.String("tenant_name", req.TenantName),
+			zap.String("tenant_type", req.TenantType),
+			zap.Error(err),
+		)
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
+	core.Logger().Info("AdminTenantUpdate success",
+		zap.Uint64("operator_uid", sessionUser.UID),
+		zap.Uint64("operator_tenant_id", sessionUser.TenantID),
+		zap.Uint64("tenant_id", req.TenantID),
+	)
 	gocommon.HttpErr(w, http.StatusOK, 0, "OK")
 }

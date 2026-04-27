@@ -16,6 +16,17 @@ const (
 	ALI_AUTH_UID   = 101
 )
 
+type UserDisableStatus int8
+
+const (
+	UserEnabled  UserDisableStatus = 1
+	UserDisabled UserDisableStatus = 2
+)
+
+func (s UserDisableStatus) IsValid() bool {
+	return s == UserEnabled || s == UserDisabled
+}
+
 type PageResponse struct {
 	Total uint64      `json:"total,omitempty"`
 	List  interface{} `json:"list"`

@@ -228,10 +228,16 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func AccessFilter(r *http.Request) bool {
 	sess, err := core.SessionStore().Get(r, common.ServConfig.SessionKey)
 	if err != nil {
+		logger.Sugar().Errorf("passport http api no session: %v %v\n", r.Method, r.URL)
 		return false
 	}
-	sessUser := sess.Values[common.SessUserInfoKey].(protos.User)
+	sessUser, ok := sess.Values[common.SessUserInfoKey].(protos.User)
+	if !ok {
+		logger.Sugar().Errorf("passport http api no session user: %v %v\n", r.Method, r.URL)
+		return false
+	}
 	if sessUser.UID <= 0 {
+		logger.Sugar().Errorf("passport http api no session user uid: %v %v\n", r.Method, r.URL)
 		return false
 	}
 	obj := r.Header.Get("X-Requested-By")
@@ -242,9 +248,11 @@ func AccessFilter(r *http.Request) bool {
 		obj = r.RequestURI
 	}
 	if obj == "" {
+		logger.Sugar().Errorf("passport http api no obj: %v %v\n", r.Method, r.URL)
 		return false
 	}
 	if strings.HasPrefix(obj, "admin/") && sessUser.TenantID != common.ServConfig.RootTenantID {
+		logger.Sugar().Errorf("passport http api no admin: %v %v\n", r.Method, r.URL)
 		return false
 	}
 	needAccess := false
@@ -254,6 +262,7 @@ func AccessFilter(r *http.Request) bool {
 		apiConf, ok := common.ServConfig.ApiConf[obj]
 		if !ok {
 			if apiConf, ok = common.ServConfig.ApiConf["*"]; !ok {
+				logger.Sugar().Errorf("passport http api no apiConf: %v %v\n", r.Method, r.URL)
 				return false
 			}
 		}
@@ -262,9 +271,14 @@ func AccessFilter(r *http.Request) bool {
 	if needAccess {
 		access, err := accessctl.Enforce(sessUser.UID, sessUser.TenantID, obj, r.Method)
 		if err != nil {
+			logger.Sugar().Errorf("passport http api no access: %v %v\n", r.Method, r.URL)
 			return false
 		}
+		logger.Sugar().Infof("passport http api access: %v %v %v\n", r.Method, r.URL, access)
+
 		return access
 	}
+
+	logger.Sugar().Infof("passport http api no access: %v %v\n", r.Method, r.URL)
 	return true
 }

@@ -88,7 +88,7 @@ func AuthFilter(r *http.Request) (sess *sessions.Session, auth bool) {
 	loginUserCache.Store(uid, userInfo)
 
 	disabled, ok := userInfo.(*protos.User).Ext["disabled"].(float64)
-	if ok && int8(disabled) == 1 {
+	if ok && protos.UserDisableStatus(int8(disabled)) == protos.UserDisabled {
 		return nil, false
 	}
 	return sess, true

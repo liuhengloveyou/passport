@@ -25,17 +25,42 @@ func TenantInsert(tx database.Tx, m *protos.Tenant) (tenantID uint64, e error) {
 		"create_time":   time.Now(),
 	}
 
-	// 使用database.InsertWithID来处理不同数据库的插入逻辑
-	id, err := database.InsertWithID(ctx, common.DB, tx, "tenants", data)
-	if err != nil {
-		common.Logger.Sugar().Errorf("Failed to insert tenants: %v", err)
-		return 0, err
+	dialect := database.NewDialect(common.DB.DriverType())
+	placeholderFormat := database.GetPlaceholderFormat(common.DB.DriverType())
+	insertBuilder := sq.Insert("tenants").SetMap(data).PlaceholderFormat(placeholderFormat)
+
+	if dialect.SupportsReturning() {
+		insertSQL, insertVals, err := insertBuilder.Suffix("RETURNING id").ToSql()
+		if err != nil {
+			return 0, err
+		}
+		if err = tx.QueryRow(ctx, insertSQL, insertVals...).Scan(&tenantID); err != nil {
+			common.Logger.Sugar().Errorf("Failed to insert tenants with returning id: %v", err)
+			return 0, err
+		}
+	} else {
+		insertSQL, insertVals, err := insertBuilder.ToSql()
+		if err != nil {
+			return 0, err
+		}
+		if _, err = tx.Exec(ctx, insertSQL, insertVals...); err != nil {
+			common.Logger.Sugar().Errorf("Failed to insert tenants: %v", err)
+			return 0, err
+		}
+		id, idErr := dialect.LastInsertID(ctx, common.DB, "tenants")
+		if idErr != nil {
+			return 0, idErr
+		}
+		tenantID = uint64(id)
 	}
-	tenantID = uint64(id)
+
+	// 可选管理员场景：uid=0 表示先仅创建租户，不绑定管理员账号。
+	if m.UID <= 0 {
+		return
+	}
 
 	// 更新用户的租户ID
 	// 构建UPDATE语句，使用正确的占位符
-	placeholderFormat := database.GetPlaceholderFormat(common.DB.DriverType())
 	updateSQL, updateVals, err := sq.Update("users").
 		Set("tenant_id", tenantID).
 		Where(sq.And{sq.Eq{"uid": m.UID}, sq.Eq{"tenant_id": 0}}).

@@ -50,7 +50,7 @@ type RoleReq struct {
 
 type DisableUserReq struct {
 	UID     uint64 `json:"uid" validate:"required,min=1"`
-	Disable int8   `json:"disable" validate:"min=0,max=1"`
+	Disable int8   `json:"disable" validate:"min=1,max=2"`
 }
 
 type SetDepartmentReq struct {
@@ -76,7 +76,7 @@ type NewTenantReq struct {
 	TenantType string `json:"tenantType"  validate:"omitempty,min=1,max=64"`
 	Cellphone  string `json:"cellphone" validate:"omitempty,phone,len=11"`
 	Nickname   string `json:"nickname" validate:"omitempty,min=2,max=32"`
-	Password   string `json:"password" validate:"required,min=6,max=64"`
+	Password   string `json:"password" validate:"omitempty,min=6,max=64"`
 
 	Info          MapStruct            `json:"info,omitempty" db:"info"`
 	Configuration *TenantConfiguration `json:"configuration,omitempty" db:"configuration"`
