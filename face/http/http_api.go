@@ -91,8 +91,10 @@ func init() {
 
 		// SAAS平台管理员接口
 		"admin/tenant/new":                {Handler: faceAdmin.AdminTenantNew, NeedLogin: true, NeedAccess: false},
-		"admin/user/list":                 {Handler: faceAdmin.UserList, NeedLogin: true, NeedAccess: false},
-		"admin/user/del":                  {Handler: faceAdmin.UserDel, NeedLogin: true, NeedAccess: false},
+		"admin/user/list": {Handler: faceAdmin.UserList, NeedLogin: true, NeedAccess: false},
+		// admin/user/add：向指定租户新增租户管理员账号，并在该租户域内固定绑定 root 角色。
+		"admin/user/add": {Handler: faceAdmin.UserAdd, NeedLogin: true, NeedAccess: false},
+		"admin/user/del": {Handler: faceAdmin.UserDel, NeedLogin: true, NeedAccess: false},
 		"admin/user/edit":                 {Handler: faceAdmin.UserEdit, NeedLogin: true, NeedAccess: false},
 		"admin/tenant/query":              {Handler: faceAdmin.AdminTenantQuery, NeedLogin: true, NeedAccess: false},
 		"admin/tenant/setParent":          {Handler: faceAdmin.AdminSetParent, NeedLogin: true, NeedAccess: false},

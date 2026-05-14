@@ -90,7 +90,6 @@ func InitWithOption(option *protos.OptionStruct) (e error) {
 	// 数据库初始化：优先使用新的DBDriver配置
 	if DB == nil {
 		if option.DBDriver != "" && option.DBDSN != "" {
-			fmt.Println("passport InitDBWithDriver: ", option.DBDriver, option.DBDSN)
 			// 使用新的数据库配置
 			if e = InitDBWithDriver(option.DBDriver, option.DBDSN); e != nil {
 				return e
@@ -197,7 +196,7 @@ func InitDBWithDriver(driver, dsn string) (err error) {
 		panic(err)
 	}
 
-	Logger.Info("Database initialized", zap.String("driver", driver), zap.String("dsn", maskDSN(dsn)))
+	// Logger.Info("Database initialized", zap.String("driver", driver), zap.String("dsn", maskDSN(dsn)))
 	return nil
 }
 

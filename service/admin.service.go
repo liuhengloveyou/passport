@@ -63,6 +63,15 @@ func AdminTenantNew(sess *protos.User, m *protos.NewTenantReq) (uid, tenantID ui
 		ancestorID = m.ParentID
 	}
 
+	dup, errName := dao.TenantNameExists(m.TenantName)
+	if errName != nil {
+		common.Logger.Sugar().Errorf("AdminTenantNew TenantNameExists ERR: %v\n", errName)
+		return 0, 0, common.ErrService
+	}
+	if dup {
+		return 0, 0, common.ErrTenantNameDup
+	}
+
 	// 开始事务
 	ctx := context.Background()
 	tx, e := common.DB.Begin(ctx)
@@ -85,7 +94,6 @@ func AdminTenantNew(sess *protos.User, m *protos.NewTenantReq) (uid, tenantID ui
 			Cellphone: m.Cellphone,
 			Nickname:  m.Nickname,
 			Password:  m.Password,
-			Roles:     []string{"root"},
 		}
 		adminUID, e = addUserServiceWithTx(tx, adminUser)
 		if e != nil {
@@ -127,10 +135,11 @@ func AdminTenantNew(sess *protos.User, m *protos.NewTenantReq) (uid, tenantID ui
 		}}
 	}
 	// 在事务中创建租户
-	tenantID, e = dao.TenantInsert(tx, tenant)
-	if e != nil {
-		common.Logger.Sugar().Errorf("AdminTenantNew TenantInsert ERR: %v\n", e)
-		return 0, 0, common.ErrService
+	tenantID, insErr := dao.TenantInsert(tx, tenant)
+	if insErr != nil {
+		common.Logger.Sugar().Errorf("AdminTenantNew TenantInsert ERR: %v\n", insErr)
+		e = common.MapPostgresTenantInsertError(insErr)
+		return 0, 0, e
 	}
 
 	if tenantID <= 0 {
@@ -144,7 +153,7 @@ func AdminTenantNew(sess *protos.User, m *protos.NewTenantReq) (uid, tenantID ui
 		return 0, 0, common.ErrService
 	}
 
-	// 仅在创建了管理员账号时，绑定租户内超级管理员角色。
+	// 仅在创建了管理员账号时，绑定租户内 root 角色。
 	if adminUID > 0 {
 		if e = accessctl.AddRoleForUserInDomain(adminUID, tenantID, "root"); e != nil {
 			common.Logger.Sugar().Errorf("AdminTenantNew AddRoleForUserInDomain ERR: %v\n", e)

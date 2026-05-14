@@ -1,6 +1,10 @@
 package common
 
 import (
+	stderrors "errors"
+	"strings"
+
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/liuhengloveyou/go-errors"
 )
 
@@ -32,6 +36,7 @@ var (
 	ErrTenantAddERR             = errors.NewError(-2004, "添加租户失败")
 	ErrTenantAdminCellphoneNull = errors.NewError(-2005, "管理员手机号为空")
 	ErrTenantAdminPasswordNull  = errors.NewError(-2006, "管理员密码为空")
+	ErrTenantNameDup            = errors.NewError(-2007, "租户名称已存在")
 
 	ErrWxService = errors.NewError(-3000, "微信接口返回错误")
 
@@ -40,3 +45,15 @@ var (
 	ErrTenantRoot        = errors.NewError(-104002, "不能给Root租户设置父级")
 	ErrTenantSame        = errors.NewError(-104003, "不能设置相同账号为父级")
 )
+
+// MapPostgresTenantInsertError 将 tenants 表 INSERT 时的 PostgreSQL 错误映射为业务错误（如 tenant_name 唯一约束）。
+func MapPostgresTenantInsertError(err error) error {
+	var pe *pgconn.PgError
+	if stderrors.As(err, &pe) && pe.Code == "23505" {
+		if strings.Contains(strings.ToLower(pe.ConstraintName), "tenant_name") {
+			return ErrTenantNameDup
+		}
+		return ErrPgDupKey
+	}
+	return ErrService
+}

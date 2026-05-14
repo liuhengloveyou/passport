@@ -50,7 +50,8 @@ func authorizeAdminTenant(sessionUser protos.User, action string, targetTenantID
 	return nil
 }
 
-// AdminTenantNew 创建新租户；可同时在租户域内创建初始管理员账号（昵称+密码均提供时），否则仅创建租户并由当前操作者暂为归属。
+// AdminTenantNew 创建新租户；可同时在租户域内创建初始管理员账号（昵称+密码均提供时），
+// 该账号在租户域内绑定 root；否则仅创建租户并由当前操作者暂为归属。
 func AdminTenantNew(w http.ResponseWriter, r *http.Request) {
 	sessionUser := core.GetSessionUser(r)
 	core.Logger().Info("AdminTenantNew start",

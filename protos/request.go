@@ -94,3 +94,27 @@ type UpdateTenantConfigReq struct {
 	LastUpdateTime string               `json:"last_update_time" validate:"required"`
 	Configuration  *TenantConfiguration `json:"configuration" validate:"required"`
 }
+
+// AdminUserEditReq 平台管理员编辑租户用户（HTTP admin/user/edit）。
+type AdminUserEditReq struct {
+	UID         uint64   `json:"uid"`
+	Disable     *int8    `json:"disable,omitempty"`
+	Pwd         string   `json:"pwd,omitempty"`
+	DepIds      []uint64 `json:"depIds,omitempty"`
+	Roles       []string `json:"roles,omitempty"`
+	Description *string  `json:"description,omitempty"`
+	MacAddr     *string  `json:"macAddr,omitempty"`
+}
+
+// AdminUserAddReq 平台管理员向指定租户新增租户管理员（HTTP admin/user/add）。
+// 请求体 roles 忽略；创建成功后在该租户域内固定绑定 root 角色。
+type AdminUserAddReq struct {
+	UID       uint64    `json:"uid"`
+	TenantID  uint64    `json:"tenant_id"`
+	Nickname  string    `json:"nickname"`
+	Password  string    `json:"password"`
+	Cellphone string    `json:"cellphone"`
+	Email     string    `json:"email"`
+	Roles     []string  `json:"roles"`
+	Ext       MapStruct `json:"ext"`
+}

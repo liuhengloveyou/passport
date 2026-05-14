@@ -15,14 +15,75 @@ import (
 	"github.com/liuhengloveyou/passport/v3/service"
 )
 
-type adminUserEditReq struct {
-	UID         uint64   `json:"uid"`
-	Disable     *int8    `json:"disable,omitempty"`
-	Pwd         string   `json:"pwd,omitempty"`
-	DepIds      []uint64 `json:"depIds,omitempty"`
-	Roles       []string `json:"roles,omitempty"`
-	Description *string  `json:"description,omitempty"`
-	MacAddr     *string  `json:"macAddr,omitempty"`
+// UserAdd 平台管理员向指定租户新增「租户管理员」登录账号，并在该租户域内固定绑定 root 角色。
+// 请求体 roles 字段忽略（避免客户端随意指定域内角色）；须带 tenant_id，且不得指向平台根租户。
+func UserAdd(w http.ResponseWriter, r *http.Request) {
+	sessionUser := core.GetSessionUser(r)
+
+	var req protos.AdminUserAddReq
+	if err := core.ReadJSONBodyFromRequest(r, &req, 16<<10); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+	req.Nickname = strings.TrimSpace(req.Nickname)
+	req.Password = strings.TrimSpace(req.Password)
+	req.Cellphone = strings.TrimSpace(req.Cellphone)
+	req.Email = strings.TrimSpace(req.Email)
+	if req.TenantID <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+	if req.TenantID == common.ServConfig.RootTenantID {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+	if req.Nickname == "" || req.Password == "" {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+	if err := authorizeAdminTenant(sessionUser, "admin.user.add", req.TenantID); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusUnauthorized, err)
+		return
+	}
+	if _, err := service.AdminTenantTake(req.TenantID); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+
+	roles := []string{"root"}
+
+	ext := req.Ext
+	if ext == nil {
+		ext = protos.MapStruct{}
+	}
+
+	userReq := &protos.UserReq{
+		UID:       0,
+		TenantID:  0,
+		Nickname:  req.Nickname,
+		Password:  req.Password,
+		Cellphone: req.Cellphone,
+		Email:     req.Email,
+		Roles:     roles,
+		DepIds:    nil,
+		Ext:       ext,
+	}
+
+	uid, err := service.AddUserService(userReq)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+	if uid <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
+		return
+	}
+	if err := service.TenantUserAdd(uid, req.TenantID, nil, roles, protos.UserEnabled); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+
+	gocommon.HttpErr(w, http.StatusOK, 0, uid)
 }
 
 // UserList 按租户分页查询用户列表。
@@ -98,7 +159,7 @@ func UserDel(w http.ResponseWriter, r *http.Request) {
 func UserEdit(w http.ResponseWriter, r *http.Request) {
 	sessionUser := core.GetSessionUser(r)
 
-	req := &adminUserEditReq{}
+	req := &protos.AdminUserEditReq{}
 	if err := core.ReadJSONBodyFromRequest(r, req, 4096); err != nil || req.UID == 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return

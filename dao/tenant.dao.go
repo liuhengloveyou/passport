@@ -2,8 +2,11 @@ package dao
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/liuhengloveyou/passport/v3/common"
 	"github.com/liuhengloveyou/passport/v3/database"
 	"github.com/liuhengloveyou/passport/v3/protos"
@@ -14,6 +17,13 @@ import (
 
 func TenantInsert(tx database.Tx, m *protos.Tenant) (tenantID uint64, e error) {
 	ctx := context.Background()
+	common.Logger.Info("TenantInsert start",
+		zap.Uint64("uid", m.UID),
+		zap.String("tenant_name", m.TenantName),
+		zap.String("tenant_type", m.TenantType),
+		zap.Bool("has_info", len(m.Info) > 0),
+		zap.Bool("has_configuration", m.Configuration != nil),
+	)
 
 	// 准备插入数据
 	data := map[string]interface{}{
@@ -32,30 +42,79 @@ func TenantInsert(tx database.Tx, m *protos.Tenant) (tenantID uint64, e error) {
 	if dialect.SupportsReturning() {
 		insertSQL, insertVals, err := insertBuilder.Suffix("RETURNING id").ToSql()
 		if err != nil {
+			common.Logger.Error("TenantInsert build SQL failed",
+				zap.Error(err),
+				zap.String("tenant_name", m.TenantName),
+				zap.String("tenant_type", m.TenantType),
+			)
 			return 0, err
 		}
+		common.Logger.Debug("TenantInsert execute insert with returning",
+			zap.String("sql", insertSQL),
+			zap.Any("args", insertVals),
+			zap.String("tenant_name", m.TenantName),
+			zap.String("tenant_type", m.TenantType),
+			zap.Uint64("uid", m.UID),
+		)
 		if err = tx.QueryRow(ctx, insertSQL, insertVals...).Scan(&tenantID); err != nil {
 			common.Logger.Sugar().Errorf("Failed to insert tenants with returning id: %v", err)
+			common.Logger.Error("TenantInsert insert failed",
+				zap.Error(err),
+				zap.String("tenant_name", m.TenantName),
+				zap.String("tenant_type", m.TenantType),
+				zap.Uint64("uid", m.UID),
+			)
 			return 0, err
 		}
 	} else {
 		insertSQL, insertVals, err := insertBuilder.ToSql()
 		if err != nil {
+			common.Logger.Error("TenantInsert build SQL failed",
+				zap.Error(err),
+				zap.String("tenant_name", m.TenantName),
+				zap.String("tenant_type", m.TenantType),
+			)
 			return 0, err
 		}
+		common.Logger.Debug("TenantInsert execute insert",
+			zap.String("sql", insertSQL),
+			zap.Any("args", insertVals),
+			zap.String("tenant_name", m.TenantName),
+			zap.String("tenant_type", m.TenantType),
+			zap.Uint64("uid", m.UID),
+		)
 		if _, err = tx.Exec(ctx, insertSQL, insertVals...); err != nil {
 			common.Logger.Sugar().Errorf("Failed to insert tenants: %v", err)
+			common.Logger.Error("TenantInsert insert failed",
+				zap.Error(err),
+				zap.String("tenant_name", m.TenantName),
+				zap.String("tenant_type", m.TenantType),
+				zap.Uint64("uid", m.UID),
+			)
 			return 0, err
 		}
 		id, idErr := dialect.LastInsertID(ctx, common.DB, "tenants")
 		if idErr != nil {
+			common.Logger.Error("TenantInsert last insert id failed",
+				zap.Error(idErr),
+				zap.String("tenant_name", m.TenantName),
+				zap.String("tenant_type", m.TenantType),
+				zap.Uint64("uid", m.UID),
+			)
 			return 0, idErr
 		}
 		tenantID = uint64(id)
 	}
+	common.Logger.Info("TenantInsert tenant row created",
+		zap.Uint64("tenant_id", tenantID),
+		zap.String("tenant_name", m.TenantName),
+		zap.String("tenant_type", m.TenantType),
+		zap.Uint64("uid", m.UID),
+	)
 
 	// 可选管理员场景：uid=0 表示先仅创建租户，不绑定管理员账号。
 	if m.UID <= 0 {
+		common.Logger.Info("TenantInsert skip bind admin user", zap.Uint64("tenant_id", tenantID))
 		return
 	}
 
@@ -67,20 +126,67 @@ func TenantInsert(tx database.Tx, m *protos.Tenant) (tenantID uint64, e error) {
 		PlaceholderFormat(placeholderFormat).
 		ToSql()
 	if err != nil {
+		common.Logger.Error("TenantInsert build user update SQL failed",
+			zap.Error(err),
+			zap.Uint64("tenant_id", tenantID),
+			zap.Uint64("uid", m.UID),
+		)
 		return 0, err
 	}
+	common.Logger.Debug("TenantInsert execute user bind update",
+		zap.String("sql", updateSQL),
+		zap.Any("args", updateVals),
+		zap.Uint64("tenant_id", tenantID),
+		zap.Uint64("uid", m.UID),
+	)
 
 	rst, e := tx.Exec(ctx, updateSQL, updateVals...)
 	if e != nil {
+		common.Logger.Error("TenantInsert bind user failed",
+			zap.Error(e),
+			zap.Uint64("tenant_id", tenantID),
+			zap.Uint64("uid", m.UID),
+		)
 		return 0, e
 	}
 
 	row, _ := rst.RowsAffected()
 	if row != 1 {
+		common.Logger.Warn("TenantInsert bind user unexpected rows affected",
+			zap.Int64("rows_affected", row),
+			zap.Uint64("tenant_id", tenantID),
+			zap.Uint64("uid", m.UID),
+		)
 		return 0, common.ErrTenantLimit
 	}
+	common.Logger.Info("TenantInsert success",
+		zap.Uint64("tenant_id", tenantID),
+		zap.Uint64("uid", m.UID),
+	)
 
 	return
+}
+
+// TenantNameExists 是否已有同名租户（与 tenants.tenant_name 唯一约束一致）。
+func TenantNameExists(tenantName string) (exists bool, e error) {
+	name := strings.TrimSpace(tenantName)
+	if name == "" {
+		return false, nil
+	}
+	ph := database.GetPlaceholderFormat(common.DB.DriverType())
+	sql, args, err := sq.Select("1").From("tenants").Where(sq.Eq{"tenant_name": name}).Limit(1).PlaceholderFormat(ph).ToSql()
+	if err != nil {
+		return false, err
+	}
+	var one int
+	err = common.DB.QueryRow(context.Background(), sql, args...).Scan(&one)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func TenantGetByID(tenantId uint64) (m *protos.Tenant, e error) {
