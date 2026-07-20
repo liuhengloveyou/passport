@@ -492,8 +492,8 @@ curl -v -X GET -H "X-API: access/getPolicy" --cookie "go-session-id=MTY" "http:/
 {
 	"code":0,
 	"data":[
-		["role1","tenant-10049","data1","read"],
-		["role1","tenant-10049","data2","read"]
+		{"role":"role1","obj":"data1","act":"GET"},
+		{"role":"role1","obj":"data2","act":"GET"}
 	]
 }
 ```
@@ -501,14 +501,16 @@ curl -v -X GET -H "X-API: access/getPolicy" --cookie "go-session-id=MTY" "http:/
 
 ### 查询当前用户策略列表
 
+`data` 与 `access/getPolicy` 相同，为 **`{ "role", "obj", "act" }` 对象数组**（不再返回 Casbin 原始字符串切片）。
+
 ```shell
 curl -v -X GET -H "X-API: access/getPolicyForUser" --cookie "go-session-id=MTY" "http://127.0.0.1:10000/usercenter"
 
 {
 	"code":0,
 	"data":[
-		["role1","tenant-10049","data1","read"],
-		["role1","tenant-10049","data2","read"]
+		{"role":"role1","obj":"data1","act":"GET"},
+		{"role":"role1","obj":"data2","act":"GET"}
 	]
 }
 ```

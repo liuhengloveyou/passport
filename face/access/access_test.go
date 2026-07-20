@@ -56,3 +56,39 @@ func TestAccessAPIsSmoke(t *testing.T) {
 		t.Fatalf("access/getPolicy 返回不是标准格式: %+v", result)
 	}
 }
+
+func TestPolicyRuleToDTO(t *testing.T) {
+	cases := []struct {
+		name string
+		rule []string
+		want protos.Policy
+		ok   bool
+	}{
+		{
+			name: "rbac_with_domains",
+			rule: []string{"editor", "tenant-1", "/devices", "GET"},
+			want: protos.Policy{Role: "editor", Obj: "/devices", Act: "GET"},
+			ok:   true,
+		},
+		{
+			name: "casbin_slice_with_ptype",
+			rule: []string{"p", "editor", "tenant-1", "/devices", "GET"},
+			want: protos.Policy{Role: "editor", Obj: "/devices", Act: "GET"},
+			ok:   true,
+		},
+		{
+			name: "short",
+			rule: []string{"a", "b"},
+			want: protos.Policy{},
+			ok:   false,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, ok := policyRuleToDTO(tc.rule)
+			if ok != tc.ok || got != tc.want {
+				t.Fatalf("policyRuleToDTO(%v) = (%+v,%v), want (%+v,%v)", tc.rule, got, ok, tc.want, tc.ok)
+			}
+		})
+	}
+}

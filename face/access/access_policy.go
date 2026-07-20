@@ -13,6 +13,37 @@ import (
 	"go.uber.org/zap"
 )
 
+// policyRuleToDTO 将 Casbin `p` 规则字段序列转为 API 使用的 protos.Policy（不暴露域，域已在存储层按租户隔离）。
+// 支持：
+// - Passport 默认 RBAC with domains：sub, dom, obj, act
+// - 若底层返回将 ptype 拼入切片：p, sub, dom, obj, act（或 p, sub, obj, act）
+func policyRuleToDTO(rule []string) (protos.Policy, bool) {
+	if len(rule) < 4 {
+		return protos.Policy{}, false
+	}
+	a := make([]string, len(rule))
+	for i, s := range rule {
+		a[i] = strings.TrimSpace(s)
+	}
+	head := strings.ToLower(a[0])
+	if head == "p" && len(a) >= 5 {
+		if a[1] == "" || a[3] == "" || a[4] == "" {
+			return protos.Policy{}, false
+		}
+		return protos.Policy{Role: a[1], Obj: a[3], Act: a[4]}, true
+	}
+	if head == "p" && len(a) >= 4 {
+		if a[1] == "" || a[2] == "" || a[3] == "" {
+			return protos.Policy{}, false
+		}
+		return protos.Policy{Role: a[1], Obj: a[2], Act: a[3]}, true
+	}
+	if a[0] == "" || a[2] == "" || a[3] == "" {
+		return protos.Policy{}, false
+	}
+	return protos.Policy{Role: a[0], Obj: a[2], Act: a[3]}, true
+}
+
 // AddPolicyToRole 为角色添加访问策略。
 func AddPolicyToRole(w http.ResponseWriter, r *http.Request) {
 	sessionUser := core.GetSessionUser(r)
@@ -65,11 +96,10 @@ func GetPolicy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	polices := accessctl.GetFilteredPolicy(sessionUser.TenantID, req)
-	var policesNoDomain []protos.Policy
-	if len(polices) > 0 {
-		policesNoDomain = make([]protos.Policy, len(polices))
-		for i := range polices {
-			policesNoDomain[i] = protos.Policy{Role: polices[i][0], Obj: polices[i][2], Act: polices[i][3]}
+	policesNoDomain := make([]protos.Policy, 0, len(polices))
+	for _, row := range polices {
+		if p, ok := policyRuleToDTO(row); ok {
+			policesNoDomain = append(policesNoDomain, p)
 		}
 	}
 	gocommon.HttpErr(w, http.StatusOK, 0, policesNoDomain)
@@ -88,5 +118,11 @@ func GetPolicyForUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	policys := accessctl.GetFilteredPolicy(sessionUser.TenantID, roles)
-	gocommon.HttpErr(w, http.StatusOK, 0, policys)
+	out := make([]protos.Policy, 0, len(policys))
+	for _, row := range policys {
+		if p, ok := policyRuleToDTO(row); ok {
+			out = append(out, p)
+		}
+	}
+	gocommon.HttpErr(w, http.StatusOK, 0, out)
 }
