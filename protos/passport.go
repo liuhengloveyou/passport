@@ -14,7 +14,8 @@ type OptionStruct struct {
 	DBDriver string `yaml:"db_driver"` // "postgres" 或 "sqlite3"
 	DBDSN    string `yaml:"db_dsn"`    // 数据库连接字符串
 
-	RootTenantID uint64 `yaml:"root_tenant_id"` // admin接口只有一个租户有权限
+	RootUserID   uint64 `yaml:"root_user_id"`   // -init 时写入的超级管理员 uid，默认 10000
+	RootTenantID uint64 `yaml:"root_tenant_id"` // admin 接口有权限的根租户；-init 默认 10000
 
 	Domain           string `json:"domain"`
 	SessionKey       string `yaml:"session_key"`

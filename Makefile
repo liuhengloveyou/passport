@@ -15,7 +15,7 @@ BINARY_UNIX=$(BINARY_NAME)_unix
 all: build
 
 build:
-	$(GOBUILD) --ldflags ${flags} -o $(BINARY_NAME) -v
+	$(GOBUILD) --ldflags ${flags} -o $(BINARY_NAME) -v ./cmd/passport
 test:
 	$(GOTEST) -v ./...
 clean:
@@ -25,4 +25,4 @@ clean:
 
 # Cross compilation
 linux:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) --ldflags ${flags} -o $(BINARY_UNIX) -v
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) --ldflags ${flags} -o $(BINARY_UNIX) -v ./cmd/passport
