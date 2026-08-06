@@ -66,10 +66,21 @@ func DepartmentUpdateConfig(model *protos.Department) (rowsAffected int64, err e
 }
 
 func DepartmentFind(id, tenantId, page, pageSize uint64) (rr []protos.Department, err error) {
-	tx := sq.Select("*").From("departments").PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).Where("tenant_id = $1", tenantId).OrderBy("update_time desc")
+	tx := sq.Select(
+		"id",
+		"parent_id",
+		"uid",
+		"tenant_id",
+		"create_time",
+		"update_time",
+		"name",
+		"config",
+	).From("departments").PlaceholderFormat(database.GetPlaceholderFormat(common.DB.DriverType())).
+		Where(sq.Eq{"tenant_id": tenantId}).
+		OrderBy("update_time desc")
 
 	if id > 0 {
-		tx = tx.Where("id = $2", id)
+		tx = tx.Where(sq.Eq{"id": id})
 	}
 	if page > 0 && pageSize > 0 {
 		tx = tx.Limit(pageSize).Offset((page - 1) * pageSize)
@@ -92,7 +103,17 @@ func DepartmentFind(id, tenantId, page, pageSize uint64) (rr []protos.Department
 	rr = []protos.Department{}
 	for rows.Next() {
 		var dept protos.Department
-		err = rows.Scan(&dept.Id, &dept.UserId, &dept.TenantID, &dept.ParentID, &dept.Name, &dept.Config, &dept.CreateTime, &dept.UpdateTime)
+		// 列序须与 SELECT 一致：id, parent_id, uid, tenant_id, create_time, update_time, name, config
+		err = rows.Scan(
+			&dept.Id,
+			&dept.ParentID,
+			&dept.UserId,
+			&dept.TenantID,
+			&dept.CreateTime,
+			&dept.UpdateTime,
+			&dept.Name,
+			&dept.Config,
+		)
 		if err != nil {
 			common.Logger.Sugar().Errorf("Failed to scan row: %v", err)
 			return nil, err

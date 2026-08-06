@@ -90,11 +90,11 @@ func init() {
 		"tenant/department/list":      {Handler: faceTenant.DepartmentList, NeedLogin: true},
 
 		// SAAS平台管理员接口
-		"admin/tenant/new":                {Handler: faceAdmin.AdminTenantNew, NeedLogin: true, NeedAccess: false},
-		"admin/user/list": {Handler: faceAdmin.UserList, NeedLogin: true, NeedAccess: false},
+		"admin/tenant/new": {Handler: faceAdmin.AdminTenantNew, NeedLogin: true, NeedAccess: false},
+		"admin/user/list":  {Handler: faceAdmin.UserList, NeedLogin: true, NeedAccess: false},
 		// admin/user/add：向指定租户新增租户管理员账号，并在该租户域内固定绑定 root 角色。
-		"admin/user/add": {Handler: faceAdmin.UserAdd, NeedLogin: true, NeedAccess: false},
-		"admin/user/del": {Handler: faceAdmin.UserDel, NeedLogin: true, NeedAccess: false},
+		"admin/user/add":                  {Handler: faceAdmin.UserAdd, NeedLogin: true, NeedAccess: false},
+		"admin/user/del":                  {Handler: faceAdmin.UserDel, NeedLogin: true, NeedAccess: false},
 		"admin/user/edit":                 {Handler: faceAdmin.UserEdit, NeedLogin: true, NeedAccess: false},
 		"admin/tenant/query":              {Handler: faceAdmin.AdminTenantQuery, NeedLogin: true, NeedAccess: false},
 		"admin/tenant/setParent":          {Handler: faceAdmin.AdminSetParent, NeedLogin: true, NeedAccess: false},
@@ -175,8 +175,8 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.Header.Add("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Cache-Control, Content-Language, Content-Type")
 		r.Header.Add("Access-Control-Allow-Credentials", "true")
 		r.Header.Add("Access-Control-Max-Age", "86400")
-		r.Header.Set("content-type", "application/json")
 	}
+
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusNoContent)
 		return

@@ -83,7 +83,7 @@ func TenantUserGet(tenantID, page, pageSize uint64, nickname string, uids []uint
 	// 部门字典
 	departments, err := DepartmentFind(0, tenantID, 0, 0)
 	if err != nil {
-		common.Logger.Sugar().Error("TenantUserGet DepartmentFind ERR: %v", e)
+		common.Logger.Sugar().Error("TenantUserGet DepartmentFind ERR: %v", err)
 		e = common.ErrService
 		return
 	}

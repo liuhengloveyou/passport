@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	gocommon "github.com/liuhengloveyou/go-common"
@@ -69,7 +70,12 @@ func init() {
 	}
 
 	if e = InitWithOption(&ServConfig); e != nil {
-		log.Panic("InitWithOption ", e)
+		// 目标库尚未创建时（如首次 -init）允许延迟连接，由 InitSystemEnv/EnsureDatabase 建库后再连
+		if isDatabaseNotExistErr(e) {
+			log.Println("InitWithOption: passport 数据库尚不存在，跳过连接（可用 -init 创建）:", e)
+		} else {
+			log.Panic("InitWithOption ", e)
+		}
 	}
 
 	if len(ServConfig.SmsDriveer) > 0 {
@@ -193,11 +199,19 @@ func InitDBWithDriver(driver, dsn string) (err error) {
 	}
 
 	if err = DB.Ping(context.Background()); err != nil {
-		panic(err)
+		return fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	// Logger.Info("Database initialized", zap.String("driver", driver), zap.String("dsn", maskDSN(dsn)))
 	return nil
+}
+
+func isDatabaseNotExistErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "does not exist") && strings.Contains(msg, "database")
 }
 
 // maskDSN 隐藏DSN中的敏感信息（用于日志）
@@ -248,165 +262,6 @@ func InitRedis(addr string) (err error) {
 	}
 
 	fmt.Println("passport redis inited.")
-
-	return nil
-}
-
-func InitDBTable(db *pgxpool.Pool) error {
-	// 初始化数据库表
-	ctx := context.Background()
-
-	// 创建用户表
-	_, err := db.Exec(ctx, `
-		-- 用户表
-		CREATE TABLE IF NOT EXISTS users 
-		(
-		uid BIGSERIAL PRIMARY KEY,
-		tenant_id BIGINT NOT NULL DEFAULT 0,
-		nickname VARCHAR(64) UNIQUE,
-		cellphone VARCHAR(11) UNIQUE,
-		email VARCHAR(255) UNIQUE,
-		wx_openid VARCHAR(64) UNIQUE,
-		password VARCHAR(512) NOT NULL,
-		avatar_url VARCHAR(255),
-		gender SMALLINT,
-		addr VARCHAR(1024),
-		province VARCHAR(64),
-		city VARCHAR(64),
-		ext JSONB,
-		create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-		update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-		login_time TIMESTAMPTZ
-		);
-		-- ALTER TABLE IF EXISTS public.users OWNER to pcdn;
-		-- DROP INDEX IF EXISTS public.tenant_id;
-		CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users(tenant_id) WITH (deduplicate_items=True);
-		-- 替换原来的 ALTER SEQUENCE users_uid_seq RESTART WITH 10000;
-		DO $$
-		BEGIN
-			IF (SELECT last_value FROM users_uid_seq) < 10000 THEN
-				ALTER SEQUENCE users_uid_seq RESTART WITH 10000;
-			END IF;
-		END $$;
-	`)
-	if err != nil {
-		return fmt.Errorf("创建用户表失败: %w", err)
-	}
-
-	// 创建租户表
-	_, err = db.Exec(ctx, `
-		-- 租户表
-		CREATE TABLE IF NOT EXISTS tenants (
-			id BIGSERIAL PRIMARY KEY,
-			uid BIGINT NOT NULL DEFAULT 0,
-			tenant_name VARCHAR(255) NOT NULL UNIQUE,
-			tenant_type VARCHAR(45) NOT NULL DEFAULT '',
-			info JSONB,
-			configuration JSONB,
-			create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-		);
-		CREATE INDEX IF NOT EXISTS idx_tenants_tenant_name ON tenants(tenant_name);
-		-- 替换原来的 ALTER SEQUENCE tenants_id_seq RESTART WITH 10000;
-		DO $$
-		BEGIN
-			IF (SELECT last_value FROM tenants_id_seq) < 10000 THEN
-				ALTER SEQUENCE tenants_id_seq RESTART WITH 10000;
-			END IF;
-		END $$;
-	`)
-	if err != nil {
-		return fmt.Errorf("创建租户表失败: %w", err)
-	}
-
-	// 创建权限表
-	_, err = db.Exec(ctx, `
-		-- 权限表
-		CREATE TABLE IF NOT EXISTS permission (
-			id BIGSERIAL PRIMARY KEY,
-			tenant_id BIGINT NOT NULL,
-			domain VARCHAR(128) NOT NULL,
-			title VARCHAR(128) NOT NULL,
-			value VARCHAR(256) NOT NULL,
-			create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			UNIQUE (tenant_id, domain, title),
-			UNIQUE (value, domain, tenant_id)
-		);
-		CREATE INDEX IF NOT EXISTS idx_permission_tenant_id ON permission(tenant_id);
-		CREATE INDEX IF NOT EXISTS idx_permission_domain ON permission(domain);
-		-- 替换原来的 ALTER SEQUENCE permission_id_seq RESTART WITH 10000;
-		DO $$
-		BEGIN
-			IF (SELECT last_value FROM permission_id_seq) < 10000 THEN
-				ALTER SEQUENCE permission_id_seq RESTART WITH 10000;
-			END IF;
-		END $$;
-	`)
-	if err != nil {
-		return fmt.Errorf("创建权限表失败: %w", err)
-	}
-
-	// 创建部门表
-	_, err = db.Exec(ctx, `
-		-- 部门表
-		CREATE TABLE IF NOT EXISTS departments (
-			id BIGSERIAL PRIMARY KEY,
-			parent_id BIGINT NOT NULL DEFAULT 0,
-			uid BIGINT NOT NULL,
-			tenant_id BIGINT NOT NULL,
-			create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			name VARCHAR(16) NOT NULL,
-			config JSONB,
-			UNIQUE (tenant_id, name)
-		);
-		CREATE INDEX IF NOT EXISTS idx_departments_tenant_id ON departments(tenant_id);
-		CREATE INDEX IF NOT EXISTS idx_departments_parent_id ON departments(parent_id);
-		CREATE INDEX IF NOT EXISTS idx_departments_uid ON departments(uid);
-		-- 替换原来的 ALTER SEQUENCE departments_id_seq RESTART WITH 10000;
-		DO $$
-		BEGIN
-			IF (SELECT last_value FROM departments_id_seq) < 10000 THEN
-				ALTER SEQUENCE departments_id_seq RESTART WITH 10000;
-			END IF;
-		END $$;
-	`)
-	if err != nil {
-		return fmt.Errorf("创建部门表失败: %w", err)
-	}
-
-	// 创建用户闭包表
-	_, err = db.Exec(ctx, `
-		-- 用户闭包表
-		CREATE TABLE IF NOT EXISTS user_closure (
-			ancestor_id BIGINT NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
-			descendant_id BIGINT NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
-			depth INT NOT NULL CHECK (depth >= 0),
-			PRIMARY KEY (ancestor_id, descendant_id)
-		);
-		CREATE INDEX IF NOT EXISTS idx_user_closure_ancestor ON user_closure(ancestor_id);
-		CREATE INDEX IF NOT EXISTS idx_user_closure_descendant ON user_closure(descendant_id);
-	`)
-	if err != nil {
-		return fmt.Errorf("创建用户闭包表失败: %w", err)
-	}
-
-	// 创建租户闭包表
-	_, err = db.Exec(ctx, `
-		-- 租户闭包表
-		CREATE TABLE IF NOT EXISTS tenant_closure (
-			ancestor_id BIGINT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-			descendant_id BIGINT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-			depth INT NOT NULL CHECK (depth >= 0),
-			PRIMARY KEY (ancestor_id, descendant_id)
-		);
-		CREATE INDEX IF NOT EXISTS idx_tenant_closure_tenant_id ON tenant_closure(ancestor_id);
-		CREATE INDEX IF NOT EXISTS idx_tenant_closure_ancestor_id ON tenant_closure(descendant_id);
-	`)
-	if err != nil {
-		return fmt.Errorf("创建租户闭包表失败: %w", err)
-	}
 
 	return nil
 }

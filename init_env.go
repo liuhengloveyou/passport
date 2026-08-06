@@ -72,14 +72,22 @@ func InitSystemEnvWithRBAC(options *protos.OptionStruct, rbacModel string) error
 		rbacModel = defaultRBACModel
 	}
 
+	// 先创建目标库（如 club-passport），再连库建表
+	if err := common.EnsureDatabase(options.DBDriver, options.DBDSN); err != nil {
+		return fmt.Errorf("确保 passport 数据库存在失败: %w", err)
+	}
+
 	if common.DB == nil {
 		if err := common.InitDBWithDriver(options.DBDriver, options.DBDSN); err != nil {
 			return fmt.Errorf("初始化 passport DB 失败: %w", err)
 		}
 	}
 
-	if err := dao.Init(options); err != nil {
-		return fmt.Errorf("初始化数据库表结构失败: %w", err)
+	// PostgreSQL 表已在 EnsureDatabase/InitDBTable 中创建；sqlite 等其它驱动走 dao.Init
+	if options.DBDriver != "postgres" {
+		if err := dao.Init(options); err != nil {
+			return fmt.Errorf("初始化数据库表结构失败: %w", err)
+		}
 	}
 
 	seed := &dao.SeedRootOptions{

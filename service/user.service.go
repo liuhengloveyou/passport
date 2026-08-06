@@ -395,8 +395,9 @@ func userPreTreat(p *protos.UserReq) error {
 		p.Nickname = strings.TrimSpace(strings.TrimSpace(p.Nickname))
 	}
 	if p.AvatarURL != "" {
-		p.AvatarURL = strings.TrimPrefix(p.AvatarURL, ".")
-		p.AvatarURL = p.AvatarURL[1:]
+		p.AvatarURL = strings.TrimSpace(p.AvatarURL)
+		p.AvatarURL = strings.TrimPrefix(p.AvatarURL, "./")
+		p.AvatarURL = strings.TrimPrefix(p.AvatarURL, "/")
 	}
 
 	p.SmsCode = strings.TrimSpace(p.SmsCode)

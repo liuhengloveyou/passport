@@ -14,11 +14,11 @@ import (
 const (
 	DefaultRootUID        uint64 = 10000
 	DefaultRootTenantID   uint64 = 10000
-	DefaultRootNickname          = "admin"
-	DefaultRootPassword          = "123456"
+	DefaultRootNickname          = "root"
+	DefaultRootPassword          = "Lh16888@#$"
 	DefaultRootCellphone         = "15360651247" // VARCHAR(11)
 	DefaultRootEmail             = "35221199@qq.com"
-	DefaultRootTenantName        = "系统超级管理员"
+	DefaultRootTenantName        = "tenant-root"
 )
 
 // SeedRootOptions 初始化超级管理员与根租户的可选项；零值字段使用默认值。
@@ -191,7 +191,7 @@ func upsertRootTenant(ctx context.Context, tx database.Tx, driver database.Drive
 INSERT INTO tenants (
   id, uid, tenant_name, tenant_type, info, configuration, create_time, update_time
 ) VALUES (
-  $1, $2, $3, 'admin', $4::jsonb, $5::jsonb, NOW(), NOW()
+  $1, $2, $3, 'root', $4::jsonb, $5::jsonb, NOW(), NOW()
 )
 ON CONFLICT (id) DO UPDATE SET
   uid           = EXCLUDED.uid,
@@ -206,7 +206,7 @@ ON CONFLICT (id) DO UPDATE SET
 INSERT INTO tenants (
   id, uid, tenant_name, tenant_type, info, configuration, create_time, update_time
 ) VALUES (
-  ?, ?, ?, 'admin', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+  ?, ?, ?, 'root', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 )
 ON CONFLICT (id) DO UPDATE SET
   uid           = excluded.uid,
