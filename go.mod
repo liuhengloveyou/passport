@@ -22,6 +22,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/quasoft/memstore v0.0.0-20191010062613-2bce066d2b0b
 	github.com/redis/go-redis/v9 v9.10.0
+	github.com/smartwalle/alipay/v3 v3.2.31
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.1193
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms v1.0.1183
 	go.uber.org/zap v1.27.0
@@ -60,6 +61,9 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
+	github.com/smartwalle/ncrypto v1.0.4 // indirect
+	github.com/smartwalle/ngx v1.1.2 // indirect
+	github.com/smartwalle/nsign v1.0.9 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

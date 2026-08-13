@@ -70,24 +70,27 @@ func AuthFilter(r *http.Request) (sess *sessions.Session, auth bool) {
 	if _, ok := sess.Values[common.SessUserInfoKey].(protos.User); !ok {
 		return nil, false
 	}
-	if sess.Values[common.SessUserInfoKey].(protos.User).UID <= 0 {
+
+	uid := sess.Values[common.SessUserInfoKey].(protos.User).UID
+	if !protos.IsRealUserUID(uid) {
 		return nil, false
 	}
 
-	uid := sess.Values[common.SessUserInfoKey].(protos.User).UID
 	userInfo, ok := loginUserCache.Load(uid)
-	if userInfo == nil || !ok || time.Now().Unix()-userInfo.(*protos.User).CacheTime > 600 {
+	cached, _ := userInfo.(*protos.User)
+	if cached == nil || !ok || time.Now().Unix()-cached.CacheTime > 600 {
 		userInfo, _ = service.GetUserInfo(uid)
+		cached, _ = userInfo.(*protos.User)
 	}
-	if userInfo == nil {
+	if cached == nil {
 		Logger().Sugar().Warnf("AuthFilter: user %v not found\n", uid)
 		return nil, false
 	}
 
-	userInfo.(*protos.User).CacheTime = time.Now().Unix()
-	loginUserCache.Store(uid, userInfo)
+	cached.CacheTime = time.Now().Unix()
+	loginUserCache.Store(uid, cached)
 
-	disabled, ok := userInfo.(*protos.User).Ext["disabled"].(float64)
+	disabled, ok := cached.Ext["disabled"].(float64)
 	if ok && protos.UserDisableStatus(int8(disabled)) == protos.UserDisabled {
 		return nil, false
 	}

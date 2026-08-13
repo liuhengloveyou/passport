@@ -12,9 +12,14 @@ import (
 const (
 	DepartmentExtKey = "deps"
 
-	WX_MP_AUTH_UID = 100
-	ALI_AUTH_UID   = 101
+	// RealUserMinUID 真实用户 UID 下限
+	RealUserMinUID = 10000
 )
+
+// IsRealUserUID 是否为需查 users 表的真实登录用户
+func IsRealUserUID(uid uint64) bool {
+	return uid >= RealUserMinUID
+}
 
 type UserDisableStatus int8
 
@@ -33,7 +38,7 @@ type PageResponse struct {
 }
 
 type User struct {
-	UID       uint64       `json:"uid,omitempty" validate:"-" db:"uid"` // 正常要从10000开始往上自增，10000以下保留内部使用
+	UID       uint64       `json:"uid,omitempty" validate:"-" db:"uid"` // 真实用户从 RealUserMinUID 起
 	TenantID  uint64       `json:"tenant_id,omitempty" validate:"-" db:"tenant_id"`
 	Password  string       `json:"password,omitempty" validate:"required,min=6,max=256" db:"password"`
 	Cellphone *null.String `json:"cellphone,omitempty" validate:"omitempty,len=11" db:"cellphone"`

@@ -15,7 +15,7 @@ import (
 )
 
 /*
-微信公众号oauth2登录
+微信公众号oauth2登录；用户不存在则自动注册为真实用户（无虚拟 UID=0 会话）。
 */
 func UserLoginByWeixin(req *protos.UserReq) (one *protos.User, e error) {
 	if req == nil || len(req.WxOpenId) == 0 {
@@ -27,12 +27,40 @@ func UserLoginByWeixin(req *protos.UserReq) (one *protos.User, e error) {
 	one, e = dao.UserQueryOne(req)
 	if e != nil {
 		common.Logger.Error("db err: ", zap.Error(e), zap.Any("req", req))
-		e = common.ErrService
+		return nil, common.ErrService
 	}
 
 	if one == nil {
-		common.Logger.Error("login user nil: ", zap.Any("req", req))
-		return nil, common.ErrLogin
+		nick := req.Nickname
+		if nick == "" {
+			oid := req.WxOpenId
+			if len(oid) > 8 {
+				oid = oid[len(oid)-8:]
+			}
+			nick = "用户" + oid
+		}
+		ins := &protos.UserReq{
+			WxOpenId: req.WxOpenId,
+			Nickname: nick,
+			Password: common.EncryPWD(req.WxOpenId),
+			AvatarURL: req.AvatarURL,
+			Gender:   req.Gender,
+			Ext:      req.Ext,
+		}
+		if ins.Ext == nil {
+			ins.Ext = protos.MapStruct{}
+		}
+		id, ierr := dao.UserInsert(ins, nil)
+		if ierr != nil {
+			common.Logger.Error("UserLoginByWeixin auto register ERR: ", zap.Error(ierr), zap.Any("req", req))
+			return nil, common.ErrService
+		}
+		one, e = dao.UserQueryByID(uint64(id))
+		if e != nil || one == nil {
+			common.Logger.Error("UserLoginByWeixin query after insert ERR: ", zap.Error(e))
+			return nil, common.ErrService
+		}
+		common.Logger.Sugar().Infof("UserLoginByWeixin auto registered uid=%d openid=%s\n", one.UID, req.WxOpenId)
 	}
 
 	disabled, ok := one.Ext["disabled"].(float64)
@@ -46,13 +74,12 @@ func UserLoginByWeixin(req *protos.UserReq) (one *protos.User, e error) {
 
 	rows, err := dao.UserUpdateLoginTime(one.UID, one.LoginTime)
 	if err != nil || rows != 1 {
-		common.Logger.Error("UserUpdateLoginTime ERR: ", zap.Int64("row", rows), zap.Error(e), zap.Any("req", req))
+		common.Logger.Error("UserUpdateLoginTime ERR: ", zap.Int64("row", rows), zap.Error(err), zap.Any("req", req))
 		e = common.ErrService
 		return
 	}
 
 	one.Password = ""
-	one.Ext = nil
 	one.Roles = nil
 	one.Departments = nil
 

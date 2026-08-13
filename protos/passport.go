@@ -33,6 +33,12 @@ type OptionStruct struct {
 	MiniAppID     string `yaml:"wx_mini_appid"`
 	MiniAppSecret string `yaml:"wx_mini_secret"`
 
+	// 支付宝网页授权（H5）
+	AlipayAppID      string `yaml:"alipay_app_id"`
+	AlipayPrivateKey string `yaml:"alipay_private_key"`
+	AlipayPublicKey  string `yaml:"alipay_public_key"`
+	AlipayEncryptKey string `yaml:"alipay_encrypt_key"`
+
 	ApiConf map[string]ApiConfStruct `yaml:"api_conf"`
 }
 

@@ -14,6 +14,7 @@ import (
 	"github.com/liuhengloveyou/passport/v3/common"
 	faceAccess "github.com/liuhengloveyou/passport/v3/face/access"
 	faceAdmin "github.com/liuhengloveyou/passport/v3/face/admin"
+	faceAli "github.com/liuhengloveyou/passport/v3/face/ali"
 	"github.com/liuhengloveyou/passport/v3/face/core"
 	faceSms "github.com/liuhengloveyou/passport/v3/face/sms"
 	faceTenant "github.com/liuhengloveyou/passport/v3/face/tenant"
@@ -140,8 +141,12 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 	core.InitSessionStore(sessionStore)
 
 	handler = &PassportHttpServer{}
-	http.HandleFunc("/usercenter/wx/mpauth", faceWx.MpAuth)
+	// 微信：登录入口 + OAuth 回调 + 小程序登录
+	http.HandleFunc("/usercenter/wx/login", faceWx.WxLogin)
+	http.HandleFunc("/usercenter/wx/oauth", faceWx.WxOAuthCallback)
 	http.HandleFunc("/usercenter/wx/mini/login", faceWx.WxMiniAppLogin)
+	// 支付宝：授权码登录（仅登录，支付留在业务服务）
+	http.HandleFunc("/usercenter/ali/login", faceAli.AliLogin)
 	http.Handle("/usercenter", handler)
 
 	if common.ServConfig.Addr != "" {
