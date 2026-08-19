@@ -3,12 +3,12 @@ package service
 import (
 	"context"
 
-	"github.com/liuhengloveyou/passport/v3/accessctl"
-	"github.com/liuhengloveyou/passport/v3/cache"
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/dao"
-	"github.com/liuhengloveyou/passport/v3/database"
-	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v4/accessctl"
+	"github.com/liuhengloveyou/passport/v4/cache"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/dao"
+	"github.com/liuhengloveyou/passport/v4/database"
+	"github.com/liuhengloveyou/passport/v4/protos"
 )
 
 // invalidateTenantCache 统一失效指定租户缓存（忽略无效ID）。
@@ -102,12 +102,6 @@ func TenantAdd(m *protos.Tenant) (tenantID uint64, e error) {
 	if tenantID <= 0 {
 		common.Logger.Sugar().Errorf("TenantAdd AddRoleForUserInDomain ERR: %v %v %v\n", m.UID, tenantID, e)
 		return 0, common.ErrTenantAddERR
-	}
-
-	// 当前用户设置为超级管理员角色
-	if e = accessctl.AddRoleForUserInDomain(m.UID, uint64(tenantID), "root"); e != nil {
-		common.Logger.Sugar().Errorf("TenantAdd AddRoleForUserInDomain ERR: %v %v %v\n", m.UID, tenantID, e)
-		return 0, common.ErrService
 	}
 
 	e = tx.Commit(ctx)
@@ -262,7 +256,7 @@ func TenantUpdateConfiguration(tenantId uint64, data map[string]interface{}) err
 }
 
 // getTenantUserRoles 获取租户内用户角色并补全角色标题信息。
-func getTenantUserRoles(uid, tenantId uint64) (roles []protos.RoleStruct, err error) {
+func getTenantUserRoles(uid, tenantId, orgID uint64) (roles []protos.RoleStruct, err error) {
 	tenant, err := getTenantByIDCached(tenantId) // 取tenant里的角色字典
 	if err != nil {
 		common.Logger.Sugar().Errorf("getTenantUserRole db ERR: %v\n", err)
@@ -275,7 +269,7 @@ func getTenantUserRoles(uid, tenantId uint64) (roles []protos.RoleStruct, err er
 
 	common.Logger.Sugar().Debugf("tenant: %v\n", tenant)
 
-	roleVals := accessctl.GetRoleForUserInDomain(uid, tenantId)
+	roleVals := accessctl.GetRoleForUserInDomain(uid, tenantId, orgID)
 	if len(roleVals) == 0 {
 		common.Logger.Sugar().Errorf("getTenantUserRole roles nil\n")
 		return nil, nil
@@ -298,7 +292,7 @@ func getTenantUserRoles(uid, tenantId uint64) (roles []protos.RoleStruct, err er
 		} else {
 			// 如果角色字典已经删除
 			common.Logger.Sugar().Warnf("getTenantUserRoles DeleteRoleForUserInDomain: %v %v %v\n", uid, tenantId, roleVals[i])
-			accessctl.DeleteRoleForUserInDomain(uid, tenantId, roleVals[i])
+			accessctl.DeleteRoleForUserInDomain(uid, tenantId, orgID, roleVals[i])
 		}
 	}
 
@@ -306,8 +300,8 @@ func getTenantUserRoles(uid, tenantId uint64) (roles []protos.RoleStruct, err er
 }
 
 // getTenantUserDepartment 根据部门ID列表组装用户部门信息。
-func getTenantUserDepartment(uid, tenantId uint64, depIds []uint64) (deps []protos.Department, e error) {
-	departments, err := DepartmentFind(0, tenantId, 0, 0)
+func getTenantUserDepartment(uid, tenantId, orgID uint64, depIds []uint64) (deps []protos.Department, e error) {
+	departments, err := DepartmentFind(0, tenantId, orgID, 0, 0)
 	if err != nil {
 		common.Logger.Sugar().Error("getTenantUserDepartment DepartmentFind ERR: %v", e)
 		e = common.ErrService

@@ -10,18 +10,19 @@ import (
 
 	_ "net/http/pprof"
 
-	"github.com/liuhengloveyou/passport/v3/accessctl"
-	"github.com/liuhengloveyou/passport/v3/common"
-	faceAccess "github.com/liuhengloveyou/passport/v3/face/access"
-	faceAdmin "github.com/liuhengloveyou/passport/v3/face/admin"
-	faceAli "github.com/liuhengloveyou/passport/v3/face/ali"
-	"github.com/liuhengloveyou/passport/v3/face/core"
-	faceSms "github.com/liuhengloveyou/passport/v3/face/sms"
-	faceTenant "github.com/liuhengloveyou/passport/v3/face/tenant"
-	"github.com/liuhengloveyou/passport/v3/face/user"
-	faceWx "github.com/liuhengloveyou/passport/v3/face/wx"
-	"github.com/liuhengloveyou/passport/v3/protos"
-	"github.com/liuhengloveyou/passport/v3/sessions"
+	"github.com/liuhengloveyou/passport/v4/accessctl"
+	"github.com/liuhengloveyou/passport/v4/common"
+	faceAccess "github.com/liuhengloveyou/passport/v4/face/access"
+	faceAdmin "github.com/liuhengloveyou/passport/v4/face/admin"
+	faceAli "github.com/liuhengloveyou/passport/v4/face/ali"
+	"github.com/liuhengloveyou/passport/v4/face/core"
+	faceSms "github.com/liuhengloveyou/passport/v4/face/sms"
+	faceTenant "github.com/liuhengloveyou/passport/v4/face/tenant"
+	"github.com/liuhengloveyou/passport/v4/face/user"
+	faceWx "github.com/liuhengloveyou/passport/v4/face/wx"
+	"github.com/liuhengloveyou/passport/v4/protos"
+	"github.com/liuhengloveyou/passport/v4/service"
+	"github.com/liuhengloveyou/passport/v4/sessions"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 	"go.uber.org/zap"
@@ -176,7 +177,7 @@ func (p *PassportHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if origin != "" {
 		r.Header.Add("Access-Control-Allow-Origin", origin)
 		r.Header.Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
-		r.Header.Add("Access-Control-Allow-Headers", "Origin, X-Requested-With, X-Extra-Header, Content-Type, Accept, Authorization")
+		r.Header.Add("Access-Control-Allow-Headers", "Origin, X-Requested-With, X-Extra-Header, Content-Type, Accept, Authorization, X-API, X-Org-Id")
 		r.Header.Add("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Cache-Control, Content-Language, Content-Type")
 		r.Header.Add("Access-Control-Allow-Credentials", "true")
 		r.Header.Add("Access-Control-Max-Age", "86400")
@@ -252,7 +253,8 @@ func AccessFilter(r *http.Request) bool {
 		obj = r.Header.Get("X-API")
 	}
 	if obj == "" {
-		obj = r.RequestURI
+		// 只用 Path，避免 shopId 等 query 让 Casbin 对不上策略
+		obj = r.URL.Path
 	}
 	if obj == "" {
 		logger.Sugar().Errorf("passport http api no obj: %v %v\n", r.Method, r.URL)
@@ -276,7 +278,16 @@ func AccessFilter(r *http.Request) bool {
 		needAccess = apiConf.NeedAccess
 	}
 	if needAccess {
-		access, err := accessctl.Enforce(sessUser.UID, sessUser.TenantID, obj, r.Method)
+		orgID := core.ParseOrgID(r)
+		if orgID == 0 {
+			logger.Sugar().Errorf("passport http api no org: %v %v\n", r.Method, r.URL)
+			return false
+		}
+		if err := service.UserInOrg(sessUser.UID, sessUser.TenantID, orgID); err != nil {
+			logger.Sugar().Errorf("passport http api org ERR: %v %v %v\n", r.Method, r.URL, err)
+			return false
+		}
+		access, err := accessctl.Enforce(sessUser.UID, sessUser.TenantID, orgID, obj, r.Method)
 		if err != nil {
 			logger.Sugar().Errorf("passport http api no access: %v %v\n", r.Method, r.URL)
 			return false

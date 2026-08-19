@@ -7,11 +7,10 @@ import (
 	"strings"
 
 	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/passport/v3/accessctl"
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/face/core"
-	"github.com/liuhengloveyou/passport/v3/protos"
-	"github.com/liuhengloveyou/passport/v3/service"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/face/core"
+	"github.com/liuhengloveyou/passport/v4/protos"
+	"github.com/liuhengloveyou/passport/v4/service"
 	"go.uber.org/zap"
 )
 
@@ -29,14 +28,7 @@ func authorizeAdminTenant(sessionUser protos.User, action string, targetTenantID
 
 	isRootAdmin := myTenant.UID == sessionUser.UID
 	if !isRootAdmin {
-		roles := accessctl.GetRoleForUserInDomain(sessionUser.UID, sessionUser.TenantID)
-		core.Logger().Debug(action+" roles: ", zap.Uint64("uid", sessionUser.UID), zap.Uint64("tenantID", sessionUser.TenantID), zap.Any("roles", roles))
-		for _, role := range roles {
-			if role == "root" {
-				isRootAdmin = true
-				break
-			}
-		}
+		isRootAdmin = service.UserHasRoleInTenant(sessionUser.UID, sessionUser.TenantID, "root")
 	}
 	if !isRootAdmin {
 		core.Logger().Error(action+" role auth ERR: ",

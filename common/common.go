@@ -12,13 +12,13 @@ import (
 	"time"
 
 	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/passport/v3/protos"
-	"github.com/liuhengloveyou/passport/v3/sessions"
-	"github.com/liuhengloveyou/passport/v3/sms"
+	"github.com/liuhengloveyou/passport/v4/protos"
+	"github.com/liuhengloveyou/passport/v4/sessions"
+	"github.com/liuhengloveyou/passport/v4/sms"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
-	"github.com/liuhengloveyou/passport/v3/database"
+	"github.com/liuhengloveyou/passport/v4/database"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

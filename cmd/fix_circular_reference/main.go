@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/liuhengloveyou/passport/v3/common"
+	"github.com/liuhengloveyou/passport/v4/common"
 )
 
 func main() {

@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/face/core"
-	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/face/core"
+	"github.com/liuhengloveyou/passport/v4/protos"
 )
 
 // UserAuth 校验当前会话登录状态并返回会话用户信息。

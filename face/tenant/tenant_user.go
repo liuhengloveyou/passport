@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/face/core"
-	"github.com/liuhengloveyou/passport/v3/protos"
-	"github.com/liuhengloveyou/passport/v3/service"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/face/core"
+	"github.com/liuhengloveyou/passport/v4/protos"
+	"github.com/liuhengloveyou/passport/v4/service"
 )
 
 // UserAdd 为当前租户新增成员，支持直接绑定已有 UID 或先创建用户再入租户。
@@ -25,6 +25,11 @@ func UserAdd(w http.ResponseWriter, r *http.Request) {
 	if err := core.ReadJSONBodyFromRequest(r, req, 1024); err != nil {
 		common.Logger.Sugar().Errorf("tenant.UserAdd bad request body: method=%s uri=%s tenant=%d err=%v", r.Method, r.RequestURI, sessionUser.TenantID, err)
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+	orgID, err := core.SessionOrgID(r, sessionUser.TenantID)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
 	if len(req.Roles) > 10 {
@@ -47,6 +52,7 @@ func UserAdd(w http.ResponseWriter, r *http.Request) {
 	if err := service.TenantUserAdd(
 		req.UID,
 		sessionUser.TenantID,
+		orgID,
 		req.DepIds,
 		req.Roles,
 		protos.UserDisableStatus(req.Disable),
@@ -73,9 +79,14 @@ func UserDel(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
-	common.Logger.Sugar().Infof("tenant.UserDel start: operator_uid=%d tenant=%d target_uid=%d",
-		sessionUser.UID, sessionUser.TenantID, req.UID)
-	if _, e := service.TenantUserDel(req.UID, sessionUser.TenantID); e != nil {
+	orgID, err := core.SessionOrgID(r, sessionUser.TenantID)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+	common.Logger.Sugar().Infof("tenant.UserDel start: operator_uid=%d tenant=%d org=%d target_uid=%d",
+		sessionUser.UID, sessionUser.TenantID, orgID, req.UID)
+	if _, e := service.TenantUserLeaveOrg(req.UID, sessionUser.TenantID, orgID); e != nil {
 		common.Logger.Sugar().Errorf("tenant.UserDel failed: tenant=%d target_uid=%d err=%v", sessionUser.TenantID, req.UID, e)
 		gocommon.HttpJsonErr(w, http.StatusOK, e)
 		return
@@ -121,9 +132,14 @@ func UserGet(w http.ResponseWriter, r *http.Request) {
 	if pageSize > 1000 {
 		pageSize = 1000
 	}
-	common.Logger.Sugar().Infof("tenant.UserGet start: operator_uid=%d tenant=%d page=%d pageSize=%d hasTotal=%t nickname=%q uids=%v",
-		sessionUser.UID, sessionUser.TenantID, page, pageSize, hasTotal == 1, nickname, uids)
-	rr, e := service.TenantUserGet(sessionUser.TenantID, page, pageSize, nickname, uids, hasTotal == 1)
+	orgID, err := core.SessionOrgID(r, sessionUser.TenantID)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+	common.Logger.Sugar().Infof("tenant.UserGet start: operator_uid=%d tenant=%d org=%d page=%d pageSize=%d hasTotal=%t nickname=%q uids=%v",
+		sessionUser.UID, sessionUser.TenantID, orgID, page, pageSize, hasTotal == 1, nickname, uids)
+	rr, e := service.TenantUserGet(sessionUser.TenantID, orgID, page, pageSize, nickname, uids, hasTotal == 1)
 	if e != nil {
 		common.Logger.Sugar().Errorf("tenant.UserGet failed: tenant=%d page=%d pageSize=%d err=%v", sessionUser.TenantID, page, pageSize, e)
 		gocommon.HttpJsonErr(w, http.StatusOK, e)
@@ -178,8 +194,10 @@ func UserModifyExtInfo(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
-	common.Logger.Sugar().Infof("tenant.UserModifyExtInfo start: operator_uid=%d tenant=%d target_uid=%d key=%s",
-		sessionUser.UID, sessionUser.TenantID, req.ID, req.K)
+	if strings.TrimSpace(req.K) == protos.DepartmentExtKey {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
 	if err := service.TenantUpdateUserExt(req.ID, sessionUser.TenantID, req.K, req.V); err != nil {
 		common.Logger.Sugar().Errorf("tenant.UserModifyExtInfo failed: tenant=%d target_uid=%d key=%s err=%v",
 			sessionUser.TenantID, req.ID, req.K, err)
@@ -249,9 +267,14 @@ func UserSetDepartment(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
-	common.Logger.Sugar().Infof("tenant.UserSetDepartment start: operator_uid=%d tenant=%d target_uid=%d depIds=%v",
-		sessionUser.UID, sessionUser.TenantID, req.UID, req.DepIds)
-	if err := service.TenantUserSetDepartment(req.UID, sessionUser.TenantID, req.DepIds); err != nil {
+	orgID, err := core.SessionOrgID(r, sessionUser.TenantID)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+	common.Logger.Sugar().Infof("tenant.UserSetDepartment start: operator_uid=%d tenant=%d org=%d target_uid=%d depIds=%v",
+		sessionUser.UID, sessionUser.TenantID, orgID, req.UID, req.DepIds)
+	if err := service.TenantUserSetDepartment(req.UID, sessionUser.TenantID, orgID, req.DepIds); err != nil {
 		common.Logger.Sugar().Errorf("tenant.UserSetDepartment failed: tenant=%d target_uid=%d depIds=%v err=%v",
 			sessionUser.TenantID, req.UID, req.DepIds, err)
 		gocommon.HttpJsonErr(w, http.StatusOK, err)

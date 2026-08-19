@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/face/core"
-	"github.com/liuhengloveyou/passport/v3/protos"
-	servicesms "github.com/liuhengloveyou/passport/v3/sms"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/face/core"
+	"github.com/liuhengloveyou/passport/v4/protos"
+	servicesms "github.com/liuhengloveyou/passport/v4/sms"
 )
 
 // SendUserAddSmsCode 发送用户注册验证码。

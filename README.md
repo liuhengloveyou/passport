@@ -4,23 +4,42 @@
 
 用户基础信息维护、登录、权限验证、会话管理。
 
+### v4：一租户多组织
+
+自 **v4.0.0** 起，模块路径为 `github.com/liuhengloveyou/passport/v4`。
+
+模型：
+
+- **租户（tenant）**：账号归属边界；一个用户仍只属于一个租户
+- **组织（organization）**：租户下的业务单元（如门店）；一个租户可有多个组织
+- **部门 / RBAC / 数据范围**：均落在「租户 + 组织」维度内
+
+请求约定：
+
+- 需要组织上下文的接口（成员、部门、角色、权限校验等）必须带请求头 **`X-Org-Id`**
+- Casbin domain 形如：`tenant-{tenantId}-org-{orgId}`
+- CORS 已允许 `X-Org-Id`
+
+初始化：`-init` / seed 会为 root 租户确保至少一个组织，并把 root 用户加入该组织。
+
 ## 目录结构（API 分组）
 
-从 v3 当前版本开始，`face` 已按业务域拆分为多 package：
+`face` 按业务域拆分为多 package：
 
-- `face/http`：HTTP 入口、路由分发、鉴权/权限过滤
-- `face/core`：跨模块共享能力（会话、用户上下文、请求体解析、日志）
+- `face/http`：HTTP 入口、路由分发、鉴权/权限过滤（含 `X-Org-Id`）
+- `face/core`：跨模块共享能力（会话、`ParseOrgID` / `SessionOrgID`、请求体解析、日志）
 - `face/user`：用户相关 API（注册/登录/信息/修改）
-- `face/tenant`：租户/租户成员/部门/租户树 API
-- `face/access`：RBAC 角色、策略、权限字典 API
+- `face/tenant`：租户/租户成员/部门/租户树 API（成员与部门按组织隔离）
+- `face/access`：RBAC 角色、策略、权限字典 API（按组织 domain）
 - `face/admin`：平台管理 API
 - `face/sms`：短信相关 API
 - `face/wx`：微信相关 API
+- `face/ali`：支付宝 H5 授权 API
 
-兼容性说明：
+服务层补充：
 
-- 旧入口 `face.InitAndRunHttpApi` 仍可使用，内部已转发到 `face/http`。
-- `face/api_compat.go` 保留了旧函数名到新 package 的兼容转发，便于平滑迁移。
+- `service/org.service.go`：组织创建、成员、校验
+- `service/datascope.go`：按组织解析数据范围（`all` / `dept` / `self`）
 
 
 
@@ -84,8 +103,8 @@ import (
 	"net/http"
 	"time"
 
-	passport "github.com/liuhengloveyou/passport/v3/face/http"
-	passportprotos "github.com/liuhengloveyou/passport/v3/protos"
+	passport "github.com/liuhengloveyou/passport/v4/face/http"
+	passportprotos "github.com/liuhengloveyou/passport/v4/protos"
 )
 
 func main() {
@@ -134,8 +153,8 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	passport "github.com/liuhengloveyou/passport/v3/face/http"
-	passportprotos "github.com/liuhengloveyou/passport/v3/protos"
+	passport "github.com/liuhengloveyou/passport/v4/face/http"
+	passportprotos "github.com/liuhengloveyou/passport/v4/protos"
 )
 
 var engine *gin.Engine
@@ -195,6 +214,15 @@ func InitAdnRun(addr string) error {
 | tenant_id   | 租户ID   | >0的正整数    |
 | tenant_name | 租户名   | 2~100位字符串 |
 | tenant_type | 租户类型 | 2~10位字符串  |
+
+### 组织相关
+
+| 参数字段 / Header | 解释 | 取值范围 |
+| ----------------- | ---- | -------- |
+| org_id / `X-Org-Id` | 组织 ID | >0 的正整数；请求头必填于组织域接口 |
+| name | 组织名 | 同租户内唯一 |
+
+组织由业务侧或 seed/admin 流程创建；HTTP 业务接口通过 `X-Org-Id` 选定当前组织。
 
 
 
@@ -417,9 +445,20 @@ curl -v -X GET -H "X-API: user/infoByUID" --cookie "go-session-id=MTYxNDE0N" "ht
 
 
 
-## 访问控制(支持域/租户的RBAC)相关接口
+## 访问控制(支持域/租户+组织的RBAC)相关接口
 
-可以用RBAC模型做功能和数据的访问权限控制。
+可以用 RBAC 做功能和数据的访问权限控制。**v4 起 domain = 租户 + 组织**（`tenant-{tid}-org-{oid}`）。
+
+调用角色/策略类接口时需同时携带：
+
+- Cookie 会话（已登录且属于该租户）
+- 请求头 **`X-Org-Id`**（当前组织；且当前用户必须是该组织成员）
+
+数据范围（`service.ResolveDataScope`）可按模块配置：
+
+- `data-scope/{module}/all`：组织内全部
+- `data-scope/{module}/dept`：本部门（含部门负责人）
+- `data-scope/{module}/self`：仅本人（默认）
 
 ### 为用户添加角色
 
@@ -429,7 +468,7 @@ curl -v -X GET -H "X-API: user/infoByUID" --cookie "go-session-id=MTYxNDE0N" "ht
 | value  | 角色值；<100个字符的串 | 是       |
 
 ```shell
-curl -v -X POST -H "X-API: access/addRoleForUser" --cookie "go-session-id=MTYxO“ -d \
+curl -v -X POST -H "X-API: access/addRoleForUser" -H "X-Org-Id: 10001" --cookie "go-session-id=MTYxO“ -d \
 '{
   "uid": 123,
   "value": "role1"
@@ -545,7 +584,13 @@ curl -X GET -H "X-API: access/listPermission" --cookie "go-session-id=MTY" \
 
 ## 多租户相关接口
 
-每个用户只能属于一个租户
+每个用户只能属于一个租户。**一个租户下可有多个组织**；成员、部门、角色均在组织内生效。
+
+组织相关请求头示例：
+
+```bash
+-H "X-Org-Id: 10001"
+```
 
 ### 添加租户和超级管理员
 
@@ -656,7 +701,7 @@ curl -v -X GET -H "X-API: tenant/loadConfiguration" --cookie "go-session-id=gFKS
 | depIds   | 部门ID                                        | int数组             |
 
 ```shell
-curl -v -X POST -H "X-API: tenant/user/add" --cookie "go-session-id=MTYfgFKSlOYwQ==" -d \
+curl -v -X POST -H "X-API: tenant/user/add" -H "X-Org-Id: 10001" --cookie "go-session-id=MTYfgFKSlOYwQ==" -d \
 '{
   "uid": 123,
   "nickname": "xxx",
@@ -672,10 +717,12 @@ curl -v -X POST -H "X-API: tenant/user/add" --cookie "go-session-id=MTYfgFKSlOYw
 }
 ```
 
+> 添加成员会加入当前 `X-Org-Id` 对应组织；角色与部门也仅作用于该组织。
+
 
 #### 租户管理员删除账号
 ```shell
-curl -v -X POST -H "X-API: tenant/delUser" --cookie "go-session-id=MTYfgFKSlOYwQ==" -d \
+curl -v -X POST -H "X-API: tenant/delUser" -H "X-Org-Id: 10001" --cookie "go-session-id=MTYfgFKSlOYwQ==" -d \
 '{
   "uid": 123,
 }' "http://127.0.0.1:10000/usercenter"
@@ -692,7 +739,7 @@ curl -v -X POST -H "X-API: tenant/delUser" --cookie "go-session-id=MTYfgFKSlOYwQ
 | uids     | 账号id列表，逗号分隔 |
 
 ```shell
-curl -v -X GET -H "X-API: tenant/getUsers" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
+curl -v -X GET -H "X-API: tenant/getUsers" -H "X-Org-Id: 10001" --cookie "go-session-id=MTYfgFKSlOYwQ==" \
 "http://127.0.0.1:10000/usercenter?nickname=xxx&uids=1,2,3&page=1&pageSize=1"
 ```
 
@@ -741,7 +788,7 @@ curl -v -X POST -H "X-API: tenant/userModifyExtInfo" --cookie "go-session-id=MTO
 #### 设置成员的部门信息
 
 ```shell
-curl -i -X POST -H "X-API: tenant/user/setDepartment" --cookie "go-session-id=xxx" \
+curl -i -X POST -H "X-API: tenant/user/setDepartment" -H "X-Org-Id: 10001" --cookie "go-session-id=xxx" \
 -d '{
 	"uid": 123,
 	"depIds": [1,2]
@@ -782,10 +829,12 @@ curl -v -X GET -H "X-API: tenant/getRoles" --cookie "go-session-id=MTYfgFKSlOYwQ
 
 ### 部门
 
+部门归属当前组织（`X-Org-Id`）；同租户内部门名在「组织内」唯一。
+
 #### 添加部门记录
 
 ```shell
-curl -v -X POST -H "X-API: tenant/department/add" --cookie "go-session-id=gFKSlOYwQ==" -d \
+curl -v -X POST -H "X-API: tenant/department/add" -H "X-Org-Id: 10001" --cookie "go-session-id=gFKSlOYwQ==" -d \
 '{
   "parentId": 0,
   "name": "dep1"
@@ -795,13 +844,13 @@ curl -v -X POST -H "X-API: tenant/department/add" --cookie "go-session-id=gFKSlO
 #### 删除部门记录
 
 ```shell
-curl -v -X GET -H "X-API: tenant/department/delete" --cookie "go-session-id=gFKSlOYwQ==" "http://127.0.0.1:10000/usercenter?id=123"
+curl -v -X GET -H "X-API: tenant/department/delete" -H "X-Org-Id: 10001" --cookie "go-session-id=gFKSlOYwQ==" "http://127.0.0.1:10000/usercenter?id=123"
 ```
 
 #### 更新部门名
 
 ```shell
-curl -v -X POST -H "X-API: tenant/department/update" --cookie "go-session-id=gFKSlOYwQ==" -d \
+curl -v -X POST -H "X-API: tenant/department/update" -H "X-Org-Id: 10001" --cookie "go-session-id=gFKSlOYwQ==" -d \
 '{
   "id": 123,
   "name": "dep1"
@@ -811,7 +860,7 @@ curl -v -X POST -H "X-API: tenant/department/update" --cookie "go-session-id=gFK
 #### 查询部门列表
 
 ```shell
-curl -v -X GET -H "X-API: tenant/department/list" --cookie "go-session-id=gFKSlOYwQ==" "http://127.0.0.1:10000/usercenter?id=123"
+curl -v -X GET -H "X-API: tenant/department/list" -H "X-Org-Id: 10001" --cookie "go-session-id=gFKSlOYwQ==" "http://127.0.0.1:10000/usercenter?id=123"
 ```
 
 
@@ -935,6 +984,9 @@ ErrTenantNameNull = errors.NewError(-2001, "租户名字为空")
 ErrTenantTypeNull = errors.NewError(-2002, "租户类型为空")
 ErrTenantLimit    = errors.NewError(-2003, "账号只能属于一个租户")
 ErrTenantAddERR   = errors.NewError(-2004, "添加租户失败")
+ErrOrgNotFound    = errors.NewError(-2008, "组织不存在")
+ErrOrgRequired    = errors.NewError(-2009, "缺少组织")
+ErrOrgNameDup     = errors.NewError(-2010, "组织名称已存在")
 ```
 
 
@@ -1015,23 +1067,48 @@ ALTER SEQUENCE permission_id_seq RESTART WITH 10000;
 CREATE INDEX IF NOT EXISTS idx_permission_tenant_id ON permission(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_permission_domain ON permission(domain);
 
--- 部门表
+-- 组织表（租户下多组织）
+CREATE TABLE organizations (
+  id BIGSERIAL PRIMARY KEY,
+  tenant_id BIGINT NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ALTER SEQUENCE organizations_id_seq RESTART WITH 10000;
+CREATE INDEX IF NOT EXISTS idx_organizations_tenant_id ON organizations(tenant_id);
+CREATE UNIQUE INDEX IF NOT EXISTS organizations_tenant_id_name_key ON organizations (tenant_id, name);
+
+-- 组织成员
+CREATE TABLE org_members (
+  org_id BIGINT NOT NULL,
+  uid BIGINT NOT NULL,
+  tenant_id BIGINT NOT NULL,
+  create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (org_id, uid)
+);
+CREATE INDEX IF NOT EXISTS idx_org_members_uid ON org_members(uid);
+CREATE INDEX IF NOT EXISTS idx_org_members_tenant_id ON org_members(tenant_id);
+
+-- 部门表（归属组织）
 CREATE TABLE departments (
   id SERIAL PRIMARY KEY,
   uid INT NOT NULL,
   tenant_id INT NOT NULL,
+  org_id BIGINT NOT NULL DEFAULT 0,
   parent_id BIGINT NOT NULL DEFAULT 0,
   create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   name VARCHAR(16) NOT NULL,
-  config JSONB,
-  UNIQUE (tenant_id, name)
+  config JSONB
 );
 -- To set the starting value for the auto-incrementing ID:
 ALTER SEQUENCE departments_id_seq RESTART WITH 10000;
 CREATE INDEX IF NOT EXISTS idx_departments_tenant_id ON departments(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_departments_org_id ON departments(org_id);
 CREATE INDEX IF NOT EXISTS idx_departments_parent_id ON departments(parent_id);
 CREATE INDEX IF NOT EXISTS idx_departments_uid ON departments(uid);
+CREATE UNIQUE INDEX IF NOT EXISTS departments_tenant_id_org_id_name_key ON departments (tenant_id, org_id, name);
 
 -- 用户闭包表
 CREATE TABLE IF NOT EXISTS user_closure (

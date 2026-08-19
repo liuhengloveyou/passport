@@ -4,14 +4,16 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/protos"
-	"github.com/liuhengloveyou/passport/v3/service"
-	"github.com/liuhengloveyou/passport/v3/sessions"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/protos"
+	"github.com/liuhengloveyou/passport/v4/service"
+	"github.com/liuhengloveyou/passport/v4/sessions"
 	"go.uber.org/zap"
 )
 
@@ -40,6 +42,29 @@ func Logger() *zap.Logger {
 		return logger
 	}
 	return common.Logger
+}
+
+func ParseOrgID(r *http.Request) uint64 {
+	if r == nil {
+		return 0
+	}
+	s := strings.TrimSpace(r.Header.Get("X-Org-Id"))
+	if s == "" {
+		return 0
+	}
+	v, err := strconv.ParseUint(s, 10, 64)
+	if err != nil || v == 0 {
+		return 0
+	}
+	return v
+}
+
+func SessionOrgID(r *http.Request, tenantID uint64) (uint64, error) {
+	orgID := ParseOrgID(r)
+	if err := service.UserInOrg(GetSessionUser(r).UID, tenantID, orgID); err != nil {
+		return 0, err
+	}
+	return orgID, nil
 }
 
 func GetSessionUser(r *http.Request) (sessionUser protos.User) {

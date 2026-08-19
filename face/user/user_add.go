@@ -4,11 +4,11 @@ import (
 	"net/http"
 
 	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/face/core"
-	"github.com/liuhengloveyou/passport/v3/protos"
-	"github.com/liuhengloveyou/passport/v3/service"
-	"github.com/liuhengloveyou/passport/v3/sms"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/face/core"
+	"github.com/liuhengloveyou/passport/v4/protos"
+	"github.com/liuhengloveyou/passport/v4/service"
+	"github.com/liuhengloveyou/passport/v4/sms"
 )
 
 // UserAdd 注册用户，支持手机号短信校验后创建账号。

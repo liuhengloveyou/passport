@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/database"
-	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/database"
+	"github.com/liuhengloveyou/passport/v4/protos"
 	"go.uber.org/zap"
 )
 
@@ -100,6 +100,10 @@ func initTables(ctx context.Context, db database.DB, dialect database.Dialect) e
 		fmt.Println("创建租户闭包表失败: %w", err)
 	} else {
 		fmt.Println("创建租户闭包表成功")
+	}
+
+	if err := migrateOrgSchema(ctx, db, dialect); err != nil {
+		return fmt.Errorf("初始化组织表失败: %w", err)
 	}
 
 	return nil
@@ -446,4 +450,87 @@ func maskDSN(dsn string) string {
 		return dsn[:20] + "..."
 	}
 	return dsn
+}
+
+func migrateOrgSchema(ctx context.Context, db database.DB, dialect database.Dialect) error {
+	autoIncrement := dialect.AutoIncrement()
+	timestampType := getTimestampType(dialect)
+	primaryKey := ""
+	if db.DriverType() == database.DriverPostgreSQL {
+		primaryKey = "PRIMARY KEY"
+	}
+
+	orgSQL := fmt.Sprintf(`
+		CREATE TABLE IF NOT EXISTS organizations (
+			id %s %s,
+			tenant_id BIGINT NOT NULL,
+			name VARCHAR(255) NOT NULL,
+			create_time %s NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			update_time %s NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`, autoIncrement, primaryKey, timestampType, timestampType)
+	if _, err := db.Exec(ctx, orgSQL); err != nil {
+		return err
+	}
+	if _, err := db.Exec(ctx, "CREATE INDEX IF NOT EXISTS idx_organizations_tenant_id ON organizations(tenant_id)"); err != nil {
+		return err
+	}
+
+	memberSQL := fmt.Sprintf(`
+		CREATE TABLE IF NOT EXISTS org_members (
+			org_id BIGINT NOT NULL,
+			uid BIGINT NOT NULL,
+			tenant_id BIGINT NOT NULL,
+			create_time %s NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (org_id, uid)
+		)`, timestampType)
+	if _, err := db.Exec(ctx, memberSQL); err != nil {
+		return err
+	}
+	if _, err := db.Exec(ctx, "CREATE INDEX IF NOT EXISTS idx_org_members_uid ON org_members(uid)"); err != nil {
+		return err
+	}
+	if _, err := db.Exec(ctx, "CREATE INDEX IF NOT EXISTS idx_org_members_tenant_id ON org_members(tenant_id)"); err != nil {
+		return err
+	}
+
+	if _, err := db.Exec(ctx, "ALTER TABLE departments ADD COLUMN IF NOT EXISTS org_id BIGINT NOT NULL DEFAULT 0"); err != nil {
+		return err
+	}
+	if _, err := db.Exec(ctx, "CREATE INDEX IF NOT EXISTS idx_departments_org_id ON departments(org_id)"); err != nil {
+		return err
+	}
+	if db.DriverType() == database.DriverPostgreSQL {
+		_, _ = db.Exec(ctx, "ALTER TABLE departments DROP CONSTRAINT IF EXISTS departments_tenant_id_name_key")
+		if _, err := db.Exec(ctx, "CREATE UNIQUE INDEX IF NOT EXISTS departments_tenant_id_org_id_name_key ON departments (tenant_id, org_id, name)"); err != nil {
+			return err
+		}
+	}
+
+	// 同租户同名只留最早一条，再加唯一索引。
+	for _, sql := range []string{
+		`DELETE FROM org_members WHERE org_id IN (
+			SELECT id FROM (
+				SELECT id, ROW_NUMBER() OVER (PARTITION BY tenant_id, name ORDER BY id) AS rn
+				FROM organizations
+			) t WHERE rn > 1
+		)`,
+		`DELETE FROM departments WHERE org_id IN (
+			SELECT id FROM (
+				SELECT id, ROW_NUMBER() OVER (PARTITION BY tenant_id, name ORDER BY id) AS rn
+				FROM organizations
+			) t WHERE rn > 1
+		)`,
+		`DELETE FROM organizations WHERE id IN (
+			SELECT id FROM (
+				SELECT id, ROW_NUMBER() OVER (PARTITION BY tenant_id, name ORDER BY id) AS rn
+				FROM organizations
+			) t WHERE rn > 1
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS organizations_tenant_id_name_key ON organizations (tenant_id, name)`,
+	} {
+		if _, err := db.Exec(ctx, sql); err != nil {
+			return err
+		}
+	}
+	return nil
 }

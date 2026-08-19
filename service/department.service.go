@@ -4,12 +4,15 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/dao"
-	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/dao"
+	"github.com/liuhengloveyou/passport/v4/protos"
 )
 
 func DepartmentCreate(m *protos.Department) (lastInsertId int64, e error) {
+	if m == nil || m.TenantID == 0 || m.OrgID == 0 {
+		return 0, common.ErrParam
+	}
 	lastInsertId, err := dao.DepartmentCreate(m)
 	if err != nil {
 		common.Logger.Sugar().Errorf("DepartmentCreate ERR: %v %v\n", lastInsertId, err)
@@ -39,12 +42,12 @@ func DepartmentDelete(id, tenantID uint64) (e error) {
 	return
 }
 
-func DepartmentFind(id, tenantId, page, pageSize uint64) (rr []protos.Department, e error) {
+func DepartmentFind(id, tenantId, orgId, page, pageSize uint64) (rr []protos.Department, e error) {
 	if tenantId <= 0 {
 		return nil, common.ErrParam
 	}
 
-	rr, err := dao.DepartmentFind(id, tenantId, page, pageSize)
+	rr, err := dao.DepartmentFind(id, tenantId, orgId, page, pageSize)
 	if err != nil {
 		common.Logger.Sugar().Errorf("DepartmentFind ERR: %v\n", err)
 		e = common.ErrService
@@ -100,7 +103,7 @@ func DepartmentUpdateConfig(id, currUid, currTenantID uint64, k string, v interf
 		deparmentCache.Delete(fmt.Sprintf("%d/%d", currTenantID, currUid))
 	}()
 
-	rr, e := dao.DepartmentFind(id, currTenantID, 0, 0)
+	rr, e := dao.DepartmentFind(id, currTenantID, 0, 0, 0)
 	if e != nil {
 		common.Logger.Sugar().Errorf("DepartmentUpdateConfig db ERR: %v", e)
 		return common.ErrService
@@ -116,6 +119,9 @@ func DepartmentUpdateConfig(id, currUid, currTenantID uint64, k string, v interf
 	}
 
 	common.Logger.Sugar().Infof("DepartmentUpdateConfig: %d %d %d %v %v %v", id, currUid, currTenantID, k, v, rr[0])
+	if rr[0].Config == nil {
+		rr[0].Config = make(protos.MapStruct)
+	}
 	if v == nil {
 		common.Logger.Sugar().Warnf("DepartmentUpdateConfig delete: %v", k)
 		delete(rr[0].Config, k)

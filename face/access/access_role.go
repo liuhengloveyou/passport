@@ -7,18 +7,30 @@ import (
 	"strings"
 
 	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/passport/v3/accessctl"
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/face/core"
-	"github.com/liuhengloveyou/passport/v3/protos"
-	"github.com/liuhengloveyou/passport/v3/service"
+	"github.com/liuhengloveyou/passport/v4/accessctl"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/face/core"
+	"github.com/liuhengloveyou/passport/v4/protos"
+	"github.com/liuhengloveyou/passport/v4/service"
 )
 
-// AddRoleForUser 为指定用户添加角色。
-func AddRoleForUser(w http.ResponseWriter, r *http.Request) {
+func sessionOrg(w http.ResponseWriter, r *http.Request) (protos.User, uint64, bool) {
 	sessionUser := core.GetSessionUser(r)
 	if sessionUser.UID <= 0 || sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
+		return sessionUser, 0, false
+	}
+	orgID, err := core.SessionOrgID(r, sessionUser.TenantID)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return sessionUser, 0, false
+	}
+	return sessionUser, orgID, true
+}
+
+func AddRoleForUser(w http.ResponseWriter, r *http.Request) {
+	sessionUser, orgID, ok := sessionOrg(w, r)
+	if !ok {
 		return
 	}
 	req := &protos.RoleStruct{}
@@ -26,18 +38,16 @@ func AddRoleForUser(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
-	if err := accessctl.AddRoleForUserInDomain(req.UID, sessionUser.TenantID, strings.TrimSpace(req.RoleValue)); err != nil {
+	if err := accessctl.AddRoleForUserInDomain(req.UID, sessionUser.TenantID, orgID, strings.TrimSpace(req.RoleValue)); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
 }
 
-// UpdateRoleForUser 更新指定用户角色（先删旧角色再加新角色）。
 func UpdateRoleForUser(w http.ResponseWriter, r *http.Request) {
-	sessionUser := core.GetSessionUser(r)
-	if sessionUser.UID <= 0 || sessionUser.TenantID <= 0 {
-		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
+	sessionUser, orgID, ok := sessionOrg(w, r)
+	if !ok {
 		return
 	}
 	req := &protos.RoleReq{}
@@ -45,22 +55,20 @@ func UpdateRoleForUser(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
-	if err := accessctl.DeleteRoleForUserInDomain(req.UID, sessionUser.TenantID, strings.TrimSpace(req.RoleValue)); err != nil {
+	if err := accessctl.DeleteRoleForUserInDomain(req.UID, sessionUser.TenantID, orgID, strings.TrimSpace(req.RoleValue)); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
 		return
 	}
-	if err := accessctl.AddRoleForUserInDomain(req.UID, sessionUser.TenantID, strings.TrimSpace(req.NewRoleValue)); err != nil {
+	if err := accessctl.AddRoleForUserInDomain(req.UID, sessionUser.TenantID, orgID, strings.TrimSpace(req.NewRoleValue)); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
 }
 
-// RemoveRoleForUser 移除指定用户的角色。
 func RemoveRoleForUser(w http.ResponseWriter, r *http.Request) {
-	sessionUser := core.GetSessionUser(r)
-	if sessionUser.UID <= 0 || sessionUser.TenantID <= 0 {
-		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
+	sessionUser, orgID, ok := sessionOrg(w, r)
+	if !ok {
 		return
 	}
 	req := &protos.RoleStruct{}
@@ -68,21 +76,25 @@ func RemoveRoleForUser(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
-	if err := accessctl.DeleteRoleForUserInDomain(req.UID, sessionUser.TenantID, req.RoleValue); err != nil {
+	if err := accessctl.DeleteRoleForUserInDomain(req.UID, sessionUser.TenantID, orgID, req.RoleValue); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
 		return
 	}
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
 }
 
-// GetRolesForMe 查询当前登录用户的角色列表。
 func GetRolesForMe(w http.ResponseWriter, r *http.Request) {
 	sessionUser := core.GetSessionUser(r)
 	if sessionUser.UID <= 0 || sessionUser.TenantID <= 0 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
 		return
 	}
-	roles := accessctl.GetRoleForUserInDomain(sessionUser.UID, sessionUser.TenantID)
+	orgID := core.ParseOrgID(r)
+	if orgID == 0 || service.UserInOrg(sessionUser.UID, sessionUser.TenantID, orgID) != nil {
+		gocommon.HttpErr(w, http.StatusOK, 0, []protos.RoleStruct{})
+		return
+	}
+	roles := accessctl.GetRoleForUserInDomain(sessionUser.UID, sessionUser.TenantID, orgID)
 	rst := make([]protos.RoleStruct, len(roles))
 	rolesConfs := service.TenantGetRole(sessionUser.TenantID)
 	for i, role := range roles {
@@ -96,11 +108,9 @@ func GetRolesForMe(w http.ResponseWriter, r *http.Request) {
 	gocommon.HttpErr(w, http.StatusOK, 0, rst)
 }
 
-// GetRolesForUser 查询指定用户的角色列表。
 func GetRolesForUser(w http.ResponseWriter, r *http.Request) {
-	sessionUser := core.GetSessionUser(r)
-	if sessionUser.UID <= 0 || sessionUser.TenantID <= 0 {
-		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
+	sessionUser, orgID, ok := sessionOrg(w, r)
+	if !ok {
 		return
 	}
 	iuid, _ := strconv.ParseUint(r.FormValue("uid"), 10, 64)
@@ -108,7 +118,7 @@ func GetRolesForUser(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
-	roles := accessctl.GetRoleForUserInDomain(iuid, sessionUser.TenantID)
+	roles := accessctl.GetRoleForUserInDomain(iuid, sessionUser.TenantID, orgID)
 	rst := make([]protos.RoleStruct, len(roles))
 	rolesConfs := service.TenantGetRole(sessionUser.TenantID)
 	for i, role := range roles {
@@ -122,11 +132,9 @@ func GetRolesForUser(w http.ResponseWriter, r *http.Request) {
 	gocommon.HttpErr(w, http.StatusOK, 0, rst)
 }
 
-// GetUsersForRole 查询指定角色下的用户列表。
 func GetUsersForRole(w http.ResponseWriter, r *http.Request) {
-	sessionUser := core.GetSessionUser(r)
-	if sessionUser.UID <= 0 || sessionUser.TenantID <= 0 {
-		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
+	sessionUser, orgID, ok := sessionOrg(w, r)
+	if !ok {
 		return
 	}
 	roleName := r.FormValue("role")
@@ -134,6 +142,6 @@ func GetUsersForRole(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
-	roles := accessctl.GetUsersForRoleInDomain(roleName, sessionUser.TenantID)
+	roles := accessctl.GetUsersForRoleInDomain(roleName, sessionUser.TenantID, orgID)
 	gocommon.HttpErr(w, http.StatusOK, 0, roles)
 }

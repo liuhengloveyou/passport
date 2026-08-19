@@ -6,10 +6,11 @@ import (
 
 	gocommon "github.com/liuhengloveyou/go-common"
 
-	"github.com/liuhengloveyou/passport/v3/accessctl"
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/dao"
-	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v4/accessctl"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/dao"
+	"github.com/liuhengloveyou/passport/v4/protos"
+	"github.com/liuhengloveyou/passport/v4/service"
 )
 
 const defaultRBACModel = "rbac_with_domains_model.conf"
@@ -108,7 +109,15 @@ func InitSystemEnvWithRBAC(options *protos.OptionStruct, rbacModel string) error
 	if err := accessctl.InitAccessControl(rbacModel, options.DBDriver, options.DBDSN); err != nil {
 		return fmt.Errorf("初始化 accessctl 失败: %w", err)
 	}
-	if err := accessctl.AddRoleForUserInDomain(seed.UID, seed.TenantID, "root"); err != nil {
+	orgs, err := dao.OrgListByTenant(seed.TenantID)
+	if err != nil {
+		return fmt.Errorf("查询 root 组织失败: %w", err)
+	}
+	if len(orgs) == 0 {
+		if _, err := service.OrgCreate(seed.TenantID, "root"); err != nil {
+			return fmt.Errorf("创建 root 组织失败: %w", err)
+		}
+	} else if err := accessctl.AddRoleForUserInDomain(seed.UID, seed.TenantID, orgs[0].ID, "root"); err != nil {
 		return fmt.Errorf("绑定 root 角色失败: %w", err)
 	}
 

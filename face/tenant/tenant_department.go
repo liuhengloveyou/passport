@@ -6,10 +6,10 @@ import (
 	"strconv"
 
 	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/face/core"
-	"github.com/liuhengloveyou/passport/v3/protos"
-	"github.com/liuhengloveyou/passport/v3/service"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/face/core"
+	"github.com/liuhengloveyou/passport/v4/protos"
+	"github.com/liuhengloveyou/passport/v4/service"
 	"go.uber.org/zap"
 )
 
@@ -27,6 +27,12 @@ func DepartmentAdd(w http.ResponseWriter, r *http.Request) {
 	}
 	req.TenantID = sessionUser.TenantID
 	req.UserId = sessionUser.UID
+	orgID, err := core.SessionOrgID(r, sessionUser.TenantID)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+	req.OrgID = orgID
 	lastInsertId, err := service.DepartmentCreate(&req)
 	if err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
@@ -43,6 +49,16 @@ func DepartmentDelete(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
+	orgID, err := core.SessionOrgID(r, sessionUser.TenantID)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+	owned, err := service.DepartmentFind(id, sessionUser.TenantID, orgID, 0, 0)
+	if err != nil || len(owned) != 1 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNull)
+		return
+	}
 	if err := service.DepartmentDelete(id, sessionUser.TenantID); err != nil {
 		gocommon.HttpErr(w, http.StatusOK, -1, err)
 		return
@@ -57,12 +73,22 @@ func DepartmentUpdate(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		return
 	}
+	orgID, err := core.SessionOrgID(r, sessionUser.TenantID)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
 	var req protos.Department
 	if err := core.ReadJSONBodyFromRequest(r, &req, 2048); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
 	req.TenantID = sessionUser.TenantID
+	owned, err := service.DepartmentFind(req.Id, sessionUser.TenantID, orgID, 0, 0)
+	if err != nil || len(owned) != 1 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNull)
+		return
+	}
 	if err := service.DepartmentUpdate(&req); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
@@ -77,9 +103,19 @@ func DepartmentUpdateConfig(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		return
 	}
+	orgID, err := core.SessionOrgID(r, sessionUser.TenantID)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
 	var req protos.KvReq
 	if err := core.ReadJSONBodyFromRequest(r, &req, 2048); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+	owned, err := service.DepartmentFind(req.ID, sessionUser.TenantID, orgID, 0, 0)
+	if err != nil || len(owned) != 1 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNull)
 		return
 	}
 	if err := service.DepartmentUpdateConfig(req.ID, sessionUser.UID, sessionUser.TenantID, req.K, req.V); err != nil {
@@ -96,10 +132,15 @@ func DepartmentList(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrNoAuth)
 		return
 	}
+	orgID, orgErr := core.SessionOrgID(r, sessionUser.TenantID)
+	if orgErr != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, orgErr)
+		return
+	}
 	id, _ := strconv.ParseUint(r.FormValue("id"), 10, 64)
 	page, _ := strconv.ParseUint(r.FormValue("page"), 10, 64)
 	pageSize, _ := strconv.ParseUint(r.FormValue("page_size"), 10, 64)
-	list, err := service.DepartmentFind(id, sessionUser.TenantID, page, pageSize)
+	list, err := service.DepartmentFind(id, sessionUser.TenantID, orgID, page, pageSize)
 	if err != nil {
 		gocommon.HttpErr(w, http.StatusOK, -1, err)
 		return

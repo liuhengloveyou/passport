@@ -8,11 +8,11 @@ import (
 	"sync"
 
 	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/face/core"
-	passportwx "github.com/liuhengloveyou/passport/v3/face/wx"
-	"github.com/liuhengloveyou/passport/v3/protos"
-	"github.com/liuhengloveyou/passport/v3/service"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/face/core"
+	passportwx "github.com/liuhengloveyou/passport/v4/face/wx"
+	"github.com/liuhengloveyou/passport/v4/protos"
+	"github.com/liuhengloveyou/passport/v4/service"
 	alipay "github.com/smartwalle/alipay/v3"
 	"go.uber.org/zap"
 )

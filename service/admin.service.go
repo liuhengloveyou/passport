@@ -7,11 +7,10 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
-	"github.com/liuhengloveyou/passport/v3/accessctl"
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/dao"
-	"github.com/liuhengloveyou/passport/v3/database"
-	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/dao"
+	"github.com/liuhengloveyou/passport/v4/database"
+	"github.com/liuhengloveyou/passport/v4/protos"
 )
 
 /*
@@ -151,14 +150,6 @@ func AdminTenantNew(sess *protos.User, m *protos.NewTenantReq) (uid, tenantID ui
 	if e = dao.TenantClosureInsert(tx, ancestorID, tenantID); e != nil {
 		common.Logger.Sugar().Errorf("AdminTenantNew insertTenantClosure ERR: %v\n", e)
 		return 0, 0, common.ErrService
-	}
-
-	// 仅在创建了管理员账号时，绑定租户内 root 角色。
-	if adminUID > 0 {
-		if e = accessctl.AddRoleForUserInDomain(adminUID, tenantID, "root"); e != nil {
-			common.Logger.Sugar().Errorf("AdminTenantNew AddRoleForUserInDomain ERR: %v\n", e)
-			return 0, 0, common.ErrService
-		}
 	}
 
 	return adminUID, tenantID, nil

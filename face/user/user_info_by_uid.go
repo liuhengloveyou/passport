@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/passport/v3/face/core"
-	"github.com/liuhengloveyou/passport/v3/service"
+	"github.com/liuhengloveyou/passport/v4/face/core"
+	"github.com/liuhengloveyou/passport/v4/service"
 )
 
 // UserInfoByUID 按 UID 查询用户详情，并按租户关系裁剪敏感租户信息。
@@ -19,7 +19,7 @@ func UserInfoByUID(w http.ResponseWriter, r *http.Request) {
 	}
 	uid := strings.TrimSpace(r.FormValue("uid"))
 	iuid, _ := strconv.ParseUint(uid, 10, 64)
-	userInfo, err := service.GetUserInfoService(iuid, 0)
+	userInfo, err := service.GetUserInfoService(iuid, 0, 0)
 	if err != nil {
 		gocommon.HttpErr(w, http.StatusOK, -1, err.Error())
 		return

@@ -4,17 +4,17 @@ import (
 	"context"
 	"time"
 
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/database"
-	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/database"
+	"github.com/liuhengloveyou/passport/v4/protos"
 
 	sq "github.com/Masterminds/squirrel"
 )
 
 func DepartmentCreate(model *protos.Department) (lastInsertId int64, err error) {
-	// 使用 RETURNING id 子句获取新插入记录的 ID
-	err = common.DB.QueryRow(context.Background(), "INSERT INTO departments (uid, tenant_id, parent_id, name, create_time) VALUES ($1, $2, $3, $4, $5) RETURNING uid",
-		model.UserId, model.TenantID, model.ParentID, model.Name, time.Now()).Scan(&lastInsertId)
+	err = common.DB.QueryRow(context.Background(),
+		"INSERT INTO departments (uid, tenant_id, org_id, parent_id, name, create_time) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+		model.UserId, model.TenantID, model.OrgID, model.ParentID, model.Name, time.Now()).Scan(&lastInsertId)
 
 	if err != nil {
 		common.Logger.Sugar().Errorf("Failed to insert department: %v", err)
@@ -25,20 +25,27 @@ func DepartmentCreate(model *protos.Department) (lastInsertId int64, err error) 
 }
 
 func DepartmentDelete(id, tenantID uint64) (rowsAffected int64, err error) {
-	// 使用 Exec 执行删除操作
 	rst, err := common.DB.Exec(context.Background(), "DELETE FROM departments WHERE id = $1 AND tenant_id = $2", id, tenantID)
 	if err != nil {
 		common.Logger.Sugar().Errorf("Failed to delete department: %v", err)
 		return 0, err
 	}
 
-	// 获取受影响的行数
 	rowsAffected, _ = rst.RowsAffected()
-	if err != nil {
-		common.Logger.Sugar().Errorf("Failed to get rows affected: %v", err)
-		return 0, err
-	}
 	return
+}
+
+func DepartmentDeleteByOrg(tenantID, orgID uint64) error {
+	if tenantID == 0 || orgID == 0 {
+		return common.ErrParam
+	}
+	_, err := common.DB.Exec(context.Background(),
+		`DELETE FROM departments WHERE tenant_id = $1 AND org_id = $2`, tenantID, orgID)
+	if err != nil {
+		common.Logger.Sugar().Errorf("DepartmentDeleteByOrg ERR: %v", err)
+		return err
+	}
+	return nil
 }
 
 func DepartmentUpdate(model *protos.Department) (rowsAffected int64, err error) {
@@ -65,12 +72,13 @@ func DepartmentUpdateConfig(model *protos.Department) (rowsAffected int64, err e
 	return
 }
 
-func DepartmentFind(id, tenantId, page, pageSize uint64) (rr []protos.Department, err error) {
+func DepartmentFind(id, tenantId, orgId, page, pageSize uint64) (rr []protos.Department, err error) {
 	tx := sq.Select(
 		"id",
 		"parent_id",
 		"uid",
 		"tenant_id",
+		"org_id",
 		"create_time",
 		"update_time",
 		"name",
@@ -81,6 +89,9 @@ func DepartmentFind(id, tenantId, page, pageSize uint64) (rr []protos.Department
 
 	if id > 0 {
 		tx = tx.Where(sq.Eq{"id": id})
+	}
+	if orgId > 0 {
+		tx = tx.Where(sq.Eq{"org_id": orgId})
 	}
 	if page > 0 && pageSize > 0 {
 		tx = tx.Limit(pageSize).Offset((page - 1) * pageSize)
@@ -103,12 +114,12 @@ func DepartmentFind(id, tenantId, page, pageSize uint64) (rr []protos.Department
 	rr = []protos.Department{}
 	for rows.Next() {
 		var dept protos.Department
-		// 列序须与 SELECT 一致：id, parent_id, uid, tenant_id, create_time, update_time, name, config
 		err = rows.Scan(
 			&dept.Id,
 			&dept.ParentID,
 			&dept.UserId,
 			&dept.TenantID,
+			&dept.OrgID,
 			&dept.CreateTime,
 			&dept.UpdateTime,
 			&dept.Name,

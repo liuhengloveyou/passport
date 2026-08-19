@@ -6,8 +6,8 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/database"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/database"
 )
 
 // TenantClosureInsert 插入租户闭包表记录

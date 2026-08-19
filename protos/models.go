@@ -124,6 +124,15 @@ type Tenant struct {
 	Depth int `json:"depth,omitempty" validate:"-" db:"-"`
 }
 
+// Organization 租户下的组织（业务侧门店对应的 Passport 实体，id 永不为 0）。
+type Organization struct {
+	ID         uint64     `json:"id" db:"id"`
+	TenantID   uint64     `json:"tenantId" db:"tenant_id"`
+	Name       string     `json:"name" db:"name"`
+	CreateTime *time.Time `json:"createTime,omitempty" db:"create_time"`
+	UpdateTime *time.Time `json:"updateTime,omitempty" db:"update_time"`
+}
+
 // 租户配置字段
 type TenantConfiguration struct {
 	Roles []RoleStruct `json:"roles"` // 用户角色字典列表
@@ -198,6 +207,7 @@ type Department struct {
 	ParentID   uint64     `json:"parentId" validate:"-" db:"parent_id"`
 	UserId     uint64     `json:"uid" validate:"omitempty,min=1" db:"uid" gorm:"column:uid;type:INT;not null;"`
 	TenantID   uint64     `json:"tenantId,omitempty" validate:"-" db:"tenant_id"`
+	OrgID      uint64     `json:"orgId,omitempty" validate:"-" db:"org_id"`
 	CreateTime *time.Time `json:"createTime,omitempty" validate:"-" db:"create_time"` // 创建时间
 	UpdateTime *time.Time `json:"updateTime" validate:"-" db:"update_time"`           // 最后更新时间
 	Name       string     `json:"name" validate:"required,max=10" db:"name"`

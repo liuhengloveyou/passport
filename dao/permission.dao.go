@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/database"
-	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/database"
+	"github.com/liuhengloveyou/passport/v4/protos"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5/pgconn"

@@ -2,7 +2,7 @@ package user
 
 import (
 	"fmt"
-	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v4/protos"
 )
 
 func normalizeUserExt(user *protos.User) {

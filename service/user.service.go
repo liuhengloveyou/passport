@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/liuhengloveyou/passport/v3/protos"
-	"github.com/liuhengloveyou/passport/v3/sms"
+	"github.com/liuhengloveyou/passport/v4/protos"
+	"github.com/liuhengloveyou/passport/v4/sms"
 	"go.uber.org/zap"
 
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/dao"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/dao"
 
 	validator "github.com/go-playground/validator/v10"
 )
@@ -227,7 +227,7 @@ func SetUserPWD(uid, tenantId uint64, PWD string) (rows int64, e error) {
 	return
 }
 
-func GetUserInfoService(uid, tenantId uint64) (r *protos.User, e error) {
+func GetUserInfoService(uid, tenantId, orgID uint64) (r *protos.User, e error) {
 	if uid <= 0 {
 		e = fmt.Errorf("uid nil")
 		return
@@ -247,19 +247,18 @@ func GetUserInfoService(uid, tenantId uint64) (r *protos.User, e error) {
 
 	r.Password = ""
 
-	if tenantId > 0 {
-		if r.Roles, e = getTenantUserRoles(uid, tenantId); e != nil {
+	if tenantId > 0 && orgID > 0 {
+		if r.Roles, e = getTenantUserRoles(uid, tenantId, orgID); e != nil {
 			common.Logger.Sugar().Warnf("GetUserInfoService getTenantUserRole ERR: %v", e)
 		}
 
-		// 部门字典
 		var depIds []uint64
 		if deps, ok := r.Ext["deps"].([]interface{}); ok {
 			for _, dep := range deps {
 				depIds = append(depIds, uint64(dep.(float64)))
 			}
 		}
-		if r.Departments, e = getTenantUserDepartment(uid, tenantId, depIds); e != nil {
+		if r.Departments, e = getTenantUserDepartment(uid, tenantId, orgID, depIds); e != nil {
 			common.Logger.Sugar().Warnf("GetUserInfoService getTenantUserDepartment ERR: %v", e)
 			e = nil
 		}

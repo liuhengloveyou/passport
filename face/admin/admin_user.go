@@ -7,12 +7,12 @@ import (
 	"strings"
 
 	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/passport/v3/accessctl"
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/face/core"
-	"github.com/liuhengloveyou/passport/v3/face/tenant"
-	"github.com/liuhengloveyou/passport/v3/protos"
-	"github.com/liuhengloveyou/passport/v3/service"
+	"github.com/liuhengloveyou/passport/v4/accessctl"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/face/core"
+	"github.com/liuhengloveyou/passport/v4/face/tenant"
+	"github.com/liuhengloveyou/passport/v4/protos"
+	"github.com/liuhengloveyou/passport/v4/service"
 )
 
 // UserAdd 平台管理员向指定租户新增「租户管理员」登录账号，并在该租户域内固定绑定 root 角色。
@@ -50,8 +50,6 @@ func UserAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roles := []string{"root"}
-
 	ext := req.Ext
 	if ext == nil {
 		ext = protos.MapStruct{}
@@ -64,7 +62,7 @@ func UserAdd(w http.ResponseWriter, r *http.Request) {
 		Password:  req.Password,
 		Cellphone: req.Cellphone,
 		Email:     req.Email,
-		Roles:     roles,
+		Roles:     []string{"root"},
 		DepIds:    nil,
 		Ext:       ext,
 	}
@@ -78,7 +76,11 @@ func UserAdd(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
 		return
 	}
-	if err := service.TenantUserAdd(uid, req.TenantID, nil, roles, protos.UserEnabled); err != nil {
+	if err := service.TenantBindUser(uid, req.TenantID); err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
+	if err := service.AddRoleForUserInAllOrgs(uid, req.TenantID, "root"); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return
 	}
@@ -210,22 +212,25 @@ func UserEdit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.DepIds != nil {
-		if err = service.TenantUserSetDepartment(req.UID, tenantID, req.DepIds); err != nil {
-			gocommon.HttpJsonErr(w, http.StatusOK, err)
+		orgs, oerr := service.OrgListByTenant(tenantID)
+		if oerr != nil {
+			gocommon.HttpJsonErr(w, http.StatusOK, oerr)
 			return
+		}
+		if len(orgs) > 0 {
+			if err = service.TenantUserSetDepartment(req.UID, tenantID, orgs[0].ID, req.DepIds); err != nil {
+				gocommon.HttpJsonErr(w, http.StatusOK, err)
+				return
+			}
 		}
 	}
 
 	if req.Roles != nil {
-		oldRoles := accessctl.GetRoleForUserInDomain(req.UID, tenantID)
-		oldSet := make(map[string]struct{}, len(oldRoles))
-		for _, role := range oldRoles {
-			role = strings.TrimSpace(role)
-			if role != "" {
-				oldSet[role] = struct{}{}
-			}
+		orgs, oerr := service.OrgListByTenant(tenantID)
+		if oerr != nil {
+			gocommon.HttpJsonErr(w, http.StatusOK, oerr)
+			return
 		}
-
 		newSet := make(map[string]struct{}, len(req.Roles))
 		for _, role := range req.Roles {
 			role = strings.TrimSpace(role)
@@ -233,24 +238,30 @@ func UserEdit(w http.ResponseWriter, r *http.Request) {
 				newSet[role] = struct{}{}
 			}
 		}
-
-		for role := range newSet {
-			if _, ok := oldSet[role]; ok {
-				delete(newSet, role)
-				delete(oldSet, role)
+		for i := range orgs {
+			oldRoles := accessctl.GetRoleForUserInDomain(req.UID, tenantID, orgs[i].ID)
+			oldSet := make(map[string]struct{}, len(oldRoles))
+			for _, role := range oldRoles {
+				role = strings.TrimSpace(role)
+				if role != "" {
+					oldSet[role] = struct{}{}
+				}
 			}
-		}
-
-		for role := range newSet {
-			if err = accessctl.AddRoleForUserInDomain(req.UID, tenantID, role); err != nil {
-				gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
-				return
+			for role := range newSet {
+				if _, ok := oldSet[role]; ok {
+					delete(oldSet, role)
+					continue
+				}
+				if err = accessctl.AddRoleForUserInDomain(req.UID, tenantID, orgs[i].ID, role); err != nil {
+					gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
+					return
+				}
 			}
-		}
-		for role := range oldSet {
-			if err = accessctl.DeleteRoleForUserInDomain(req.UID, tenantID, role); err != nil {
-				gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
-				return
+			for role := range oldSet {
+				if err = accessctl.DeleteRoleForUserInDomain(req.UID, tenantID, orgs[i].ID, role); err != nil {
+					gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
+					return
+				}
 			}
 		}
 	}

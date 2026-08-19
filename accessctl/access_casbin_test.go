@@ -9,14 +9,14 @@ func TestAccess(t *testing.T) {
 	err := InitAccessControl("../rbac_with_domains_model.conf", "mysql", "root:lhisroot@tcp(127.0.0.1:3306)/passport?charset=utf8&parseTime=true&loc=Local")
 	fmt.Println("InitAccessControl: ", err)
 
-	AddPolicyToRole(10030, "role-1", "data-1", "read")
-	addRoleForUserInDomain("uid-123", "role-1", "tenant-10030")
-	addRoleForUserInDomain("uid-123", "root", "tenant-10030")
+	AddPolicyToRole(10030, 10001, "role-1", "data-1", "read")
+	addRoleForUserInDomain("uid-123", "role-1", "tenant-10030-org-10001")
+	addRoleForUserInDomain("uid-123", "root", "tenant-10030-org-10001")
 
-	r, e := Enforce(123, 10030, "data-1", "read")
+	r, e := Enforce(123, 10030, 10001, "data-1", "read")
 	fmt.Println(">>>>>>>>>>>>>", r, e)
 
-	r, e = Enforce(143, 10030, "data-1", "read")
+	r, e = Enforce(143, 10030, 10001, "data-1", "read")
 	fmt.Println(">>>>>>>>>>>>>", r, e)
 
 	// fmt.Println("HasPolicy>>>>>>>>>>>>>", HasPolicy("role1", "tenant-10050", "/present", "menu"))

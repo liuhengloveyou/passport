@@ -1,9 +1,9 @@
 package service
 
 import (
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/dao"
-	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/dao"
+	"github.com/liuhengloveyou/passport/v4/protos"
 )
 
 func PermissionCreate(model *protos.PermissionStruct) (int64, error) {

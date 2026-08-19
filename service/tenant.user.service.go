@@ -1,21 +1,48 @@
 package service
 
 import (
-	"github.com/liuhengloveyou/passport/v3/accessctl"
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/dao"
-	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v4/accessctl"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/dao"
+	"github.com/liuhengloveyou/passport/v4/protos"
 	"go.uber.org/zap"
 )
 
-func TenantUserAdd(uid, currTenantID uint64, depIds []uint64, roles []string, disable protos.UserDisableStatus) (e error) {
+func TenantBindUser(uid, currTenantID uint64) error {
+	if uid == 0 || currTenantID == 0 {
+		return common.ErrParam
+	}
+	row, e := dao.UserUpdateTenantID(uid, currTenantID, 0)
+	if e != nil {
+		return common.ErrService
+	}
+	if row == 1 {
+		return nil
+	}
+	userInfo, qErr := dao.UserQueryByID(uid)
+	if qErr != nil || userInfo == nil {
+		return common.ErrService
+	}
+	if userInfo.TenantID != currTenantID {
+		return common.ErrService
+	}
+	return nil
+}
+
+func TenantUserAdd(uid, currTenantID, orgID uint64, depIds []uint64, roles []string, disable protos.UserDisableStatus) (e error) {
+	if orgID == 0 {
+		return common.ErrOrgRequired
+	}
+	if _, e = RequireOrg(currTenantID, orgID); e != nil {
+		return e
+	}
+
 	row, e := dao.UserUpdateTenantID(uid, currTenantID, 0)
 	if e != nil {
 		common.Logger.Sugar().Error("TenantUserAdd db ERR: ", e)
 		return common.ErrService
 	}
 	if row != 1 {
-		// 此时从 tenant_id=0 迁入会影响 0 行，不应判定为失败。
 		userInfo, qErr := dao.UserQueryByID(uid)
 		if qErr != nil || userInfo == nil {
 			common.Logger.Sugar().Error("TenantUserAdd UserUpdateTenantID query ERR: ", row, qErr)
@@ -28,14 +55,18 @@ func TenantUserAdd(uid, currTenantID uint64, depIds []uint64, roles []string, di
 		common.Logger.Sugar().Warnf("TenantUserAdd UserUpdateTenantID skipped: uid=%d already in tenant=%d", uid, currTenantID)
 	}
 
+	if e = OrgAddMember(orgID, uid, currTenantID); e != nil {
+		return e
+	}
+
 	for _, role := range roles {
-		if e = accessctl.AddRoleForUserInDomain(uid, currTenantID, role); e != nil {
+		if e = accessctl.AddRoleForUserInDomain(uid, currTenantID, orgID, role); e != nil {
 			common.Logger.Sugar().Errorf("TenantUserAdd AddRoleForUserInDomain ERR: %v", e)
 			return common.ErrService
 		}
 	}
 
-	if e = TenantUserSetDepartment(uid, currTenantID, depIds); e != nil {
+	if e = TenantUserSetDepartment(uid, currTenantID, orgID, depIds); e != nil {
 		common.Logger.Sugar().Warnf("TenantUserAdd TenantUserSetDepartment ERR: %v", e)
 		e = nil
 	}
@@ -49,13 +80,18 @@ func TenantUserAdd(uid, currTenantID uint64, depIds []uint64, roles []string, di
 }
 
 func TenantUserDel(uid, currTenantID uint64) (r int64, e error) {
-	// 删除所有角色
-	if e = accessctl.DeleteRolesForUserInDomain(uid, currTenantID); e != nil {
-		common.Logger.Sugar().Errorf("TenantUserDel ERR: %v", e)
+	orgs, err := dao.OrgListByUser(uid, currTenantID)
+	if err != nil {
+		common.Logger.Sugar().Errorf("TenantUserDel list org ERR: %v", err)
 		return 0, common.ErrService
 	}
+	for i := range orgs {
+		if e = OrgRemoveMember(orgs[i].ID, uid, currTenantID); e != nil {
+			common.Logger.Sugar().Errorf("TenantUserDel ERR: %v", e)
+			return 0, common.ErrService
+		}
+	}
 
-	// 真正删除数据!!!
 	if r, e = dao.UserDelete(uid, currTenantID); e != nil {
 		common.Logger.Sugar().Errorf("TenantUserDel ERR: %v", e)
 		return 0, common.ErrService
@@ -66,9 +102,36 @@ func TenantUserDel(uid, currTenantID uint64) (r int64, e error) {
 	return
 }
 
-func TenantUserGet(tenantID, page, pageSize uint64, nickname string, uids []uint64, hasTotal bool) (rst protos.PageResponse, e error) {
+func TenantUserLeaveOrg(uid, currTenantID, orgID uint64) (r int64, e error) {
+	if orgID == 0 {
+		return 0, common.ErrOrgRequired
+	}
+	if e = OrgRemoveMember(orgID, uid, currTenantID); e != nil {
+		return 0, e
+	}
+	_ = TenantUserSetDepartment(uid, currTenantID, orgID, nil)
+
+	n, err := dao.OrgMemberCountByUser(uid, currTenantID)
+	if err != nil {
+		return 0, common.ErrService
+	}
+	if n > 0 {
+		return 1, nil
+	}
+	return TenantUserDel(uid, currTenantID)
+}
+
+func TenantUserGet(tenantID, orgID, page, pageSize uint64, nickname string, uids []uint64, hasTotal bool) (rst protos.PageResponse, e error) {
+	if orgID == 0 {
+		e = common.ErrOrgRequired
+		return
+	}
+	if _, e = RequireOrg(tenantID, orgID); e != nil {
+		return
+	}
+
 	var rr []protos.User
-	rr, e = dao.UserQueryByTenant(tenantID, page, pageSize, nickname, uids)
+	rr, e = dao.UserQueryByOrg(tenantID, orgID, page, pageSize, nickname, uids)
 	if e != nil {
 		common.Logger.Sugar().Error("TenantUserGet db ERR: %v", e)
 		e = common.ErrService
@@ -80,34 +143,31 @@ func TenantUserGet(tenantID, page, pageSize uint64, nickname string, uids []uint
 	}
 	rst.List = rr
 
-	// 部门字典
-	departments, err := DepartmentFind(0, tenantID, 0, 0)
+	departments, err := DepartmentFind(0, tenantID, orgID, 0, 0)
 	if err != nil {
 		common.Logger.Sugar().Error("TenantUserGet DepartmentFind ERR: %v", err)
 		e = common.ErrService
 		return
 	}
+	depSet := make(map[uint64]protos.Department, len(departments))
+	for j := range departments {
+		depSet[departments[j].Id] = departments[j]
+	}
 
-	// role
 	for i := 0; i < len(rr); i++ {
-		if rr[i].Roles, e = getTenantUserRoles(rr[i].UID, rr[i].TenantID); e != nil {
+		if rr[i].Roles, e = getTenantUserRoles(rr[i].UID, rr[i].TenantID, orgID); e != nil {
 			common.Logger.Sugar().Warnf("TenantUserGet getTenantUserRole ERR: %v", e)
 		}
 
-		if deps, ok := rr[i].Ext["deps"].([]interface{}); ok {
-			for _, dep := range deps {
-				for j := 0; j < len(departments); j++ {
-					if uint64(dep.(float64)) == departments[j].Id {
-						rr[i].Departments = append(rr[i].Departments, departments[j])
-						break
-					}
-				}
+		for _, depID := range parseUint64Slice(rr[i].Ext[protos.DepartmentExtKey]) {
+			if d, ok := depSet[depID]; ok {
+				rr[i].Departments = append(rr[i].Departments, d)
 			}
 		}
 	}
 
 	if hasTotal {
-		rst.Total, e = dao.UserCountByTenant(tenantID, nickname, uids)
+		rst.Total, e = dao.UserCountByOrg(tenantID, orgID, nickname, uids)
 		if e != nil {
 			common.Logger.Sugar().Error("TenantUserGet db ERR: %v", e)
 			e = common.ErrService
@@ -131,18 +191,57 @@ func TenantUserDisabledService(uid, currTenantID uint64, disabled protos.UserDis
 	return TenantUpdateUserExt(uid, currTenantID, "disabled", int8(disabled))
 }
 
-func TenantUserSetDepartment(uid, tenantId uint64, departmentIds []uint64) error {
+func TenantUserSetDepartment(uid, tenantId, orgID uint64, departmentIds []uint64) error {
 	if uid <= 0 {
 		common.Logger.Sugar().Errorf("TenantUserSetDepartment ERR: %d %v %v", uid, tenantId, departmentIds)
 		return common.ErrParam
 	}
-
-	if len(departmentIds) == 0 {
-		common.Logger.Sugar().Infof("TenantUserSetDepartment nil: %d %v", uid, tenantId)
-		return TenantUpdateUserExt(uid, tenantId, "deps", nil)
+	if orgID == 0 {
+		return common.ErrOrgRequired
 	}
 
-	return TenantUpdateUserExt(uid, tenantId, "deps", departmentIds)
+	orgDeps, err := DepartmentFind(0, tenantId, orgID, 0, 0)
+	if err != nil {
+		return err
+	}
+	orgDepSet := make(map[uint64]struct{}, len(orgDeps))
+	for i := range orgDeps {
+		orgDepSet[orgDeps[i].Id] = struct{}{}
+	}
+	for _, id := range departmentIds {
+		if id == 0 {
+			continue
+		}
+		if _, ok := orgDepSet[id]; !ok {
+			return common.ErrParam
+		}
+	}
+
+	userInfo, e := dao.UserQueryByID(uid)
+	if e != nil || userInfo == nil {
+		return common.ErrNull
+	}
+	if userInfo.TenantID != tenantId {
+		return common.ErrNoAuth
+	}
+
+	kept := make([]uint64, 0)
+	for _, id := range parseUint64Slice(userInfo.Ext[protos.DepartmentExtKey]) {
+		if _, inOrg := orgDepSet[id]; inOrg {
+			continue
+		}
+		kept = append(kept, id)
+	}
+	for _, id := range departmentIds {
+		if id > 0 {
+			kept = append(kept, id)
+		}
+	}
+
+	if len(kept) == 0 {
+		return TenantUpdateUserExt(uid, tenantId, "deps", nil)
+	}
+	return TenantUpdateUserExt(uid, tenantId, "deps", kept)
 }
 
 func TenantUpdateUserExt(uid, currTenantID uint64, k string, v interface{}) error {

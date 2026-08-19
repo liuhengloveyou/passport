@@ -68,3 +68,54 @@ func getRoleForUserInDomain(user, domain string) []string {
 func getUsersForRoleInDomain(role, domain string) []string {
 	return enforcer.GetUsersForRoleInDomain(role, domain)
 }
+
+func CopyPolicies(fromDomain, toDomain string) error {
+	if enforcer == nil || fromDomain == "" || toDomain == "" || fromDomain == toDomain {
+		return nil
+	}
+	policies, err := enforcer.GetFilteredPolicy(1, fromDomain)
+	if err != nil {
+		return err
+	}
+	for _, p := range policies {
+		if len(p) < 4 || p[0] == "" || p[2] == "" || p[3] == "" {
+			continue
+		}
+		if _, err = enforcer.AddPolicy(p[0], toDomain, p[2], p[3]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func CopyGrouping(fromDomain, toDomain string) error {
+	if enforcer == nil || fromDomain == "" || toDomain == "" || fromDomain == toDomain {
+		return nil
+	}
+	gs, err := enforcer.GetFilteredGroupingPolicy(2, fromDomain)
+	if err != nil {
+		return err
+	}
+	for _, g := range gs {
+		if len(g) < 2 || g[0] == "" || g[1] == "" {
+			continue
+		}
+		if _, err = enforcer.AddRoleForUserInDomain(g[0], g[1], toDomain); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func RemoveDomain(domain string) error {
+	if enforcer == nil || domain == "" {
+		return nil
+	}
+	if _, err := enforcer.RemoveFilteredPolicy(1, domain); err != nil {
+		return err
+	}
+	if _, err := enforcer.RemoveFilteredGroupingPolicy(2, domain); err != nil {
+		return err
+	}
+	return nil
+}

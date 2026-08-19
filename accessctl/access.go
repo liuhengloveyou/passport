@@ -13,9 +13,9 @@ import (
 	_ "github.com/mattn/go-sqlite3" // SQLite3驱动
 	"go.uber.org/zap"
 
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/dao"
-	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/dao"
+	"github.com/liuhengloveyou/passport/v4/protos"
 )
 
 // var policyCache = make(map[string]bool, 10000)
@@ -99,34 +99,38 @@ func InitAccessControl(rbacModel, driver, dsn string) (err error) {
 	return nil
 }
 
-// sub, domain, obj, act
-func Enforce(uid, tenantID uint64, obj, act string) (bool, error) {
-	return enforce(genUserByUID(uid), genDomainByTenantID(tenantID), obj, act)
+func Enforce(uid, tenantID, orgID uint64, obj, act string) (bool, error) {
+	if orgID == 0 {
+		return false, common.ErrOrgRequired
+	}
+	return enforce(genUserByUID(uid), Domain(tenantID, orgID), obj, act)
 }
 
-func AddRoleForUserInDomain(uid, tenantID uint64, role string) (err error) {
-	//var userInfo *protos.User
-	//if userInfo, err = dao.UserSelectByID(uid); err != nil {
-	//	common.Logger.Sugar().Errorf("AddRoleForUserInDomain UserSelectByID ERR: %v\n", err)
-	//	return common.ErrService
-	//}
-	//if userInfo == nil || userInfo.TenantID != tenantID {
-	//	common.Logger.Sugar().Errorf("AddRoleForUserInDomain userInfo ERR: %d %d %v\n", uid, tenantID, userInfo)
-	//	return common.ErrNoAuth
-	//}
-
-	return addRoleForUserInDomain(genUserByUID(uid), role, genDomainByTenantID(tenantID))
+func AddRoleForUserInDomain(uid, tenantID, orgID uint64, role string) (err error) {
+	if orgID == 0 {
+		return common.ErrOrgRequired
+	}
+	return addRoleForUserInDomain(genUserByUID(uid), role, Domain(tenantID, orgID))
 }
 
-func DeleteRoleForUserInDomain(uid, tenantID uint64, role string) (err error) {
-	return deleteRoleForUserInDomain(genUserByUID(uid), role, genDomainByTenantID(tenantID))
+func DeleteRoleForUserInDomain(uid, tenantID, orgID uint64, role string) (err error) {
+	if orgID == 0 {
+		return common.ErrOrgRequired
+	}
+	return deleteRoleForUserInDomain(genUserByUID(uid), role, Domain(tenantID, orgID))
 }
 
-func DeleteRolesForUserInDomain(uid, tenantID uint64) (err error) {
-	return deleteRolesForUserInDomain(genUserByUID(uid), genDomainByTenantID(tenantID))
+func DeleteRolesForUserInDomain(uid, tenantID, orgID uint64) (err error) {
+	if orgID == 0 {
+		return common.ErrOrgRequired
+	}
+	return deleteRolesForUserInDomain(genUserByUID(uid), Domain(tenantID, orgID))
 }
 
-func GetRoleForUserInDomain(uid, tenantID uint64) (roles []string) {
+func GetRoleForUserInDomain(uid, tenantID, orgID uint64) (roles []string) {
+	if orgID == 0 {
+		return
+	}
 	var userInfo *protos.User
 
 	userInfo, err := dao.UserQueryByID(uid)
@@ -140,13 +144,16 @@ func GetRoleForUserInDomain(uid, tenantID uint64) (roles []string) {
 	}
 	userInfo.Password = ""
 
-	common.Logger.Debug("GetRoleForUserInDomain: ", zap.Uint64("uid", uid), zap.Uint64("tid", tenantID), zap.Any("user", userInfo), zap.Error(err))
+	common.Logger.Debug("GetRoleForUserInDomain: ", zap.Uint64("uid", uid), zap.Uint64("tid", tenantID), zap.Uint64("org", orgID), zap.Any("user", userInfo), zap.Error(err))
 
-	return getRoleForUserInDomain(genUserByUID(uid), genDomainByTenantID(tenantID))
+	return getRoleForUserInDomain(genUserByUID(uid), Domain(tenantID, orgID))
 }
 
-func GetUsersForRoleInDomain(role string, tenantID uint64) (ids []uint64) {
-	users := getUsersForRoleInDomain(role, genDomainByTenantID(tenantID))
+func GetUsersForRoleInDomain(role string, tenantID, orgID uint64) (ids []uint64) {
+	if orgID == 0 {
+		return
+	}
+	users := getUsersForRoleInDomain(role, Domain(tenantID, orgID))
 
 	ids = make([]uint64, len(users))
 	for i := 0; i < len(users); i++ {
@@ -157,24 +164,32 @@ func GetUsersForRoleInDomain(role string, tenantID uint64) (ids []uint64) {
 	return
 }
 
-func AddPolicyToRole(tenantID uint64, role, obj, act string) (err error) {
-	return addPolicy(role, genDomainByTenantID(tenantID), obj, act)
-
+func AddPolicyToRole(tenantID, orgID uint64, role, obj, act string) (err error) {
+	if orgID == 0 {
+		return common.ErrOrgRequired
+	}
+	return addPolicy(role, Domain(tenantID, orgID), obj, act)
 }
 
-func RemovePolicyFromRole(tenantID uint64, role, obj, act string) (err error) {
-	return removePolicy(role, genDomainByTenantID(tenantID), obj, act)
+func RemovePolicyFromRole(tenantID, orgID uint64, role, obj, act string) (err error) {
+	if orgID == 0 {
+		return common.ErrOrgRequired
+	}
+	return removePolicy(role, Domain(tenantID, orgID), obj, act)
 }
 
-func GetFilteredPolicy(tenantID uint64, roles []string) (lists [][]string) {
-	policys, err := getFilteredPolicy(genDomainByTenantID(tenantID))
+func GetFilteredPolicy(tenantID, orgID uint64, roles []string) (lists [][]string) {
+	if orgID == 0 {
+		return
+	}
+	policys, err := getFilteredPolicy(Domain(tenantID, orgID))
 	common.Logger.Debug("getFilteredPolicy:", zap.Any("policys", policys), zap.Any("roles", roles), zap.Error(err))
 	if len(policys) == 0 {
 		return
 	}
 
 	if len(roles) <= 0 {
-		lists = policys // 不用过滤
+		lists = policys
 		return
 	}
 
@@ -194,6 +209,10 @@ func genUserByUID(uid uint64) string {
 	return fmt.Sprintf("uid-%v", uid)
 }
 
-func genDomainByTenantID(tenantID uint64) string {
+func Domain(tenantID, orgID uint64) string {
+	return fmt.Sprintf("tenant-%v-org-%v", tenantID, orgID)
+}
+
+func LegacyTenantDomain(tenantID uint64) string {
 	return fmt.Sprintf("tenant-%v", tenantID)
 }

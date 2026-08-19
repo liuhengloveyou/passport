@@ -3,12 +3,13 @@ package cache
 import (
 	"fmt"
 
-	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v4/protos"
 )
 
 const (
-	// 单个tenant信息缓存
-	tenantCache = "tenant-%d"
+	tenantCache    = "tenant-%d"
+	orgCache       = "org-%d"
+	orgMemberCache = "org-member-%d-%d"
 )
 
 var defaultCache = NewExpiredMap()
@@ -31,7 +32,51 @@ func DelTenantCache(id uint64) {
 	defaultCache.Delete(tenantCacheKey(id))
 }
 
-// tenantCacheKey 生成租户缓存键。
 func tenantCacheKey(id uint64) string {
 	return fmt.Sprintf(tenantCache, id)
+}
+
+func SetOrgCache(m *protos.Organization) {
+	if m == nil || m.ID == 0 {
+		return
+	}
+	defaultCache.Set(orgCacheKey(m.ID), m, 3600)
+}
+
+func GetOrgCache(id uint64) *protos.Organization {
+	if ok, v := defaultCache.Get(orgCacheKey(id)); ok {
+		return v.(*protos.Organization)
+	}
+	return nil
+}
+
+func DelOrgCache(id uint64) {
+	defaultCache.Delete(orgCacheKey(id))
+}
+
+func orgCacheKey(id uint64) string {
+	return fmt.Sprintf(orgCache, id)
+}
+
+func SetOrgMemberCache(orgID, uid uint64, in bool) {
+	if orgID == 0 || uid == 0 || !in {
+		return
+	}
+	defaultCache.Set(orgMemberCacheKey(orgID, uid), true, 300)
+}
+
+func GetOrgMemberCache(orgID, uid uint64) (in bool, hit bool) {
+	ok, v := defaultCache.Get(orgMemberCacheKey(orgID, uid))
+	if !ok {
+		return false, false
+	}
+	return v.(bool), true
+}
+
+func DelOrgMemberCache(orgID, uid uint64) {
+	defaultCache.Delete(orgMemberCacheKey(orgID, uid))
+}
+
+func orgMemberCacheKey(orgID, uid uint64) string {
+	return fmt.Sprintf(orgMemberCache, orgID, uid)
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/liuhengloveyou/passport/v3/client"
+	"github.com/liuhengloveyou/passport/v4/client"
 
 	gocommon "github.com/liuhengloveyou/go-common"
 )

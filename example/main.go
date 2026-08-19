@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	passport "github.com/liuhengloveyou/passport/v3/face/http"
-	passportprotos "github.com/liuhengloveyou/passport/v3/protos"
+	passport "github.com/liuhengloveyou/passport/v4/face/http"
+	passportprotos "github.com/liuhengloveyou/passport/v4/protos"
 )
 
 var engine *gin.Engine

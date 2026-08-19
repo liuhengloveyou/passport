@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/liuhengloveyou/passport/v3/database"
+	"github.com/liuhengloveyou/passport/v4/database"
 )
 
 // EnsureDatabase 确保 PostgreSQL 目标库已创建，并初始化表结构（幂等）。
@@ -226,6 +226,10 @@ func InitDBTable(db *pgxpool.Pool) error {
 		return fmt.Errorf("创建租户闭包表失败: %w", err)
 	}
 
+	if err := migrateOrgSchema(ctx, db); err != nil {
+		return fmt.Errorf("初始化组织表失败: %w", err)
+	}
+
 	return nil
 }
 
@@ -256,4 +260,69 @@ func replaceDSNParam(dsn, key, value string) string {
 		out = append(out, prefix+value)
 	}
 	return strings.Join(out, " ")
+}
+
+func migrateOrgSchema(ctx context.Context, db *pgxpool.Pool) error {
+	_, err := db.Exec(ctx, `
+		CREATE TABLE IF NOT EXISTS organizations (
+			id BIGSERIAL PRIMARY KEY,
+			tenant_id BIGINT NOT NULL,
+			name VARCHAR(255) NOT NULL,
+			create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+		CREATE INDEX IF NOT EXISTS idx_organizations_tenant_id ON organizations(tenant_id);
+		DO $$
+		BEGIN
+			IF EXISTS (SELECT 1 FROM pg_sequences WHERE sequencename = 'organizations_id_seq') THEN
+				IF (SELECT last_value FROM organizations_id_seq) < 10000 THEN
+					ALTER SEQUENCE organizations_id_seq RESTART WITH 10000;
+				END IF;
+			END IF;
+		END $$;
+
+		CREATE TABLE IF NOT EXISTS org_members (
+			org_id BIGINT NOT NULL,
+			uid BIGINT NOT NULL,
+			tenant_id BIGINT NOT NULL,
+			create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (org_id, uid)
+		);
+		CREATE INDEX IF NOT EXISTS idx_org_members_uid ON org_members(uid);
+		CREATE INDEX IF NOT EXISTS idx_org_members_tenant_id ON org_members(tenant_id);
+
+		ALTER TABLE departments ADD COLUMN IF NOT EXISTS org_id BIGINT NOT NULL DEFAULT 0;
+		CREATE INDEX IF NOT EXISTS idx_departments_org_id ON departments(org_id);
+		ALTER TABLE departments DROP CONSTRAINT IF EXISTS departments_tenant_id_name_key;
+		CREATE UNIQUE INDEX IF NOT EXISTS departments_tenant_id_org_id_name_key ON departments (tenant_id, org_id, name);
+	`)
+	if err != nil {
+		return fmt.Errorf("创建组织表失败: %w", err)
+	}
+	for _, sql := range []string{
+		`DELETE FROM org_members WHERE org_id IN (
+			SELECT id FROM (
+				SELECT id, ROW_NUMBER() OVER (PARTITION BY tenant_id, name ORDER BY id) AS rn
+				FROM organizations
+			) t WHERE rn > 1
+		)`,
+		`DELETE FROM departments WHERE org_id IN (
+			SELECT id FROM (
+				SELECT id, ROW_NUMBER() OVER (PARTITION BY tenant_id, name ORDER BY id) AS rn
+				FROM organizations
+			) t WHERE rn > 1
+		)`,
+		`DELETE FROM organizations WHERE id IN (
+			SELECT id FROM (
+				SELECT id, ROW_NUMBER() OVER (PARTITION BY tenant_id, name ORDER BY id) AS rn
+				FROM organizations
+			) t WHERE rn > 1
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS organizations_tenant_id_name_key ON organizations (tenant_id, name)`,
+	} {
+		if _, err = db.Exec(ctx, sql); err != nil {
+			return fmt.Errorf("组织唯一索引: %w", err)
+		}
+	}
+	return nil
 }

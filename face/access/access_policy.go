@@ -6,10 +6,11 @@ import (
 	"strings"
 
 	gocommon "github.com/liuhengloveyou/go-common"
-	"github.com/liuhengloveyou/passport/v3/accessctl"
-	"github.com/liuhengloveyou/passport/v3/common"
-	"github.com/liuhengloveyou/passport/v3/face/core"
-	"github.com/liuhengloveyou/passport/v3/protos"
+	"github.com/liuhengloveyou/passport/v4/accessctl"
+	"github.com/liuhengloveyou/passport/v4/common"
+	"github.com/liuhengloveyou/passport/v4/face/core"
+	"github.com/liuhengloveyou/passport/v4/protos"
+	"github.com/liuhengloveyou/passport/v4/service"
 	"go.uber.org/zap"
 )
 
@@ -51,12 +52,17 @@ func AddPolicyToRole(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
 		return
 	}
+	orgID, err := core.SessionOrgID(r, sessionUser.TenantID)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
 	req := &protos.PolicyReq{}
 	if err := core.ReadJSONBodyFromRequest(r, req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
-	if err := accessctl.AddPolicyToRole(sessionUser.TenantID, req.Role, req.Obj, req.Act); err != nil {
+	if err := accessctl.AddPolicyToRole(sessionUser.TenantID, orgID, req.Role, req.Obj, req.Act); err != nil {
 		core.Logger().Error("AddPolicyToRole ERR: ", zap.Error(err))
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
 		return
@@ -71,12 +77,17 @@ func RemovePolicyFromRole(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
 		return
 	}
+	orgID, err := core.SessionOrgID(r, sessionUser.TenantID)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
 	req := &protos.PolicyReq{}
 	if err := core.ReadJSONBodyFromRequest(r, req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
-	if err := accessctl.RemovePolicyFromRole(sessionUser.TenantID, req.Role, req.Obj, req.Act); err != nil {
+	if err := accessctl.RemovePolicyFromRole(sessionUser.TenantID, orgID, req.Role, req.Obj, req.Act); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrService)
 		return
 	}
@@ -90,12 +101,17 @@ func GetPolicy(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
 		return
 	}
+	orgID, err := core.SessionOrgID(r, sessionUser.TenantID)
+	if err != nil {
+		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		return
+	}
 	req := strings.Split(r.FormValue("roles"), ",")
 	if len(req) > 10 {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
-	polices := accessctl.GetFilteredPolicy(sessionUser.TenantID, req)
+	polices := accessctl.GetFilteredPolicy(sessionUser.TenantID, orgID, req)
 	policesNoDomain := make([]protos.Policy, 0, len(polices))
 	for _, row := range polices {
 		if p, ok := policyRuleToDTO(row); ok {
@@ -112,12 +128,17 @@ func GetPolicyForUser(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrTenantNotFound)
 		return
 	}
-	roles := accessctl.GetRoleForUserInDomain(sessionUser.UID, sessionUser.TenantID)
+	orgID := core.ParseOrgID(r)
+	if orgID == 0 || service.UserInOrg(sessionUser.UID, sessionUser.TenantID, orgID) != nil {
+		gocommon.HttpErr(w, http.StatusOK, 0, nil)
+		return
+	}
+	roles := accessctl.GetRoleForUserInDomain(sessionUser.UID, sessionUser.TenantID, orgID)
 	if len(roles) == 0 {
 		gocommon.HttpErr(w, http.StatusOK, 0, nil)
 		return
 	}
-	policys := accessctl.GetFilteredPolicy(sessionUser.TenantID, roles)
+	policys := accessctl.GetFilteredPolicy(sessionUser.TenantID, orgID, roles)
 	out := make([]protos.Policy, 0, len(policys))
 	for _, row := range policys {
 		if p, ok := policyRuleToDTO(row); ok {
