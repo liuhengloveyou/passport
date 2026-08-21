@@ -5,7 +5,7 @@ type UserReq struct {
 	TenantID  uint64 `json:"tenant_id" validate:"-"`
 	Cellphone string `json:"cellphone" validate:"omitempty,phone,len=11"`
 	Email     string `json:"email" validate:"omitempty,email,max=64"`
-	Nickname  string `json:"nickname" validate:"omitempty,min=2,max=32"`
+	Nickname  string `json:"nickname" validate:"omitempty,min=1,max=32"`
 	Password  string `json:"password" validate:"omitempty,min=6,max=64"`
 	AvatarURL string `json:"avatarUrl" validate:"omitempty,max=100"`
 	Addr      string `json:"addr" validate:"omitempty,min=1,max=100"`

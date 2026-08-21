@@ -43,7 +43,7 @@ type User struct {
 	Password  string       `json:"password,omitempty" validate:"required,min=6,max=256" db:"password"`
 	Cellphone *null.String `json:"cellphone,omitempty" validate:"omitempty,len=11" db:"cellphone"`
 	Email     *null.String `json:"email,omitempty" validate:"omitempty,email" db:"email"`
-	Nickname  *null.String `json:"nickname,omitempty" validate:"omitempty,min=2,max=64" db:"nickname"`
+	Nickname  *null.String `json:"nickname,omitempty" validate:"omitempty,min=1,max=64" db:"nickname"`
 	AvatarURL *null.String `json:"avatarUrl,omitempty" db:"avatar_url"`
 	Addr      *null.String `json:"addr,omitempty" db:"addr"`
 	Gender    *null.Int    `json:"gender,omitempty" db:"gender"`
