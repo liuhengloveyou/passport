@@ -21,7 +21,7 @@ func DepartmentAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req protos.Department
-	if err := core.ReadJSONBodyFromRequest(r, &req, 2048); err != nil {
+	if err := core.ReadJSONBodyFromRequest(r, &req, 4096); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
@@ -79,7 +79,7 @@ func DepartmentUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req protos.Department
-	if err := core.ReadJSONBodyFromRequest(r, &req, 2048); err != nil {
+	if err := core.ReadJSONBodyFromRequest(r, &req, 4096); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
@@ -109,7 +109,7 @@ func DepartmentUpdateConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req protos.KvReq
-	if err := core.ReadJSONBodyFromRequest(r, &req, 2048); err != nil {
+	if err := core.ReadJSONBodyFromRequest(r, &req, 4096); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}

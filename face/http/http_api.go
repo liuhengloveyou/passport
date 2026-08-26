@@ -292,7 +292,13 @@ func AccessFilter(r *http.Request) bool {
 			logger.Sugar().Errorf("passport http api no access: %v %v\n", r.Method, r.URL)
 			return false
 		}
-		logger.Sugar().Infof("passport http api access: %v %v %v\n", r.Method, r.URL, access)
+		if !access {
+			roles := accessctl.GetRoleForUserInDomain(sessUser.UID, sessUser.TenantID, orgID)
+			logger.Sugar().Infof("passport http api deny: method=%v url=%v uid=%v tenant=%v org=%v obj=%v act=%v roles=%v\n",
+				r.Method, r.URL, sessUser.UID, sessUser.TenantID, orgID, obj, r.Method, roles)
+		} else {
+			logger.Sugar().Infoln("passport http api access: ", r.Method, r.URL, sessUser.UID, sessUser.TenantID, orgID, obj, r.Method, access)
+		}
 
 		return access
 	}
