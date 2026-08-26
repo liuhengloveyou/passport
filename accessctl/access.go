@@ -212,7 +212,3 @@ func genUserByUID(uid uint64) string {
 func Domain(tenantID, orgID uint64) string {
 	return fmt.Sprintf("tenant-%v-org-%v", tenantID, orgID)
 }
-
-func LegacyTenantDomain(tenantID uint64) string {
-	return fmt.Sprintf("tenant-%v", tenantID)
-}

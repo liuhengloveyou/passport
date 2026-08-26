@@ -289,12 +289,3 @@ func UserCountByOrg(tenantID, orgID uint64, nickname string, uids []uint64) (uin
 	}
 	return uint64(count), nil
 }
-
-func DepartmentAssignOrphan(tenantID, orgID uint64) error {
-	if tenantID == 0 || orgID == 0 {
-		return common.ErrParam
-	}
-	_, err := common.DB.Exec(context.Background(),
-		`UPDATE departments SET org_id = $1 WHERE tenant_id = $2 AND org_id = 0`, orgID, tenantID)
-	return err
-}

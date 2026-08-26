@@ -88,25 +88,6 @@ func CopyPolicies(fromDomain, toDomain string) error {
 	return nil
 }
 
-func CopyGrouping(fromDomain, toDomain string) error {
-	if enforcer == nil || fromDomain == "" || toDomain == "" || fromDomain == toDomain {
-		return nil
-	}
-	gs, err := enforcer.GetFilteredGroupingPolicy(2, fromDomain)
-	if err != nil {
-		return err
-	}
-	for _, g := range gs {
-		if len(g) < 2 || g[0] == "" || g[1] == "" {
-			continue
-		}
-		if _, err = enforcer.AddRoleForUserInDomain(g[0], g[1], toDomain); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func RemoveDomain(domain string) error {
 	if enforcer == nil || domain == "" {
 		return nil

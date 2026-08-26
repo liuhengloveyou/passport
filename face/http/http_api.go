@@ -74,7 +74,7 @@ func init() {
 		"tenant/add":                  {Handler: faceTenant.Add, NeedLogin: true},
 		"tenant/user/add":             {Handler: faceTenant.UserAdd, NeedLogin: true, NeedAccess: true},
 		"tenant/delUser":              {Handler: faceTenant.UserDel, NeedLogin: true, NeedAccess: true},
-		"tenant/getUsers":             {Handler: faceTenant.UserGet, NeedLogin: true, NeedAccess: true},
+		"tenant/getUsers":             {Handler: faceTenant.UserGet, NeedLogin: true, NeedAccess: false},
 		"tenant/userDisableByUID":     {Handler: faceTenant.UserDisableByUID, NeedLogin: true, NeedAccess: true},
 		"tenant/userModifyExtInfo":    {Handler: faceTenant.UserModifyExtInfo, NeedLogin: true, NeedAccess: true},
 		"tenant/modifyUserPassword":   {Handler: faceTenant.ModifyUserPassword, NeedLogin: true, NeedAccess: true},

@@ -309,11 +309,12 @@ func createDepartmentsTable(ctx context.Context, db database.DB, dialect databas
 			parent_id BIGINT NOT NULL DEFAULT 0,
 			uid BIGINT NOT NULL,
 			tenant_id BIGINT NOT NULL,
+			org_id BIGINT NOT NULL DEFAULT 0,
 			create_time %s NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			update_time %s NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			name VARCHAR(16) NOT NULL,
 			config %s,
-			UNIQUE (tenant_id, name)
+			UNIQUE (tenant_id, org_id, name)
 		)`, autoIncrement, primaryKey, timestampType, timestampType, jsonType)
 
 	if _, err := db.Exec(ctx, sql); err != nil {
@@ -325,6 +326,7 @@ func createDepartmentsTable(ctx context.Context, db database.DB, dialect databas
 		"CREATE INDEX IF NOT EXISTS idx_departments_tenant_id ON departments(tenant_id)",
 		"CREATE INDEX IF NOT EXISTS idx_departments_parent_id ON departments(parent_id)",
 		"CREATE INDEX IF NOT EXISTS idx_departments_uid ON departments(uid)",
+		"CREATE INDEX IF NOT EXISTS idx_departments_org_id ON departments(org_id)",
 	}
 	for _, idxSQL := range indexes {
 		if _, err := db.Exec(ctx, idxSQL); err != nil {
@@ -493,44 +495,8 @@ func migrateOrgSchema(ctx context.Context, db database.DB, dialect database.Dial
 		return err
 	}
 
-	if _, err := db.Exec(ctx, "ALTER TABLE departments ADD COLUMN IF NOT EXISTS org_id BIGINT NOT NULL DEFAULT 0"); err != nil {
+	if _, err := db.Exec(ctx, `CREATE UNIQUE INDEX IF NOT EXISTS organizations_tenant_id_name_key ON organizations (tenant_id, name)`); err != nil {
 		return err
-	}
-	if _, err := db.Exec(ctx, "CREATE INDEX IF NOT EXISTS idx_departments_org_id ON departments(org_id)"); err != nil {
-		return err
-	}
-	if db.DriverType() == database.DriverPostgreSQL {
-		_, _ = db.Exec(ctx, "ALTER TABLE departments DROP CONSTRAINT IF EXISTS departments_tenant_id_name_key")
-		if _, err := db.Exec(ctx, "CREATE UNIQUE INDEX IF NOT EXISTS departments_tenant_id_org_id_name_key ON departments (tenant_id, org_id, name)"); err != nil {
-			return err
-		}
-	}
-
-	// 同租户同名只留最早一条，再加唯一索引。
-	for _, sql := range []string{
-		`DELETE FROM org_members WHERE org_id IN (
-			SELECT id FROM (
-				SELECT id, ROW_NUMBER() OVER (PARTITION BY tenant_id, name ORDER BY id) AS rn
-				FROM organizations
-			) t WHERE rn > 1
-		)`,
-		`DELETE FROM departments WHERE org_id IN (
-			SELECT id FROM (
-				SELECT id, ROW_NUMBER() OVER (PARTITION BY tenant_id, name ORDER BY id) AS rn
-				FROM organizations
-			) t WHERE rn > 1
-		)`,
-		`DELETE FROM organizations WHERE id IN (
-			SELECT id FROM (
-				SELECT id, ROW_NUMBER() OVER (PARTITION BY tenant_id, name ORDER BY id) AS rn
-				FROM organizations
-			) t WHERE rn > 1
-		)`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS organizations_tenant_id_name_key ON organizations (tenant_id, name)`,
-	} {
-		if _, err := db.Exec(ctx, sql); err != nil {
-			return err
-		}
 	}
 	return nil
 }

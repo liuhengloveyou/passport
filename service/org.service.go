@@ -51,15 +51,11 @@ func OrgCreate(tenantID uint64, name string) (uint64, error) {
 		}
 	}
 
-	fromDomain := accessctl.LegacyTenantDomain(tenantID)
-	for i := range existing {
-		if existing[i].ID > 0 {
-			fromDomain = accessctl.Domain(tenantID, existing[i].ID)
-			break
+	if len(existing) > 0 && existing[0].ID > 0 {
+		fromDomain := accessctl.Domain(tenantID, existing[0].ID)
+		if err = accessctl.CopyPolicies(fromDomain, accessctl.Domain(tenantID, id)); err != nil {
+			common.Logger.Sugar().Warnf("OrgCreate copy policy ERR: %v", err)
 		}
-	}
-	if err = accessctl.CopyPolicies(fromDomain, accessctl.Domain(tenantID, id)); err != nil {
-		common.Logger.Sugar().Warnf("OrgCreate copy policy ERR: %v", err)
 	}
 	return id, nil
 }
