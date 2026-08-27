@@ -5,8 +5,10 @@ import (
 	"time"
 
 	cache "github.com/liuhengloveyou/passport/v4/cache"
+	"github.com/liuhengloveyou/passport/v4/common"
 
 	"github.com/liuhengloveyou/go-errors"
+	"go.uber.org/zap"
 )
 
 var (
@@ -52,7 +54,11 @@ func Init(name string, config map[string]interface{}) error {
 	if f, ok := smsFactoryByName[name]; ok {
 		defaultSms = f(config)
 	} else {
-		return ErrSmsExist
+		return ErrSmsDriver
+	}
+
+	if defaultSms == nil {
+		return ErrSmsNotInit
 	}
 
 	if defaultSms != nil {
@@ -99,22 +105,26 @@ func SendUserAddSms(phoneNumber string, aliveSecond int64) (code string, err err
 
 func SendUserLoginSms(phoneNumber string, aliveSecond int64) (code string, err error) {
 	if defaultSms == nil {
+		common.Logger.Error("SendUserLoginSms: defaultSms is nil")
 		return "", ErrSmsNotInit
 	}
 
 	if codeCache.TTL(phoneNumber) >= 0 {
+		common.Logger.Error("SendUserLoginSms: codeCache.TTL(phoneNumber) >= 0")
 		return "", ErrSmsExist
 	}
 	if aliveSecond == 0 {
 		aliveSecond = 60
 	}
 
-	code, err = defaultSms.SendUserAddSms(phoneNumber, aliveSecond)
+	code, err = defaultSms.SendUserLoginSms(phoneNumber, aliveSecond)
 	if err != nil {
-		return
-	} else {
-		codeCache.Set(phoneNumber, code, time.Now().Unix()+aliveSecond)
+		common.Logger.Error("SendUserLoginSms: SendUserLoginSms error", zap.Error(err))
+		return "", err
 	}
+
+	common.Logger.Info("SendUserLoginSms: SendUserLoginSms success")
+	codeCache.Set(phoneNumber, code, time.Now().Unix()+aliveSecond)
 
 	return
 }
@@ -133,10 +143,12 @@ func SendGetBackPwdSms(phoneNumber string, aliveSecond int64) (code string, err 
 
 	code, err = defaultSms.SendGetBackPwdSms(phoneNumber, aliveSecond)
 	if err != nil {
-		return
-	} else {
-		codeCache.Set(phoneNumber, code, time.Now().Unix()+aliveSecond)
+		common.Logger.Error("SendGetBackPwdSms: SendGetBackPwdSms error", zap.Error(err))
+		return "", err
 	}
+
+	common.Logger.Info("SendGetBackPwdSms: SendGetBackPwdSms success")
+	codeCache.Set(phoneNumber, code, time.Now().Unix()+aliveSecond)
 
 	return
 }

@@ -167,7 +167,7 @@ func (p *SmsTencentcloud) sendSms(phoneNumber []string, userSession string, Temp
 	request.TemplateId = common.StringPtr(TemplateId)
 	/* 下发手机号码，采用 E.164 标准，+[国家或地区码][手机号]
 	 * 示例如：+8613711112222， 其中前面有一个+号 ，86为国家码，13711112222为手机号，最多不要超过200个手机号*/
-	request.PhoneNumberSet = common.StringPtrs(phoneNumber)
+	request.PhoneNumberSet = common.StringPtrs(normalizeTencentPhones(phoneNumber))
 
 	// 通过client对象调用想要访问的接口，需要传入请求对象
 	response, err := client.SendSms(request)
@@ -177,7 +177,11 @@ func (p *SmsTencentcloud) sendSms(phoneNumber []string, userSession string, Temp
 	}
 	// 非SDK异常，直接失败。实际代码中可以加入其他的处理。
 	if err != nil {
-		panic(err)
+		return err
+	}
+
+	if len(response.Response.SendStatusSet) == 0 {
+		return fmt.Errorf("tencent sms: empty SendStatusSet")
 	}
 
 	if response.Response.SendStatusSet[0].Code != nil && *response.Response.SendStatusSet[0].Code != "Ok" {
@@ -193,4 +197,16 @@ func (p *SmsTencentcloud) sendSms(phoneNumber []string, userSession string, Temp
 	}
 
 	return nil
+}
+
+func normalizeTencentPhones(phones []string) []string {
+	out := make([]string, len(phones))
+	for i, p := range phones {
+		if len(p) == 11 && p[0] == '1' {
+			out[i] = "+86" + p
+		} else {
+			out[i] = p
+		}
+	}
+	return out
 }

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	gocommon "github.com/liuhengloveyou/go-common"
-
 	"github.com/liuhengloveyou/passport/v4/accessctl"
 	"github.com/liuhengloveyou/passport/v4/common"
 	"github.com/liuhengloveyou/passport/v4/dao"
@@ -17,14 +15,14 @@ const defaultRBACModel = "rbac_with_domains_model.conf"
 
 // InitDatabaseEnv 供 CLI -init 使用：确保配置与日志就绪后执行 InitSystemEnv。
 func InitDatabaseEnv() error {
-	if common.ServConfig.DBDriver == "" || common.ServConfig.DBDSN == "" {
-		configPath := os.Getenv("PASSPORT_CONFIG")
-		if configPath == "" {
-			configPath = "./passport.conf.yaml"
-		}
+	configPath := os.Getenv("PASSPORT_CONFIG")
+	if configPath == "" {
+		configPath = "./passport.conf.yaml"
+	}
 
+	if common.ServConfig.SessionKey == "" {
 		fmt.Printf("尝试从配置文件加载: %s\n", configPath)
-		if err := gocommon.LoadYamlConfig(configPath, &common.ServConfig); err != nil {
+		if err := InitFromConfig(configPath); err != nil {
 			return fmt.Errorf("加载配置文件失败: %v\n请使用 -passport 参数指定配置文件路径，或设置 PASSPORT_CONFIG 环境变量", err)
 		}
 	}
@@ -42,7 +40,7 @@ func InitDatabaseEnv() error {
 		if logLevel == "" {
 			logLevel = "info"
 		}
-		if err := common.InitLog(logDir, logLevel); err != nil {
+		if err := InitLog(logDir, logLevel); err != nil {
 			fmt.Printf("警告: 初始化日志失败: %v\n", err)
 		}
 	}
@@ -56,7 +54,7 @@ func InitDatabaseEnv() error {
 }
 
 // InitSystemEnv 初始化 passport 库表结构、写入 root 管理员/租户，并绑定 root 角色。
-// 供 passport 自身 -init 以及宿主项目（如 struct-ocr）复用。
+// 供 passport -init 以及宿主项目（如 struct-ocr）复用。
 func InitSystemEnv(options *protos.OptionStruct) error {
 	return InitSystemEnvWithRBAC(options, defaultRBACModel)
 }
@@ -73,18 +71,16 @@ func InitSystemEnvWithRBAC(options *protos.OptionStruct, rbacModel string) error
 		rbacModel = defaultRBACModel
 	}
 
-	// 先创建目标库（如 club-passport），再连库建表
 	if err := common.EnsureDatabase(options.DBDriver, options.DBDSN); err != nil {
 		return fmt.Errorf("确保 passport 数据库存在失败: %w", err)
 	}
 
 	if common.DB == nil {
-		if err := common.InitDBWithDriver(options.DBDriver, options.DBDSN); err != nil {
+		if err := InitDBWithDriver(options.DBDriver, options.DBDSN); err != nil {
 			return fmt.Errorf("初始化 passport DB 失败: %w", err)
 		}
 	}
 
-	// PostgreSQL 表已在 EnsureDatabase/InitDBTable 中创建；sqlite 等其它驱动走 dao.Init
 	if options.DBDriver != "postgres" {
 		if err := dao.Init(options); err != nil {
 			return fmt.Errorf("初始化数据库表结构失败: %w", err)

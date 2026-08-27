@@ -9,6 +9,7 @@ import (
 	"github.com/liuhengloveyou/passport/v4/face/core"
 	"github.com/liuhengloveyou/passport/v4/protos"
 	servicesms "github.com/liuhengloveyou/passport/v4/sms"
+	"go.uber.org/zap"
 )
 
 // SendUserAddSmsCode 发送用户注册验证码。
@@ -34,16 +35,21 @@ func SendUserLoginSms(w http.ResponseWriter, r *http.Request) {
 	req := &protos.SmsReq{}
 	if err := core.ReadJSONBodyFromRequest(r, req, 1024); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		common.Logger.Error("SendUserLoginSms: ReadJSONBodyFromRequest error", zap.Error(err))
 		return
 	}
 	if req.Cellphone == "" {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		common.Logger.Error("SendUserLoginSms: Cellphone is empty")
 		return
 	}
 	if _, err := servicesms.SendUserLoginSms(req.Cellphone, req.AliveSec); err != nil {
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
+		common.Logger.Error("SendUserLoginSms: SendUserLoginSms error", zap.Error(err))
 		return
 	}
+	common.Logger.Info("SendUserLoginSms: SendUserLoginSms success")
+
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
 }
 

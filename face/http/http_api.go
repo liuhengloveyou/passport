@@ -10,6 +10,7 @@ import (
 
 	_ "net/http/pprof"
 
+	passport "github.com/liuhengloveyou/passport/v4"
 	"github.com/liuhengloveyou/passport/v4/accessctl"
 	"github.com/liuhengloveyou/passport/v4/common"
 	faceAccess "github.com/liuhengloveyou/passport/v4/face/access"
@@ -119,10 +120,8 @@ func init() {
 }
 
 func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
-	if options != nil {
-		if err := common.InitWithOption(options); err != nil {
-			panic(err)
-		}
+	if err := passport.EnsureEnv(options); err != nil {
+		panic(err)
 	}
 	// configJSON, _ := json.MarshalIndent(common.ServConfig, "", "  ")
 	// fmt.Printf("InitAndRunHttpApi:\n%s\n", string(configJSON))
