@@ -83,6 +83,22 @@ func RemoveRoleForUser(w http.ResponseWriter, r *http.Request) {
 	gocommon.HttpJsonErr(w, http.StatusOK, common.ErrOK)
 }
 
+func roleStructsForValues(tenantID uint64, roles []string) []protos.RoleStruct {
+	rolesConfs := service.TenantGetRole(tenantID)
+	titleByValue := make(map[string]string, len(rolesConfs))
+	for _, roleConf := range rolesConfs {
+		titleByValue[roleConf.RoleValue] = roleConf.RoleTitle
+	}
+	rst := make([]protos.RoleStruct, len(roles))
+	for i, role := range roles {
+		rst[i] = protos.RoleStruct{
+			RoleValue: role,
+			RoleTitle: titleByValue[role],
+		}
+	}
+	return rst
+}
+
 func GetRolesForMe(w http.ResponseWriter, r *http.Request) {
 	sessionUser := core.GetSessionUser(r)
 	if sessionUser.UID <= 0 || sessionUser.TenantID <= 0 {
@@ -94,18 +110,8 @@ func GetRolesForMe(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpErr(w, http.StatusOK, 0, []protos.RoleStruct{})
 		return
 	}
-	roles := accessctl.GetRoleForUserInDomain(sessionUser.UID, sessionUser.TenantID, orgID)
-	rst := make([]protos.RoleStruct, len(roles))
-	rolesConfs := service.TenantGetRole(sessionUser.TenantID)
-	for i, role := range roles {
-		rst[i].RoleValue = role
-		for _, roleConf := range rolesConfs {
-			if role == roleConf.RoleValue {
-				rst[i].RoleTitle = roleConf.RoleTitle
-			}
-		}
-	}
-	gocommon.HttpErr(w, http.StatusOK, 0, rst)
+	roles := accessctl.EffectiveRolesForUser(sessionUser.UID, sessionUser.TenantID, orgID)
+	gocommon.HttpErr(w, http.StatusOK, 0, roleStructsForValues(sessionUser.TenantID, roles))
 }
 
 func GetRolesForUser(w http.ResponseWriter, r *http.Request) {
@@ -118,18 +124,22 @@ func GetRolesForUser(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
 		return
 	}
-	roles := accessctl.GetRoleForUserInDomain(iuid, sessionUser.TenantID, orgID)
-	rst := make([]protos.RoleStruct, len(roles))
-	rolesConfs := service.TenantGetRole(sessionUser.TenantID)
-	for i, role := range roles {
-		rst[i].RoleValue = role
-		for _, roleConf := range rolesConfs {
-			if role == roleConf.RoleValue {
-				rst[i].RoleTitle = roleConf.RoleTitle
-			}
-		}
+	roles := accessctl.EffectiveRolesForUser(iuid, sessionUser.TenantID, orgID)
+	gocommon.HttpErr(w, http.StatusOK, 0, roleStructsForValues(sessionUser.TenantID, roles))
+}
+
+func GetDirectRolesForUser(w http.ResponseWriter, r *http.Request) {
+	sessionUser, orgID, ok := sessionOrg(w, r)
+	if !ok {
+		return
 	}
-	gocommon.HttpErr(w, http.StatusOK, 0, rst)
+	iuid, _ := strconv.ParseUint(r.FormValue("uid"), 10, 64)
+	if iuid <= 0 {
+		gocommon.HttpJsonErr(w, http.StatusOK, common.ErrParam)
+		return
+	}
+	roles := accessctl.DirectRolesForUser(iuid, sessionUser.TenantID, orgID)
+	gocommon.HttpErr(w, http.StatusOK, 0, roleStructsForValues(sessionUser.TenantID, roles))
 }
 
 func GetUsersForRole(w http.ResponseWriter, r *http.Request) {

@@ -133,7 +133,7 @@ func GetPolicyForUser(w http.ResponseWriter, r *http.Request) {
 		gocommon.HttpErr(w, http.StatusOK, 0, nil)
 		return
 	}
-	roles := accessctl.GetRoleForUserInDomain(sessionUser.UID, sessionUser.TenantID, orgID)
+	roles := accessctl.EffectiveRolesForUser(sessionUser.UID, sessionUser.TenantID, orgID)
 	if len(roles) == 0 {
 		gocommon.HttpErr(w, http.StatusOK, 0, nil)
 		return

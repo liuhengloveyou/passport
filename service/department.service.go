@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/liuhengloveyou/passport/v4/accessctl"
 	"github.com/liuhengloveyou/passport/v4/common"
 	"github.com/liuhengloveyou/passport/v4/dao"
 	"github.com/liuhengloveyou/passport/v4/protos"
@@ -30,6 +31,21 @@ func DepartmentDelete(id, tenantID uint64) (e error) {
 	defer func() {
 		deparmentCache.Delete(fmt.Sprintf("%d/%d", tenantID, id))
 	}()
+
+	owned, findErr := DepartmentFind(id, tenantID, 0, 0, 0)
+	if findErr != nil || len(owned) != 1 {
+		if findErr != nil {
+			common.Logger.Sugar().Errorf("DepartmentDelete find ERR: dep=%d err=%v", id, findErr)
+			return common.ErrService
+		}
+		return common.ErrNull
+	}
+	if owned[0].OrgID > 0 {
+		if cleanErr := accessctl.CleanupDepCasbinPolicies(id, tenantID, owned[0].OrgID); cleanErr != nil {
+			common.Logger.Sugar().Errorf("DepartmentDelete CleanupDepCasbinPolicies ERR: dep=%d err=%v", id, cleanErr)
+			return cleanErr
+		}
+	}
 
 	rr, err := dao.DepartmentDelete(id, tenantID)
 	if err != nil {
@@ -139,4 +155,35 @@ func DepartmentUpdateConfig(id, currUid, currTenantID uint64, k string, v interf
 	}
 
 	return nil
+}
+
+// DepartmentSyncMemberLinks 为部门 ext.deps 中的成员补齐 Casbin 继承关联
+func DepartmentSyncMemberLinks(depID, tenantID, orgID uint64) (success, failed int, err error) {
+	if depID == 0 || tenantID == 0 || orgID == 0 {
+		return 0, 0, common.ErrParam
+	}
+	users, err := dao.UserQueryByOrg(tenantID, orgID, 0, 0, "", nil)
+	if err != nil {
+		return 0, 0, common.ErrService
+	}
+	for i := range users {
+		inDep := false
+		for _, id := range parseUint64Slice(users[i].Ext[protos.DepartmentExtKey]) {
+			if id == depID {
+				inDep = true
+				break
+			}
+		}
+		if !inDep {
+			continue
+		}
+		if e := accessctl.JoinDepForUser(users[i].UID, depID, tenantID, orgID); e != nil {
+			common.Logger.Sugar().Warnf("DepartmentSyncMemberLinks ERR: uid=%d dep=%d err=%v",
+				users[i].UID, depID, e)
+			failed++
+			continue
+		}
+		success++
+	}
+	return success, failed, nil
 }

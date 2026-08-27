@@ -62,6 +62,7 @@ func init() {
 		"access/removeRoleForUser":    {Handler: faceAccess.RemoveRoleForUser, NeedLogin: true, NeedAccess: true},
 		"access/getRolesForMe":        {Handler: faceAccess.GetRolesForMe, NeedLogin: true},
 		"access/getRolesForUser":      {Handler: faceAccess.GetRolesForUser, NeedLogin: true, NeedAccess: true},
+		"access/getDirectRolesForUser": {Handler: faceAccess.GetDirectRolesForUser, NeedLogin: true, NeedAccess: true},
 		"access/getUsersForRole":      {Handler: faceAccess.GetUsersForRole, NeedLogin: true, NeedAccess: true},
 		"access/addPolicyToRole":      {Handler: faceAccess.AddPolicyToRole, NeedLogin: true, NeedAccess: true},
 		"access/removePolicyFromRole": {Handler: faceAccess.RemovePolicyFromRole, NeedLogin: true, NeedAccess: true},
@@ -91,6 +92,11 @@ func init() {
 		"tenant/department/update":    {Handler: faceTenant.DepartmentUpdate, NeedLogin: true, NeedAccess: true},
 		"tenant/department/updatecfg": {Handler: faceTenant.DepartmentUpdateConfig, NeedLogin: true, NeedAccess: true},
 		"tenant/department/list":      {Handler: faceTenant.DepartmentList, NeedLogin: true},
+		// 部门角色继承（Casbin g 策略链式继承）
+		"tenant/department/getRoles":    {Handler: faceTenant.DepartmentGetRoles, NeedLogin: true, NeedAccess: true},
+		"tenant/department/setRoles":    {Handler: faceTenant.DepartmentSetRoles, NeedLogin: true, NeedAccess: true},
+		"tenant/department/joinUsers":   {Handler: faceTenant.DepartmentJoinUsers, NeedLogin: true, NeedAccess: true},
+		"tenant/department/leaveUser":   {Handler: faceTenant.DepartmentLeaveUser, NeedLogin: true, NeedAccess: true},
 
 		// SAAS平台管理员接口
 		"admin/tenant/new": {Handler: faceAdmin.AdminTenantNew, NeedLogin: true, NeedAccess: false},

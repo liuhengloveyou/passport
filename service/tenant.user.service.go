@@ -67,8 +67,8 @@ func TenantUserAdd(uid, currTenantID, orgID uint64, depIds []uint64, roles []str
 	}
 
 	if e = TenantUserSetDepartment(uid, currTenantID, orgID, depIds); e != nil {
-		common.Logger.Sugar().Warnf("TenantUserAdd TenantUserSetDepartment ERR: %v", e)
-		e = nil
+		common.Logger.Sugar().Errorf("TenantUserAdd TenantUserSetDepartment ERR: %v", e)
+		return e
 	}
 
 	if e = TenantUserDisabledService(uid, currTenantID, disable); e != nil {
@@ -236,6 +236,12 @@ func TenantUserSetDepartment(uid, tenantId, orgID uint64, departmentIds []uint64
 		if id > 0 {
 			kept = append(kept, id)
 		}
+	}
+
+	// 同步 Casbin 部门关联：移除本 org 旧部门、加入新部门
+	if err := accessctl.SyncUserDepsInOrg(uid, tenantId, orgID, departmentIds); err != nil {
+		common.Logger.Sugar().Errorf("TenantUserSetDepartment SyncUserDepsInOrg ERR: uid=%d deps=%v err=%v", uid, departmentIds, err)
+		return err
 	}
 
 	if len(kept) == 0 {

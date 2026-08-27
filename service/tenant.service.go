@@ -255,44 +255,39 @@ func TenantUpdateConfiguration(tenantId uint64, data map[string]interface{}) err
 	return dao.TenantUpdateConfiguration(tenant)
 }
 
-// getTenantUserRoles 获取租户内用户角色并补全角色标题信息。
+// getTenantUserRoles 获取租户内用户生效角色（含部门继承）并补全角色标题。
 func getTenantUserRoles(uid, tenantId, orgID uint64) (roles []protos.RoleStruct, err error) {
-	tenant, err := getTenantByIDCached(tenantId) // 取tenant里的角色字典
+	tenant, err := getTenantByIDCached(tenantId)
 	if err != nil {
 		common.Logger.Sugar().Errorf("getTenantUserRole db ERR: %v\n", err)
 		return nil, common.ErrService
 	}
-	if nil == tenant {
+	if tenant == nil {
 		common.Logger.Sugar().Errorf("getTenantUserRole db nil\n")
 		return nil, common.ErrTenantNotFound
 	}
 
-	common.Logger.Sugar().Debugf("tenant: %v\n", tenant)
-
-	roleVals := accessctl.GetRoleForUserInDomain(uid, tenantId, orgID)
+	roleVals := accessctl.EffectiveRolesForUser(uid, tenantId, orgID)
 	if len(roleVals) == 0 {
-		common.Logger.Sugar().Errorf("getTenantUserRole roles nil\n")
 		return nil, nil
 	}
 
-	roles = make([]protos.RoleStruct, 0)
-	for i := 0; i < len(roleVals); i++ {
-		var roleOne *protos.RoleStruct = nil
-		for j := 0; j < len(tenant.Configuration.Roles); j++ {
+	roles = make([]protos.RoleStruct, 0, len(roleVals))
+	for i := range roleVals {
+		var roleOne *protos.RoleStruct
+		for j := range tenant.Configuration.Roles {
 			if tenant.Configuration.Roles[j].RoleValue == roleVals[i] {
 				roleOne = &protos.RoleStruct{
 					RoleTitle: tenant.Configuration.Roles[j].RoleTitle,
 					RoleValue: roleVals[i],
 				}
+				break
 			}
 		}
-
 		if roleOne != nil {
 			roles = append(roles, *roleOne)
 		} else {
-			// 如果角色字典已经删除
-			common.Logger.Sugar().Warnf("getTenantUserRoles DeleteRoleForUserInDomain: %v %v %v\n", uid, tenantId, roleVals[i])
-			accessctl.DeleteRoleForUserInDomain(uid, tenantId, orgID, roleVals[i])
+			common.Logger.Sugar().Warnf("getTenantUserRoles unknown effective role: uid=%d role=%s", uid, roleVals[i])
 		}
 	}
 
