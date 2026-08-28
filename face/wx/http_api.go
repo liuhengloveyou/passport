@@ -129,7 +129,7 @@ func WxOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		core.Logger().Warn("WxOAuthCallback GetUserInfo skip", zap.String("openid", openid), zap.Error(uerr))
 	}
 	loginReq.Ext = protos.MapStruct{"kind": "wechat", "wechat": 1}
-	one, err := service.UserLoginByWeixin(loginReq)
+	one, err := service.UserLoginByOpenID(loginReq)
 	if err != nil || one == nil || !protos.IsRealUserUID(one.UID) {
 		uid := uint64(0)
 		if one != nil {
@@ -304,7 +304,7 @@ func WxMiniAppLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	loginReq := &protos.UserReq{WxOpenId: wxSession.OpenId}
 	loginReq.Ext = protos.MapStruct{"kind": "wechat", "wechat": 1}
-	one, err := service.UserLoginByWeixin(loginReq)
+	one, err := service.UserLoginByOpenID(loginReq)
 	if err != nil || one == nil || !protos.IsRealUserUID(one.UID) {
 		gocommon.HttpJsonErr(w, http.StatusOK, err)
 		return

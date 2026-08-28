@@ -151,8 +151,9 @@ func InitAndRunHttpApi(options *protos.OptionStruct) (handler http.Handler) {
 	http.HandleFunc("/usercenter/wx/login", faceWx.WxLogin)
 	http.HandleFunc("/usercenter/wx/oauth", faceWx.WxOAuthCallback)
 	http.HandleFunc("/usercenter/wx/mini/login", faceWx.WxMiniAppLogin)
-	// 支付宝：授权码登录（仅登录，支付留在业务服务）
+	// 支付宝：网页授权入口 + OAuth 回调（仅登录，支付留在业务服务）
 	http.HandleFunc("/usercenter/ali/login", faceAli.AliLogin)
+	http.HandleFunc("/usercenter/ali/oauth", faceAli.AliOAuthCallback)
 	http.Handle("/usercenter", handler)
 
 	if common.ServConfig.Addr != "" {

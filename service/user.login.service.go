@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/liuhengloveyou/passport/v4/common"
@@ -15,52 +16,61 @@ import (
 )
 
 /*
-微信公众号oauth2登录；用户不存在则自动注册为真实用户（无虚拟 UID=0 会话）。
+UserLoginByOpenID 微信 / 支付宝等渠道 OAuth 登录。
+身份键写入并查询 users.wx_openid（历史列名；支付宝 openId 也存此字段）。
+新用户昵称固定为 wx_{openid} / ali_{openid}，与 openid 一一对应，避免撞库重试。
 */
-func UserLoginByWeixin(req *protos.UserReq) (one *protos.User, e error) {
+func UserLoginByOpenID(req *protos.UserReq) (one *protos.User, e error) {
 	if req == nil || len(req.WxOpenId) == 0 {
 		return nil, common.ErrParam
 	}
 
 	userPreTreat(req)
+	kind := channelKindFromExt(req.Ext)
 
-	one, e = dao.UserQueryOne(req)
+	// 只按 openid 查
+	one, e = dao.UserQueryOne(&protos.UserReq{WxOpenId: req.WxOpenId})
 	if e != nil {
-		common.Logger.Error("db err: ", zap.Error(e), zap.Any("req", req))
+		common.Logger.Error("UserLoginByOpenID db err", zap.Error(e), zap.String("kind", kind), zap.Any("req", req))
 		return nil, common.ErrService
 	}
 
 	if one == nil {
-		nick := req.Nickname
-		if nick == "" {
-			oid := req.WxOpenId
-			if len(oid) > 8 {
-				oid = oid[len(oid)-8:]
-			}
-			nick = "用户" + oid
-		}
 		ins := &protos.UserReq{
-			WxOpenId: req.WxOpenId,
-			Nickname: nick,
-			Password: common.EncryPWD(req.WxOpenId),
+			WxOpenId:  req.WxOpenId,
+			Nickname:  channelAccountNick(kind, req.WxOpenId),
+			Password:  common.EncryPWD(req.WxOpenId),
 			AvatarURL: req.AvatarURL,
-			Gender:   req.Gender,
-			Ext:      req.Ext,
+			Gender:    req.Gender,
+			Ext:       req.Ext,
 		}
 		if ins.Ext == nil {
 			ins.Ext = protos.MapStruct{}
 		}
+		applyChannelExt(ins.Ext, kind)
+
 		id, ierr := dao.UserInsert(ins, nil)
 		if ierr != nil {
-			common.Logger.Error("UserLoginByWeixin auto register ERR: ", zap.Error(ierr), zap.Any("req", req))
+			common.Logger.Error("UserLoginByOpenID auto register ERR",
+				zap.Error(ierr), zap.String("kind", kind), zap.Any("req", req))
 			return nil, common.ErrService
 		}
 		one, e = dao.UserQueryByID(uint64(id))
 		if e != nil || one == nil {
-			common.Logger.Error("UserLoginByWeixin query after insert ERR: ", zap.Error(e))
+			common.Logger.Error("UserLoginByOpenID query after insert ERR", zap.Error(e), zap.String("kind", kind))
 			return nil, common.ErrService
 		}
-		common.Logger.Sugar().Infof("UserLoginByWeixin auto registered uid=%d openid=%s\n", one.UID, req.WxOpenId)
+		common.Logger.Sugar().Infof("UserLoginByOpenID registered uid=%d kind=%s openid=%s nick=%s\n",
+			one.UID, kind, req.WxOpenId, ins.Nickname)
+	} else {
+		if one.Ext == nil {
+			one.Ext = protos.MapStruct{}
+		}
+		applyChannelExt(one.Ext, kind)
+		if req.AvatarURL != "" && (one.AvatarURL == nil || one.AvatarURL.String == "") {
+			a := zero.StringFrom(req.AvatarURL)
+			one.AvatarURL = &a
+		}
 	}
 
 	disabled, ok := one.Ext["disabled"].(float64)
@@ -96,9 +106,68 @@ func UserLoginByWeixin(req *protos.UserReq) (one *protos.User, e error) {
 			one.Tenant.UpdateTime = nil
 		}
 	}
-	common.Logger.Sugar().Infof("UserLoginByWeixin: %#v\n", one)
+	common.Logger.Sugar().Infof("UserLoginByOpenID ok uid=%d kind=%s openid=%s\n", one.UID, kind, req.WxOpenId)
 
 	return
+}
+
+func channelKindFromExt(ext protos.MapStruct) string {
+	if ext == nil {
+		return "wechat"
+	}
+	if k, _ := ext["kind"].(string); k == "alipay" || k == "wechat" {
+		return k
+	}
+	if v, ok := ext["alipay"]; ok && truthyExt(v) {
+		return "alipay"
+	}
+	if v, ok := ext["wechat"]; ok && truthyExt(v) {
+		return "wechat"
+	}
+	return "wechat"
+}
+
+func truthyExt(v interface{}) bool {
+	switch t := v.(type) {
+	case bool:
+		return t
+	case float64:
+		return t != 0
+	case int:
+		return t != 0
+	case string:
+		return t == "1" || strings.EqualFold(t, "true")
+	default:
+		return false
+	}
+}
+
+func applyChannelExt(ext protos.MapStruct, kind string) {
+	if ext == nil {
+		return
+	}
+	ext["kind"] = kind
+	switch kind {
+	case "alipay":
+		ext["alipay"] = 1
+		ext["wechat"] = 0
+	default:
+		ext["wechat"] = 1
+		ext["alipay"] = 0
+	}
+}
+
+func channelAccountNick(kind, openID string) string {
+	prefix := "wx_"
+	if kind == "alipay" {
+		prefix = "ali_"
+	}
+	nick := prefix + openID
+	// users.nickname 最长 64
+	if len(nick) > 64 {
+		nick = nick[:64]
+	}
+	return nick
 }
 
 func UserLogin(user *protos.UserReq) (one *protos.User, e error) {
